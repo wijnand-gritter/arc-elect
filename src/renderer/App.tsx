@@ -19,8 +19,6 @@ export function App() {
     const startTime = Date.now();
     logger.info('App component mounted - START');
 
-
-
     useAppStore
       .getState()
       .loadTheme()
