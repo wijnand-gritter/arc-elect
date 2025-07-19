@@ -1,0 +1,929 @@
+---
+alwaysApply: true
+---
+
+# Testing Best Practices
+
+## Test Organization
+
+### File Structure
+
+- Place test files alongside source files or in dedicated test directories
+- Use descriptive test file names with `.test.ts` or `.spec.ts` suffix
+- Group related tests with `describe` blocks
+- Keep test files focused and single-purpose
+
+```typescript
+// ✅ Good: Test file organization
+// src/components/Button.test.tsx
+import { render, screen, fireEvent } from '@testing-library/react';
+import { Button } from './Button';
+
+describe('Button', () => {
+  it('renders with correct text', () => {
+    render(<Button>Click me</Button>);
+    expect(screen.getByRole('button', { name: 'Click me' })).toBeInTheDocument();
+  });
+
+  it('calls onClick when clicked', () => {
+    const handleClick = jest.fn();
+    render(<Button onClick={handleClick}>Click me</Button>);
+
+    fireEvent.click(screen.getByRole('button'));
+    expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+});
+```
+
+### Test Naming
+
+- Use descriptive test names that explain the behavior
+- Follow the pattern: "should [expected behavior] when [condition]"
+- Group related test cases logically
+- Use clear, readable test descriptions
+
+```typescript
+// ✅ Good: Descriptive test names
+describe('UserProfile', () => {
+  it('should display user name when user data is loaded', () => {
+    // Test implementation
+  });
+
+  it('should show loading spinner when user data is being fetched', () => {
+    // Test implementation
+  });
+
+  it('should display error message when user data fails to load', () => {
+    // Test implementation
+  });
+});
+```
+
+## Unit Testing
+
+### Component Testing
+
+- Test component behavior, not implementation details
+- Use React Testing Library for component testing
+- Test user interactions and accessibility
+- Mock external dependencies appropriately
+
+```typescript
+// ✅ Good: Component behavior testing
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { UserProfile } from './UserProfile';
+
+describe('UserProfile', () => {
+  it('should display user information when data is loaded', async () => {
+    const mockUser = { id: '1', name: 'John Doe', email: 'john@example.com' };
+    jest.spyOn(api, 'getUser').mockResolvedValue(mockUser);
+
+    render(<UserProfile userId="1" />);
+
+    await waitFor(() => {
+      expect(screen.getByText('John Doe')).toBeInTheDocument();
+      expect(screen.getByText('john@example.com')).toBeInTheDocument();
+    });
+  });
+
+  it('should handle form submission correctly', async () => {
+    const mockUpdateUser = jest.fn().mockResolvedValue({});
+    jest.spyOn(api, 'updateUser').mockImplementation(mockUpdateUser);
+
+    render(<UserProfile userId="1" />);
+
+    fireEvent.change(screen.getByLabelText('Name'), {
+      target: { value: 'Jane Doe' }
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(mockUpdateUser).toHaveBeenCalledWith('1', { name: 'Jane Doe' });
+    });
+  });
+});
+```
+
+### Hook Testing
+
+- Test custom hooks in isolation
+- Use `@testing-library/react-hooks` for hook testing
+- Test hook state changes and side effects
+- Mock dependencies appropriately
+
+```typescript
+// ✅ Good: Hook testing
+import { renderHook, act } from '@testing-library/react-hooks';
+import { useCounter } from './useCounter';
+
+describe('useCounter', () => {
+  it('should initialize with default value', () => {
+    const { result } = renderHook(() => useCounter());
+    expect(result.current.count).toBe(0);
+  });
+
+  it('should increment counter when increment is called', () => {
+    const { result } = renderHook(() => useCounter(5));
+
+    act(() => {
+      result.current.increment();
+    });
+
+    expect(result.current.count).toBe(6);
+  });
+
+  it('should reset counter when reset is called', () => {
+    const { result } = renderHook(() => useCounter(10));
+
+    act(() => {
+      result.current.increment();
+      result.current.reset();
+    });
+
+    expect(result.current.count).toBe(0);
+  });
+});
+```
+
+### Utility Function Testing
+
+- Test pure functions with various inputs
+- Test edge cases and error conditions
+- Use descriptive test data
+- Test function return values and side effects
+
+```typescript
+// ✅ Good: Utility function testing
+import { formatDate, validateEmail } from './utils';
+
+describe('formatDate', () => {
+  it('should format date correctly', () => {
+    const date = new Date('2023-01-15');
+    expect(formatDate(date)).toBe('15/01/2023');
+  });
+
+  it('should handle invalid date input', () => {
+    expect(formatDate(null)).toBe('Invalid date');
+    expect(formatDate(undefined)).toBe('Invalid date');
+  });
+});
+
+describe('validateEmail', () => {
+  it('should validate correct email addresses', () => {
+    expect(validateEmail('test@example.com')).toBe(true);
+    expect(validateEmail('user.name+tag@domain.co.uk')).toBe(true);
+  });
+
+  it('should reject invalid email addresses', () => {
+    expect(validateEmail('invalid-email')).toBe(false);
+    expect(validateEmail('test@')).toBe(false);
+    expect(validateEmail('@example.com')).toBe(false);
+  });
+});
+```
+
+## E2E Testing
+
+### Playwright Testing
+
+- Test user workflows, not implementation details
+- Use semantic selectors over CSS selectors
+- Handle async operations properly
+- Keep tests independent and isolated
+
+```typescript
+// ✅ Good: E2E test with Playwright
+import { test, expect } from '@playwright/test';
+
+test.describe('User Authentication', () => {
+  test('should allow user to log in successfully', async ({ page }) => {
+    await page.goto('/login');
+
+    await page.fill('[data-testid="email-input"]', 'user@example.com');
+    await page.fill('[data-testid="password-input"]', 'password123');
+    await page.click('[data-testid="login-button"]');
+
+    await expect(page).toHaveURL('/dashboard');
+    await expect(page.getByText('Welcome back')).toBeVisible();
+  });
+
+  test('should show error for invalid credentials', async ({ page }) => {
+    await page.goto('/login');
+
+    await page.fill('[data-testid="email-input"]', 'invalid@example.com');
+    await page.fill('[data-testid="password-input"]', 'wrongpassword');
+    await page.click('[data-testid="login-button"]');
+
+    await expect(page.getByText('Invalid credentials')).toBeVisible();
+  });
+});
+```
+
+### Page Object Pattern
+
+- Create page objects for reusable selectors and actions
+- Keep page objects focused and maintainable
+- Use descriptive method names
+- Implement proper error handling
+
+```typescript
+// ✅ Good: Page object pattern
+class LoginPage {
+  constructor(private page: Page) {}
+
+  async goto() {
+    await this.page.goto('/login');
+  }
+
+  async fillCredentials(email: string, password: string) {
+    await this.page.fill('[data-testid="email-input"]', email);
+    await this.page.fill('[data-testid="password-input"]', password);
+  }
+
+  async login() {
+    await this.page.click('[data-testid="login-button"]');
+  }
+
+  async expectErrorMessage(message: string) {
+    await expect(this.page.getByText(message)).toBeVisible();
+  }
+}
+
+test('should handle login workflow', async ({ page }) => {
+  const loginPage = new LoginPage(page);
+
+  await loginPage.goto();
+  await loginPage.fillCredentials('user@example.com', 'password123');
+  await loginPage.login();
+
+  await expect(page).toHaveURL('/dashboard');
+});
+```
+
+## Mocking and Stubbing
+
+### API Mocking
+
+- Mock external API calls in tests
+- Use consistent mocking patterns
+- Test both success and error scenarios
+- Clean up mocks after tests
+
+```typescript
+// ✅ Good: API mocking
+import { api } from './api';
+
+jest.mock('./api');
+
+describe('UserService', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should fetch user data successfully', async () => {
+    const mockUser = { id: '1', name: 'John Doe' };
+    (api.getUser as jest.Mock).mockResolvedValue(mockUser);
+
+    const result = await getUserService('1');
+
+    expect(result).toEqual(mockUser);
+    expect(api.getUser).toHaveBeenCalledWith('1');
+  });
+
+  it('should handle API errors', async () => {
+    const error = new Error('API Error');
+    (api.getUser as jest.Mock).mockRejectedValue(error);
+
+    await expect(getUserService('1')).rejects.toThrow('API Error');
+  });
+});
+```
+
+### Component Mocking
+
+- Mock child components when testing parent components
+- Use `jest.mock()` for module mocking
+- Mock complex dependencies
+- Test component integration points
+
+```typescript
+// ✅ Good: Component mocking
+jest.mock('./ChildComponent', () => ({
+  ChildComponent: ({ data, onAction }: any) => (
+    <div data-testid="child-component" onClick={() => onAction(data)}>
+      {data.name}
+    </div>
+  ),
+}));
+
+describe('ParentComponent', () => {
+  it('should render child component with correct props', () => {
+    const mockData = { id: '1', name: 'Test' };
+    const mockOnAction = jest.fn();
+
+    render(<ParentComponent data={mockData} onAction={mockOnAction} />);
+
+    const childComponent = screen.getByTestId('child-component');
+    expect(childComponent).toHaveTextContent('Test');
+  });
+});
+```
+
+## Test Data Management
+
+### Test Fixtures
+
+- Create reusable test data fixtures
+- Use factories for generating test data
+- Keep test data realistic and meaningful
+- Separate test data from test logic
+
+```typescript
+// ✅ Good: Test fixtures
+const createUser = (overrides: Partial<User> = {}): User => ({
+  id: '1',
+  name: 'John Doe',
+  email: 'john@example.com',
+  createdAt: new Date('2023-01-01'),
+  ...overrides,
+});
+
+const createMockApiResponse = <T>(data: T) => ({
+  success: true,
+  data,
+  timestamp: new Date().toISOString(),
+});
+
+describe('UserService', () => {
+  it('should process user data correctly', () => {
+    const user = createUser({ name: 'Jane Doe' });
+    const apiResponse = createMockApiResponse(user);
+
+    // Test implementation
+  });
+});
+```
+
+### Test Utilities
+
+- Create utility functions for common test operations
+- Implement helper functions for setup and teardown
+- Use custom matchers for complex assertions
+- Keep test utilities focused and reusable
+
+```typescript
+// ✅ Good: Test utilities
+export const renderWithProviders = (
+  ui: React.ReactElement,
+  options: RenderOptions = {}
+) => {
+  const AllTheProviders = ({ children }: { children: React.ReactNode }) => (
+    <QueryProvider>
+      <ThemeProvider>
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
+      </ThemeProvider>
+    </QueryProvider>
+  );
+
+  return render(ui, { wrapper: AllTheProviders, ...options });
+};
+
+export const waitForLoadingToFinish = () =>
+  waitFor(() => {
+    expect(screen.queryByTestId('loading-spinner')).not.toBeInTheDocument();
+  });
+```
+
+## Performance Testing
+
+### Test Performance
+
+- Keep tests fast and efficient
+- Use proper test isolation
+- Avoid unnecessary setup and teardown
+- Monitor test execution times
+
+### Memory Management
+
+- Clean up resources after tests
+- Avoid memory leaks in test code
+- Use proper cleanup in `afterEach` and `afterAll`
+- Monitor memory usage in long-running tests
+
+## Accessibility Testing
+
+### Accessibility Assertions
+
+- Test for proper ARIA attributes
+- Verify keyboard navigation
+- Check color contrast and focus management
+- Test with screen reader compatibility
+
+```typescript
+// ✅ Good: Accessibility testing
+import { axe, toHaveNoViolations } from 'jest-axe';
+
+expect.extend(toHaveNoViolations);
+
+describe('Button', () => {
+  it('should not have accessibility violations', async () => {
+    const { container } = render(<Button>Click me</Button>);
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  it('should be keyboard accessible', () => {
+    render(<Button>Click me</Button>);
+
+    const button = screen.getByRole('button');
+    button.focus();
+
+    expect(button).toHaveFocus();
+
+    fireEvent.keyDown(button, { key: 'Enter' });
+    // Test keyboard interaction
+  });
+});
+```
+
+## Continuous Integration
+
+### CI/CD Integration
+
+- Run tests in CI/CD pipeline
+- Use parallel test execution
+- Generate and publish test reports
+- Fail builds on test failures
+
+### Test Coverage
+
+- Maintain good test coverage
+- Focus on critical business logic
+- Use coverage reports to identify gaps
+- Set minimum coverage thresholds
+
+# Testing Best Practices
+
+## Test Organization
+
+### File Structure
+
+- Place test files alongside source files or in dedicated test directories
+- Use descriptive test file names with `.test.ts` or `.spec.ts` suffix
+- Group related tests with `describe` blocks
+- Keep test files focused and single-purpose
+
+```typescript
+// ✅ Good: Test file organization
+// src/components/Button.test.tsx
+import { render, screen, fireEvent } from '@testing-library/react';
+import { Button } from './Button';
+
+describe('Button', () => {
+  it('renders with correct text', () => {
+    render(<Button>Click me</Button>);
+    expect(screen.getByRole('button', { name: 'Click me' })).toBeInTheDocument();
+  });
+
+  it('calls onClick when clicked', () => {
+    const handleClick = jest.fn();
+    render(<Button onClick={handleClick}>Click me</Button>);
+
+    fireEvent.click(screen.getByRole('button'));
+    expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+});
+```
+
+### Test Naming
+
+- Use descriptive test names that explain the behavior
+- Follow the pattern: "should [expected behavior] when [condition]"
+- Group related test cases logically
+- Use clear, readable test descriptions
+
+```typescript
+// ✅ Good: Descriptive test names
+describe('UserProfile', () => {
+  it('should display user name when user data is loaded', () => {
+    // Test implementation
+  });
+
+  it('should show loading spinner when user data is being fetched', () => {
+    // Test implementation
+  });
+
+  it('should display error message when user data fails to load', () => {
+    // Test implementation
+  });
+});
+```
+
+## Unit Testing
+
+### Component Testing
+
+- Test component behavior, not implementation details
+- Use React Testing Library for component testing
+- Test user interactions and accessibility
+- Mock external dependencies appropriately
+
+```typescript
+// ✅ Good: Component behavior testing
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { UserProfile } from './UserProfile';
+
+describe('UserProfile', () => {
+  it('should display user information when data is loaded', async () => {
+    const mockUser = { id: '1', name: 'John Doe', email: 'john@example.com' };
+    jest.spyOn(api, 'getUser').mockResolvedValue(mockUser);
+
+    render(<UserProfile userId="1" />);
+
+    await waitFor(() => {
+      expect(screen.getByText('John Doe')).toBeInTheDocument();
+      expect(screen.getByText('john@example.com')).toBeInTheDocument();
+    });
+  });
+
+  it('should handle form submission correctly', async () => {
+    const mockUpdateUser = jest.fn().mockResolvedValue({});
+    jest.spyOn(api, 'updateUser').mockImplementation(mockUpdateUser);
+
+    render(<UserProfile userId="1" />);
+
+    fireEvent.change(screen.getByLabelText('Name'), {
+      target: { value: 'Jane Doe' }
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(mockUpdateUser).toHaveBeenCalledWith('1', { name: 'Jane Doe' });
+    });
+  });
+});
+```
+
+### Hook Testing
+
+- Test custom hooks in isolation
+- Use `@testing-library/react-hooks` for hook testing
+- Test hook state changes and side effects
+- Mock dependencies appropriately
+
+```typescript
+// ✅ Good: Hook testing
+import { renderHook, act } from '@testing-library/react-hooks';
+import { useCounter } from './useCounter';
+
+describe('useCounter', () => {
+  it('should initialize with default value', () => {
+    const { result } = renderHook(() => useCounter());
+    expect(result.current.count).toBe(0);
+  });
+
+  it('should increment counter when increment is called', () => {
+    const { result } = renderHook(() => useCounter(5));
+
+    act(() => {
+      result.current.increment();
+    });
+
+    expect(result.current.count).toBe(6);
+  });
+
+  it('should reset counter when reset is called', () => {
+    const { result } = renderHook(() => useCounter(10));
+
+    act(() => {
+      result.current.increment();
+      result.current.reset();
+    });
+
+    expect(result.current.count).toBe(0);
+  });
+});
+```
+
+### Utility Function Testing
+
+- Test pure functions with various inputs
+- Test edge cases and error conditions
+- Use descriptive test data
+- Test function return values and side effects
+
+```typescript
+// ✅ Good: Utility function testing
+import { formatDate, validateEmail } from './utils';
+
+describe('formatDate', () => {
+  it('should format date correctly', () => {
+    const date = new Date('2023-01-15');
+    expect(formatDate(date)).toBe('15/01/2023');
+  });
+
+  it('should handle invalid date input', () => {
+    expect(formatDate(null)).toBe('Invalid date');
+    expect(formatDate(undefined)).toBe('Invalid date');
+  });
+});
+
+describe('validateEmail', () => {
+  it('should validate correct email addresses', () => {
+    expect(validateEmail('test@example.com')).toBe(true);
+    expect(validateEmail('user.name+tag@domain.co.uk')).toBe(true);
+  });
+
+  it('should reject invalid email addresses', () => {
+    expect(validateEmail('invalid-email')).toBe(false);
+    expect(validateEmail('test@')).toBe(false);
+    expect(validateEmail('@example.com')).toBe(false);
+  });
+});
+```
+
+## E2E Testing
+
+### Playwright Testing
+
+- Test user workflows, not implementation details
+- Use semantic selectors over CSS selectors
+- Handle async operations properly
+- Keep tests independent and isolated
+
+```typescript
+// ✅ Good: E2E test with Playwright
+import { test, expect } from '@playwright/test';
+
+test.describe('User Authentication', () => {
+  test('should allow user to log in successfully', async ({ page }) => {
+    await page.goto('/login');
+
+    await page.fill('[data-testid="email-input"]', 'user@example.com');
+    await page.fill('[data-testid="password-input"]', 'password123');
+    await page.click('[data-testid="login-button"]');
+
+    await expect(page).toHaveURL('/dashboard');
+    await expect(page.getByText('Welcome back')).toBeVisible();
+  });
+
+  test('should show error for invalid credentials', async ({ page }) => {
+    await page.goto('/login');
+
+    await page.fill('[data-testid="email-input"]', 'invalid@example.com');
+    await page.fill('[data-testid="password-input"]', 'wrongpassword');
+    await page.click('[data-testid="login-button"]');
+
+    await expect(page.getByText('Invalid credentials')).toBeVisible();
+  });
+});
+```
+
+### Page Object Pattern
+
+- Create page objects for reusable selectors and actions
+- Keep page objects focused and maintainable
+- Use descriptive method names
+- Implement proper error handling
+
+```typescript
+// ✅ Good: Page object pattern
+class LoginPage {
+  constructor(private page: Page) {}
+
+  async goto() {
+    await this.page.goto('/login');
+  }
+
+  async fillCredentials(email: string, password: string) {
+    await this.page.fill('[data-testid="email-input"]', email);
+    await this.page.fill('[data-testid="password-input"]', password);
+  }
+
+  async login() {
+    await this.page.click('[data-testid="login-button"]');
+  }
+
+  async expectErrorMessage(message: string) {
+    await expect(this.page.getByText(message)).toBeVisible();
+  }
+}
+
+test('should handle login workflow', async ({ page }) => {
+  const loginPage = new LoginPage(page);
+
+  await loginPage.goto();
+  await loginPage.fillCredentials('user@example.com', 'password123');
+  await loginPage.login();
+
+  await expect(page).toHaveURL('/dashboard');
+});
+```
+
+## Mocking and Stubbing
+
+### API Mocking
+
+- Mock external API calls in tests
+- Use consistent mocking patterns
+- Test both success and error scenarios
+- Clean up mocks after tests
+
+```typescript
+// ✅ Good: API mocking
+import { api } from './api';
+
+jest.mock('./api');
+
+describe('UserService', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should fetch user data successfully', async () => {
+    const mockUser = { id: '1', name: 'John Doe' };
+    (api.getUser as jest.Mock).mockResolvedValue(mockUser);
+
+    const result = await getUserService('1');
+
+    expect(result).toEqual(mockUser);
+    expect(api.getUser).toHaveBeenCalledWith('1');
+  });
+
+  it('should handle API errors', async () => {
+    const error = new Error('API Error');
+    (api.getUser as jest.Mock).mockRejectedValue(error);
+
+    await expect(getUserService('1')).rejects.toThrow('API Error');
+  });
+});
+```
+
+### Component Mocking
+
+- Mock child components when testing parent components
+- Use `jest.mock()` for module mocking
+- Mock complex dependencies
+- Test component integration points
+
+```typescript
+// ✅ Good: Component mocking
+jest.mock('./ChildComponent', () => ({
+  ChildComponent: ({ data, onAction }: any) => (
+    <div data-testid="child-component" onClick={() => onAction(data)}>
+      {data.name}
+    </div>
+  ),
+}));
+
+describe('ParentComponent', () => {
+  it('should render child component with correct props', () => {
+    const mockData = { id: '1', name: 'Test' };
+    const mockOnAction = jest.fn();
+
+    render(<ParentComponent data={mockData} onAction={mockOnAction} />);
+
+    const childComponent = screen.getByTestId('child-component');
+    expect(childComponent).toHaveTextContent('Test');
+  });
+});
+```
+
+## Test Data Management
+
+### Test Fixtures
+
+- Create reusable test data fixtures
+- Use factories for generating test data
+- Keep test data realistic and meaningful
+- Separate test data from test logic
+
+```typescript
+// ✅ Good: Test fixtures
+const createUser = (overrides: Partial<User> = {}): User => ({
+  id: '1',
+  name: 'John Doe',
+  email: 'john@example.com',
+  createdAt: new Date('2023-01-01'),
+  ...overrides,
+});
+
+const createMockApiResponse = <T>(data: T) => ({
+  success: true,
+  data,
+  timestamp: new Date().toISOString(),
+});
+
+describe('UserService', () => {
+  it('should process user data correctly', () => {
+    const user = createUser({ name: 'Jane Doe' });
+    const apiResponse = createMockApiResponse(user);
+
+    // Test implementation
+  });
+});
+```
+
+### Test Utilities
+
+- Create utility functions for common test operations
+- Implement helper functions for setup and teardown
+- Use custom matchers for complex assertions
+- Keep test utilities focused and reusable
+
+```typescript
+// ✅ Good: Test utilities
+export const renderWithProviders = (
+  ui: React.ReactElement,
+  options: RenderOptions = {}
+) => {
+  const AllTheProviders = ({ children }: { children: React.ReactNode }) => (
+    <QueryProvider>
+      <ThemeProvider>
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
+      </ThemeProvider>
+    </QueryProvider>
+  );
+
+  return render(ui, { wrapper: AllTheProviders, ...options });
+};
+
+export const waitForLoadingToFinish = () =>
+  waitFor(() => {
+    expect(screen.queryByTestId('loading-spinner')).not.toBeInTheDocument();
+  });
+```
+
+## Performance Testing
+
+### Test Performance
+
+- Keep tests fast and efficient
+- Use proper test isolation
+- Avoid unnecessary setup and teardown
+- Monitor test execution times
+
+### Memory Management
+
+- Clean up resources after tests
+- Avoid memory leaks in test code
+- Use proper cleanup in `afterEach` and `afterAll`
+- Monitor memory usage in long-running tests
+
+## Accessibility Testing
+
+### Accessibility Assertions
+
+- Test for proper ARIA attributes
+- Verify keyboard navigation
+- Check color contrast and focus management
+- Test with screen reader compatibility
+
+```typescript
+// ✅ Good: Accessibility testing
+import { axe, toHaveNoViolations } from 'jest-axe';
+
+expect.extend(toHaveNoViolations);
+
+describe('Button', () => {
+  it('should not have accessibility violations', async () => {
+    const { container } = render(<Button>Click me</Button>);
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  it('should be keyboard accessible', () => {
+    render(<Button>Click me</Button>);
+
+    const button = screen.getByRole('button');
+    button.focus();
+
+    expect(button).toHaveFocus();
+
+    fireEvent.keyDown(button, { key: 'Enter' });
+    // Test keyboard interaction
+  });
+});
+```
+
+## Continuous Integration
+
+### CI/CD Integration
+
+- Run tests in CI/CD pipeline
+- Use parallel test execution
+- Generate and publish test reports
+- Fail builds on test failures
+
+### Test Coverage
+
+- Maintain good test coverage
+- Focus on critical business logic
+- Use coverage reports to identify gaps
+- Set minimum coverage thresholds
