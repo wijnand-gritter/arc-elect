@@ -376,10 +376,11 @@ const renderMenuItem = (
   return (
     <NavigationMenuItem key={item.title}>
       <NavigationMenuLink
-        className={`block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground ${currentPage === item.page
+        className={`block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground ${
+          currentPage === item.page
             ? 'bg-accent text-accent-foreground'
             : 'text-muted-foreground hover:text-foreground'
-          }`}
+        }`}
         onClick={() => item.page && handlePageChange(item.page)}
       >
         <div className="flex items-center gap-2">
@@ -430,10 +431,11 @@ const renderMobileMenuItem = (
   return (
     <div
       key={item.title}
-      className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors ${currentPage === item.page
+      className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors ${
+        currentPage === item.page
           ? 'bg-accent text-accent-foreground'
           : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-        }`}
+      }`}
       onClick={() => item.page && handlePageChange(item.page)}
     >
       {item.icon}
