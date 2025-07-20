@@ -1,14 +1,14 @@
-[**Electron Boilerplate Documentation v1.0.0**](../../README.md)
+[**Arc Elect Documentation v1.0.0**](../../README.md)
 
 ---
 
-[Electron Boilerplate Documentation](../../modules.md) / [TopNavigationBar](../README.md) / default
+[Arc Elect Documentation](../../modules.md) / [TopNavigationBar](../README.md) / default
 
 # Function: default()
 
 > **default**(`props`): `Element`
 
-Defined in: [renderer/components/TopNavigationBar.tsx:222](https://github.com/wijnand-gritter/electron-boilerplate/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/components/TopNavigationBar.tsx#L222)
+Defined in: [renderer/components/TopNavigationBar.tsx:222](https://github.com/wijnand-gritter/arc-elect/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/components/TopNavigationBar.tsx#L222)
 
 TopNavigationBar component for main application navigation.
 

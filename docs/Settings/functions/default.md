@@ -1,14 +1,14 @@
-[**Electron Boilerplate Documentation v1.0.0**](../../README.md)
+[**Arc Elect Documentation v1.0.0**](../../README.md)
 
 ---
 
-[Electron Boilerplate Documentation](../../modules.md) / [Settings](../README.md) / default
+[Arc Elect Documentation](../../modules.md) / [Settings](../README.md) / default
 
 # Function: default()
 
 > **default**(): `Element`
 
-Defined in: [renderer/pages/Settings.tsx:36](https://github.com/wijnand-gritter/electron-boilerplate/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/pages/Settings.tsx#L36)
+Defined in: [renderer/pages/Settings.tsx:36](https://github.com/wijnand-gritter/arc-elect/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/pages/Settings.tsx#L36)
 
 Settings page component for application configuration.
 

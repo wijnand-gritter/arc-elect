@@ -1,14 +1,14 @@
-[**Electron Boilerplate Documentation v1.0.0**](../../README.md)
+[**Arc Elect Documentation v1.0.0**](../../README.md)
 
 ---
 
-[Electron Boilerplate Documentation](../../modules.md) / [QueryProvider](../README.md) / QueryProvider
+[Arc Elect Documentation](../../modules.md) / [QueryProvider](../README.md) / QueryProvider
 
 # Variable: QueryProvider
 
 > `const` **QueryProvider**: `React.FC`\<`QueryProviderProps`\>
 
-Defined in: [renderer/components/QueryProvider.tsx:43](https://github.com/wijnand-gritter/electron-boilerplate/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/components/QueryProvider.tsx#L43)
+Defined in: [renderer/components/QueryProvider.tsx:43](https://github.com/wijnand-gritter/arc-elect/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/components/QueryProvider.tsx#L43)
 
 QueryProvider component for react-query integration.
 

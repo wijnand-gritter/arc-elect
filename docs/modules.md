@@ -1,8 +1,8 @@
-[**Electron Boilerplate Documentation v1.0.0**](README.md)
+[**Arc Elect Documentation v1.0.0**](README.md)
 
 ---
 
-# Electron Boilerplate Documentation v1.0.0
+# Arc Elect Documentation v1.0.0
 
 ## Modules
 

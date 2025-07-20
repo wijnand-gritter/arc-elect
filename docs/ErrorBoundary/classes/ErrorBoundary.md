@@ -1,12 +1,12 @@
-[**Electron Boilerplate Documentation v1.0.0**](../../README.md)
+[**Arc Elect Documentation v1.0.0**](../../README.md)
 
 ---
 
-[Electron Boilerplate Documentation](../../modules.md) / [ErrorBoundary](../README.md) / ErrorBoundary
+[Arc Elect Documentation](../../modules.md) / [ErrorBoundary](../README.md) / ErrorBoundary
 
 # Class: ErrorBoundary
 
-Defined in: [renderer/components/ErrorBoundary.tsx:59](https://github.com/wijnand-gritter/electron-boilerplate/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/components/ErrorBoundary.tsx#L59)
+Defined in: [renderer/components/ErrorBoundary.tsx:59](https://github.com/wijnand-gritter/arc-elect/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/components/ErrorBoundary.tsx#L59)
 
 ErrorBoundary component for React error handling.
 
@@ -39,7 +39,7 @@ Features:
 
 > **new ErrorBoundary**(`props`): `ErrorBoundary`
 
-Defined in: [renderer/components/ErrorBoundary.tsx:60](https://github.com/wijnand-gritter/electron-boilerplate/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/components/ErrorBoundary.tsx#L60)
+Defined in: [renderer/components/ErrorBoundary.tsx:60](https://github.com/wijnand-gritter/arc-elect/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/components/ErrorBoundary.tsx#L60)
 
 #### Parameters
 
@@ -61,7 +61,7 @@ Defined in: [renderer/components/ErrorBoundary.tsx:60](https://github.com/wijnan
 
 > `static` **getDerivedStateFromError**(`error`): `ErrorBoundaryState`
 
-Defined in: [renderer/components/ErrorBoundary.tsx:74](https://github.com/wijnand-gritter/electron-boilerplate/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/components/ErrorBoundary.tsx#L74)
+Defined in: [renderer/components/ErrorBoundary.tsx:74](https://github.com/wijnand-gritter/arc-elect/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/components/ErrorBoundary.tsx#L74)
 
 Static method to update state when an error occurs.
 
@@ -88,7 +88,7 @@ State update object
 
 > **componentDidCatch**(`error`, `errorInfo`): `void`
 
-Defined in: [renderer/components/ErrorBoundary.tsx:87](https://github.com/wijnand-gritter/electron-boilerplate/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/components/ErrorBoundary.tsx#L87)
+Defined in: [renderer/components/ErrorBoundary.tsx:87](https://github.com/wijnand-gritter/arc-elect/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/components/ErrorBoundary.tsx#L87)
 
 Lifecycle method called when an error occurs.
 
@@ -123,7 +123,7 @@ Additional error information
 
 > **handleRetry**(): `void`
 
-Defined in: [renderer/components/ErrorBoundary.tsx:102](https://github.com/wijnand-gritter/electron-boilerplate/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/components/ErrorBoundary.tsx#L102)
+Defined in: [renderer/components/ErrorBoundary.tsx:102](https://github.com/wijnand-gritter/arc-elect/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/components/ErrorBoundary.tsx#L102)
 
 Handles the retry action when user clicks the retry button.
 
@@ -140,7 +140,7 @@ to attempt rendering again.
 
 > **render**(): `ReactNode`
 
-Defined in: [renderer/components/ErrorBoundary.tsx:114](https://github.com/wijnand-gritter/electron-boilerplate/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/components/ErrorBoundary.tsx#L114)
+Defined in: [renderer/components/ErrorBoundary.tsx:114](https://github.com/wijnand-gritter/arc-elect/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/components/ErrorBoundary.tsx#L114)
 
 Renders the component.
 

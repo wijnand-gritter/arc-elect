@@ -1,14 +1,14 @@
-[**Electron Boilerplate Documentation v1.0.0**](../../README.md)
+[**Arc Elect Documentation v1.0.0**](../../README.md)
 
 ---
 
-[Electron Boilerplate Documentation](../../modules.md) / [ThemeProvider](../README.md) / useTheme
+[Arc Elect Documentation](../../modules.md) / [ThemeProvider](../README.md) / useTheme
 
 # Function: useTheme()
 
 > **useTheme**(): `ThemeContextType`
 
-Defined in: [renderer/components/ThemeProvider.tsx:176](https://github.com/wijnand-gritter/electron-boilerplate/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/components/ThemeProvider.tsx#L176)
+Defined in: [renderer/components/ThemeProvider.tsx:176](https://github.com/wijnand-gritter/arc-elect/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/components/ThemeProvider.tsx#L176)
 
 Hook for accessing the theme context.
 

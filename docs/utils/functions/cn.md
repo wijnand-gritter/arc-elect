@@ -1,14 +1,14 @@
-[**Electron Boilerplate Documentation v1.0.0**](../../README.md)
+[**Arc Elect Documentation v1.0.0**](../../README.md)
 
 ---
 
-[Electron Boilerplate Documentation](../../modules.md) / [utils](../README.md) / cn
+[Arc Elect Documentation](../../modules.md) / [utils](../README.md) / cn
 
 # Function: cn()
 
 > **cn**(...`inputs`): `string`
 
-Defined in: [renderer/lib/utils.ts:37](https://github.com/wijnand-gritter/electron-boilerplate/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/lib/utils.ts#L37)
+Defined in: [renderer/lib/utils.ts:37](https://github.com/wijnand-gritter/arc-elect/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/lib/utils.ts#L37)
 
 Merges class names with Tailwind CSS conflict resolution.
 

@@ -1,14 +1,14 @@
-[**Electron Boilerplate Documentation v1.0.0**](../../README.md)
+[**Arc Elect Documentation v1.0.0**](../../README.md)
 
 ---
 
-[Electron Boilerplate Documentation](../../modules.md) / [queryClient](../README.md) / queryClient
+[Arc Elect Documentation](../../modules.md) / [queryClient](../README.md) / queryClient
 
 # Variable: queryClient
 
 > `const` **queryClient**: `QueryClient`
 
-Defined in: [renderer/lib/queryClient.ts:36](https://github.com/wijnand-gritter/electron-boilerplate/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/lib/queryClient.ts#L36)
+Defined in: [renderer/lib/queryClient.ts:36](https://github.com/wijnand-gritter/arc-elect/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/lib/queryClient.ts#L36)
 
 Singleton QueryClient instance for the application.
 

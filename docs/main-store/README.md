@@ -1,8 +1,8 @@
-[**Electron Boilerplate Documentation v1.0.0**](../README.md)
+[**Arc Elect Documentation v1.0.0**](../README.md)
 
 ---
 
-[Electron Boilerplate Documentation](../modules.md) / main-store
+[Arc Elect Documentation](../modules.md) / main-store
 
 # main-store
 

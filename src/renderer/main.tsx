@@ -6,7 +6,7 @@ import './lib/error-handling';
 import logger from './lib/renderer-logger';
 
 // Set title from environment variables
-document.title = import.meta.env.VITE_APP_NAME || 'Electron Boilerplate';
+document.title = import.meta.env.VITE_APP_NAME || 'Arc Elect';
 
 logger.info('Renderer: Starting renderer process - START');
 

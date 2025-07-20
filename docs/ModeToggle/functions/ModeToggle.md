@@ -1,14 +1,14 @@
-[**Electron Boilerplate Documentation v1.0.0**](../../README.md)
+[**Arc Elect Documentation v1.0.0**](../../README.md)
 
 ---
 
-[Electron Boilerplate Documentation](../../modules.md) / [ModeToggle](../README.md) / ModeToggle
+[Arc Elect Documentation](../../modules.md) / [ModeToggle](../README.md) / ModeToggle
 
 # Function: ModeToggle()
 
 > **ModeToggle**(): `Element`
 
-Defined in: [renderer/components/ModeToggle.tsx:43](https://github.com/wijnand-gritter/electron-boilerplate/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/components/ModeToggle.tsx#L43)
+Defined in: [renderer/components/ModeToggle.tsx:43](https://github.com/wijnand-gritter/arc-elect/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/components/ModeToggle.tsx#L43)
 
 ModeToggle component for theme switching.
 

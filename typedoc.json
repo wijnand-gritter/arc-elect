@@ -45,7 +45,7 @@
   "includeVersion": true,
   "categorizeByGroup": true,
   "theme": "markdown",
-  "name": "Electron Boilerplate Documentation",
+  "name": "Arc Elect Documentation",
   "readme": "DEV_GUIDELINES.md",
   "plugin": ["typedoc-plugin-markdown"],
   "hideGenerator": true,

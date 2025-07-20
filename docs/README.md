@@ -1,10 +1,10 @@
-# Electron Boilerplate Documentation
+# Arc Elect Documentation
 
 > **v1.0.0** - Auto-generated from JSDoc comments
 
 ## 📖 Overview
 
-This directory contains the auto-generated TypeDoc documentation for the Electron Boilerplate project. The documentation is generated from JSDoc comments in the source code and provides comprehensive API documentation for all components, functions, and types.
+This directory contains the auto-generated TypeDoc documentation for the Arc Elect project. The documentation is generated from JSDoc comments in the source code and provides comprehensive API documentation for all components, functions, and types.
 
 ## 🚀 How to Use
 
@@ -82,4 +82,4 @@ To improve the documentation:
 
 ---
 
-**Electron Boilerplate Documentation v1.0.0**
+**Arc Elect Documentation v1.0.0**

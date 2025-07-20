@@ -1,14 +1,14 @@
-[**Electron Boilerplate Documentation v1.0.0**](../../README.md)
+[**Arc Elect Documentation v1.0.0**](../../README.md)
 
 ---
 
-[Electron Boilerplate Documentation](../../modules.md) / [error-handling](../README.md) / safeHandler
+[Arc Elect Documentation](../../modules.md) / [error-handling](../README.md) / safeHandler
 
 # Function: safeHandler()
 
 > **safeHandler**\<`T`\>(`fn`): (...`args`) => `void` \| `ReturnType`\<`T`\>
 
-Defined in: [renderer/lib/error-handling.ts:35](https://github.com/wijnand-gritter/electron-boilerplate/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/lib/error-handling.ts#L35)
+Defined in: [renderer/lib/error-handling.ts:35](https://github.com/wijnand-gritter/arc-elect/blob/c2867786d8264971474ef9a0d9cc5a8943053f07/src/renderer/lib/error-handling.ts#L35)
 
 Wraps a function with error handling and logging.
 

@@ -1,6 +1,6 @@
 {
-  "name": "electron-boilerplate",
-  "productName": "electron-boilerplate",
+  "name": "arc-elect",
+  "productName": "arc-elect",
   "version": "1.0.0",
   "description": "My Electron application description",
   "main": ".vite/build/main.js",
@@ -54,6 +54,7 @@
     "@typescript-eslint/parser": "^8.37.0",
     "electron": "37.2.3",
     "electron-devtools-installer": "^4.0.0",
+    "electron-icon-builder": "^2.0.1",
     "eslint": "^9.31.0",
     "eslint-plugin-import": "^2.32.0",
     "husky": "^9.1.7",
