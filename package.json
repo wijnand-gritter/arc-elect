@@ -29,7 +29,9 @@
     "icons:mac": "node scripts/generate-mac-icon.js",
     "icons:setup": "node scripts/setup-icons.js",
     "icons:clean": "rm -rf build/icons",
-    "icons:full": "npm run icons && npm run icons:mac && npm run icons:setup"
+    "icons:full": "npm run icons:clean && npm run icons && npm run icons:mac && npm run icons:setup",
+    "icons:solid": "node scripts/create-solid-background-icon.js",
+    "icons:regenerate": "npm run icons:solid && npm run icons:full"
   },
   "keywords": [],
   "author": {
