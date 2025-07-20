@@ -27,7 +27,9 @@
     "docs:view": "open docs/README.md",
     "icons": "node scripts/generate-icons.js",
     "icons:mac": "node scripts/generate-mac-icon.js",
-    "icons:clean": "rm -rf build/icons"
+    "icons:setup": "node scripts/setup-icons.js",
+    "icons:clean": "rm -rf build/icons",
+    "icons:full": "npm run icons && npm run icons:mac && npm run icons:setup"
   },
   "keywords": [],
   "author": {

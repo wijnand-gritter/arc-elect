@@ -153,6 +153,7 @@ const createWindow = async (): Promise<void> => {
   const mainWindow = new BrowserWindow({
     width: 1600,
     height: 900,
+    icon: path.join(__dirname, '..', '..', 'build', 'icons', 'icon.png'), // Linux icon
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,
