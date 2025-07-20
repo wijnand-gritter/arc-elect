@@ -11,7 +11,7 @@
  */
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useAppStore } from '@/stores/useAppStore';
+import { useAppStore } from '../stores/useAppStore';
 
 /**
  * Available theme options for the application.

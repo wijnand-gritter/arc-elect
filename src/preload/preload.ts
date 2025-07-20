@@ -1,5 +1,5 @@
 /**
- * Exposes a secure IPC bridge for file operations and settings to the renderer process.
+ * Exposes a secure IPC bridge for file operations, settings, and project management to the renderer process.
  *
  * This module provides a secure communication channel between the renderer
  * and main processes using Electron's contextBridge. It exposes only the
@@ -19,6 +19,9 @@ import { contextBridge, ipcRenderer } from 'electron';
  * communicate with the main process. It includes:
  * - File operations (read/write)
  * - Settings management (theme, data)
+ * - Project management (create, load, save)
+ * - Schema operations (scan, read, validate)
+ * - Dialog operations (folder selection)
  *
  * All methods are validated and logged in the main process for security.
  *
@@ -29,6 +32,9 @@ import { contextBridge, ipcRenderer } from 'electron';
  *
  * // Set theme
  * await window.api.setTheme('dark');
+ *
+ * // Create project
+ * const project = await window.api.createProject(config);
  * ```
  */
 contextBridge.exposeInMainWorld('api', {
@@ -87,4 +93,76 @@ contextBridge.exposeInMainWorld('api', {
    * @returns Promise resolving to success status or error
    */
   importSettings: (json: string) => ipcRenderer.invoke('settings:import', json),
+
+  // Project Management API
+
+  /**
+   * Creates a new project with the specified configuration.
+   *
+   * @param config - Project configuration
+   * @returns Promise resolving to created project or error
+   */
+  createProject: (config: unknown) => ipcRenderer.invoke('project:create', config),
+
+  /**
+   * Loads a project from the specified path.
+   *
+   * @param projectPath - Path to the project directory
+   * @returns Promise resolving to loaded project or error
+   */
+  loadProject: (projectPath: string) => ipcRenderer.invoke('project:load', projectPath),
+
+  /**
+   * Saves project configuration and state.
+   *
+   * @param project - Project to save
+   * @returns Promise resolving to success status or error
+   */
+  saveProject: (project: unknown) => ipcRenderer.invoke('project:save', project),
+
+  /**
+   * Gets a list of recently opened projects.
+   *
+   * @returns Promise resolving to recent projects or error
+   */
+  getRecentProjects: () => ipcRenderer.invoke('project:getRecent'),
+
+  // File System Operations API
+
+  /**
+   * Scans a directory for files matching the pattern.
+   *
+   * @param dirPath - Directory path to scan
+   * @param pattern - File pattern (e.g., "*.json")
+   * @returns Promise resolving to found files or error
+   */
+  scanDirectory: (dirPath: string, pattern: string) =>
+    ipcRenderer.invoke('fs:scan', dirPath, pattern),
+
+  /**
+   * Reads and parses a JSON schema file.
+   *
+   * @param filePath - Path to the schema file
+   * @returns Promise resolving to parsed schema or error
+   */
+  readSchema: (filePath: string) => ipcRenderer.invoke('fs:readSchema', filePath),
+
+  /**
+   * Validates a JSON schema file.
+   *
+   * @param filePath - Path to the schema file
+   * @returns Promise resolving to validation result or error
+   */
+  validateSchema: (filePath: string) => ipcRenderer.invoke('fs:validate', filePath),
+
+  // Dialog Operations API
+
+  /**
+   * Shows a folder selection dialog.
+   *
+   * @param options - Dialog options
+   * @returns Promise resolving to selected path or error
+   */
+  showFolderDialog: (options?: { title?: string; defaultPath?: string }) =>
+    ipcRenderer.invoke('dialog:folder', options),
 });

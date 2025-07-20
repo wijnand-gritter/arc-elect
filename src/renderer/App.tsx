@@ -3,7 +3,7 @@ import logger from './lib/renderer-logger';
 import { Toaster, toast } from 'sonner';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './lib/error-handling';
-import { ThemeProvider } from '@/components/ThemeProvider';
+import { ThemeProvider } from './components/ThemeProvider';
 import { useAppStore } from './stores/useAppStore';
 
 import { AppLayout } from './components/AppLayout';
@@ -19,12 +19,21 @@ export function App() {
     const startTime = Date.now();
     logger.info('App component mounted - START');
 
-    useAppStore
-      .getState()
-      .loadTheme()
-      .then(() => {
+    const loadInitialData = async () => {
+      try {
+        // Load theme first
+        await useAppStore.getState().loadTheme();
         logger.info(`Theme loaded in ${Date.now() - startTime}ms`);
-      });
+
+        // Then load last project
+        await useAppStore.getState().loadLastProject();
+        logger.info(`Initial data loaded in ${Date.now() - startTime}ms`);
+      } catch (error) {
+        logger.error('Failed to load initial data', { error });
+      }
+    };
+
+    loadInitialData();
   }, []);
 
   useEffect(() => {

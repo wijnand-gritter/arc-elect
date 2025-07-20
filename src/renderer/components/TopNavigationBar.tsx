@@ -12,25 +12,20 @@
 
 import {
   Menu,
-  Home,
-  FileText,
-  Settings,
+  FolderOpen,
   Search,
-  HelpCircle,
-  Camera,
-  Bot,
-  Database,
-  BarChart3,
+  Edit,
+  Settings,
 } from 'lucide-react';
-import { ArcElectLogo } from '@/components/ui/arc-elect-logo';
+import { ArcElectLogo } from './ui/arc-elect-logo';
 
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from '@/components/ui/accordion';
-import { Button } from '@/components/ui/button';
+} from './ui/accordion';
+import { Button } from './ui/button';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -38,17 +33,10 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
-} from '@/components/ui/navigation-menu';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useAppStore } from '@/stores/useAppStore';
+} from './ui/navigation-menu';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
+
+import { useAppStore } from '../stores/useAppStore';
 
 /**
  * Interface defining the structure of a menu item.
@@ -59,7 +47,7 @@ interface MenuItem {
   /** URL for external links */
   url?: string;
   /** Internal page route */
-  page?: 'home' | 'about' | 'settings';
+  page?: 'project' | 'explore' | 'build' | 'settings';
   /** Description for dropdown items */
   description?: string;
   /** Icon component for the menu item */
@@ -114,71 +102,23 @@ const appName = import.meta.env.VITE_APP_NAME || 'App';
  */
 const defaultMenu: MenuItem[] = [
   {
-    title: 'Home',
-    page: 'home',
-    icon: <Home className="size-5 shrink-0" />,
+    title: 'Projects',
+    page: 'project',
+    icon: <FolderOpen className="size-5 shrink-0" />,
   },
   {
-    title: 'About',
-    page: 'about',
-    icon: <FileText className="size-5 shrink-0" />,
+    title: 'Explore',
+    page: 'explore',
+    icon: <Search className="size-5 shrink-0" />,
   },
   {
-    title: 'Tools',
-    items: [
-      {
-        title: 'Capture',
-        description: 'Active Proposals and Archived items',
-        icon: <Camera className="size-5 shrink-0" />,
-        url: '#',
-      },
-      {
-        title: 'Proposal',
-        description: 'Document management and proposals',
-        icon: <FileText className="size-5 shrink-0" />,
-        url: '#',
-      },
-      {
-        title: 'Prompts',
-        description: 'AI-powered prompt management',
-        icon: <Bot className="size-5 shrink-0" />,
-        url: '#',
-      },
-    ],
-  },
-  {
-    title: 'Data',
-    items: [
-      {
-        title: 'Data Library',
-        description: 'Centralized data management',
-        icon: <Database className="size-5 shrink-0" />,
-        url: '#',
-      },
-      {
-        title: 'Reports',
-        description: 'Data analysis and reporting tools',
-        icon: <BarChart3 className="size-5 shrink-0" />,
-        url: '#',
-      },
-      {
-        title: 'Word Assistant',
-        description: 'AI-powered writing tools',
-        icon: <FileText className="size-5 shrink-0" />,
-        url: '#',
-      },
-    ],
+    title: 'Build',
+    page: 'build',
+    icon: <Edit className="size-5 shrink-0" />,
   },
 ];
 
-/**
- * Mock user data for the user menu.
- */
-const userData = {
-  name: 'shadcn',
-  email: 'm@example.com',
-  avatar: '/avatars/shadcn.jpg',
-};
+
 
 /**
  * TopNavigationBar component for main application navigation.
@@ -217,10 +157,10 @@ const TopNavigationBar = ({
   const currentPage = useAppStore((state) => state.currentPage);
 
   /**
-   * Handles logo click to navigate to home page.
+   * Handles logo click to navigate to projects page.
    */
   const handleLogoClick = () => {
-    setPage('home');
+    setPage('project');
   };
 
   /**
@@ -228,7 +168,7 @@ const TopNavigationBar = ({
    *
    * @param page - The page to navigate to
    */
-  const handlePageChange = (page: 'home' | 'about' | 'settings') => {
+  const handlePageChange = (page: 'project' | 'explore' | 'build' | 'settings') => {
     setPage(page);
   };
 
@@ -270,41 +210,6 @@ const TopNavigationBar = ({
               <Settings className="h-4 w-4" />
               <span className="sr-only">Settings</span>
             </Button>
-
-            {/* Help */}
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-              <HelpCircle className="h-4 w-4" />
-              <span className="sr-only">Help</span>
-            </Button>
-
-            {/* User Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={userData.avatar} alt={userData.name} />
-                    <AvatarFallback>{userData.name.charAt(0).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <div className="flex items-center justify-start gap-2 p-2">
-                  <div className="flex flex-col space-y-1 leading-none">
-                    {userData.name && <p className="font-medium">{userData.name}</p>}
-                    {userData.email && (
-                      <p className="w-[200px] truncate text-sm text-muted-foreground">
-                        {userData.email}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>Profile</DropdownMenuItem>
-                <DropdownMenuItem>Settings</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>Log out</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
         </nav>
 
@@ -352,7 +257,7 @@ const TopNavigationBar = ({
 const renderMenuItem = (
   item: MenuItem,
   currentPage: string,
-  handlePageChange: (page: 'home' | 'about' | 'settings') => void,
+  handlePageChange: (page: 'project' | 'explore' | 'build' | 'settings') => void,
 ) => {
   if (item.items) {
     return (
@@ -376,11 +281,10 @@ const renderMenuItem = (
   return (
     <NavigationMenuItem key={item.title}>
       <NavigationMenuLink
-        className={`block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground ${
-          currentPage === item.page
-            ? 'bg-accent text-accent-foreground'
-            : 'text-muted-foreground hover:text-foreground'
-        }`}
+        className={`block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground ${currentPage === item.page
+          ? 'bg-accent text-accent-foreground'
+          : 'text-muted-foreground hover:text-foreground'
+          }`}
         onClick={() => item.page && handlePageChange(item.page)}
       >
         <div className="flex items-center gap-2">
@@ -403,7 +307,7 @@ const renderMenuItem = (
 const renderMobileMenuItem = (
   item: MenuItem,
   currentPage: string,
-  handlePageChange: (page: 'home' | 'about' | 'settings') => void,
+  handlePageChange: (page: 'project' | 'explore' | 'build' | 'settings') => void,
 ) => {
   if (item.items) {
     return (
@@ -431,11 +335,10 @@ const renderMobileMenuItem = (
   return (
     <div
       key={item.title}
-      className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors ${
-        currentPage === item.page
-          ? 'bg-accent text-accent-foreground'
-          : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-      }`}
+      className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors ${currentPage === item.page
+        ? 'bg-accent text-accent-foreground'
+        : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+        }`}
       onClick={() => item.page && handlePageChange(item.page)}
     >
       {item.icon}

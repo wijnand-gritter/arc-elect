@@ -12,9 +12,10 @@
 
 import React from 'react';
 import { useAppStore } from '../stores/useAppStore';
-import { Home } from '@/pages/Home';
-import { About } from '@/pages/About';
 import { Settings } from '@/pages/Settings';
+import { Project } from '@/pages/Project';
+import { Explore } from '@/pages/Explore';
+import { Build } from '@/pages/Build';
 
 /**
  * PageContent component for dynamic page rendering.
@@ -32,13 +33,45 @@ import { Settings } from '@/pages/Settings';
  */
 export function PageContent(): React.JSX.Element {
   const currentPage = useAppStore((state) => state.currentPage);
+  const isLoadingProject = useAppStore((state) => state.isLoadingProject);
+  const currentProject = useAppStore((state) => state.currentProject);
+
+  // Show loading state when project is being loaded
+  if (isLoadingProject) {
+    return (
+      <div className="flex flex-1 flex-col min-h-0">
+        <div className="container mx-auto flex flex-1 flex-col gap-4 p-6 max-w-7xl">
+          <div className="page-transition flex-1 flex items-center justify-center">
+            <div className="text-center space-y-4">
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+              <p className="text-muted-foreground">Loading project...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show project setup if no project is loaded and we're not on settings
+  if (!currentProject && currentPage !== 'settings') {
+    return (
+      <div className="flex flex-1 flex-col min-h-0">
+        <div className="container mx-auto flex flex-1 flex-col gap-4 p-6 max-w-7xl">
+          <div className="page-transition flex-1">
+            <Project />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-1 flex-col min-h-0">
       <div className="container mx-auto flex flex-1 flex-col gap-4 p-6 max-w-7xl">
         <div className="page-transition flex-1">
-          {currentPage === 'home' && <Home />}
-          {currentPage === 'about' && <About />}
+          {currentPage === 'project' && <Project />}
+          {currentPage === 'explore' && <Explore />}
+          {currentPage === 'build' && <Build />}
           {currentPage === 'settings' && <Settings />}
         </div>
       </div>

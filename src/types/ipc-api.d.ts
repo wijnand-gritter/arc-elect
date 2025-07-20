@@ -10,6 +10,8 @@
  * @version 1.0.0
  */
 
+import type { Project, ProjectConfig, Schema, ValidationResult } from './schema-editor';
+
 export {};
 
 /**
@@ -28,6 +30,7 @@ declare global {
      * logged in the main process for security.
      */
     api: {
+      // File system operations
       /**
        * Reads a file from the filesystem.
        *
@@ -55,6 +58,7 @@ declare global {
         error?: string;
       }>;
 
+      // Theme management
       /**
        * Gets the current theme setting from the main process.
        *
@@ -76,6 +80,7 @@ declare global {
         theme: 'light' | 'dark' | 'system',
       ) => Promise<{ success: boolean; error?: string }>;
 
+      // Settings management
       /**
        * Clears all application settings and data.
        *
@@ -101,6 +106,146 @@ declare global {
        * @returns Promise resolving to success status or error
        */
       importSettings: (json: string) => Promise<{ success: boolean; error?: string }>;
+
+      // Project management
+      /**
+       * Creates a new project with the specified configuration.
+       *
+       * @param config - Project configuration
+       * @returns Promise resolving to created project or error
+       */
+      createProject: (config: ProjectConfig) => Promise<{
+        success: boolean;
+        project?: Project;
+        error?: string;
+      }>;
+
+      /**
+       * Loads a project from the specified path.
+       *
+       * @param projectPath - Path to the project directory
+       * @returns Promise resolving to loaded project or error
+       */
+      loadProject: (projectPath: string) => Promise<{
+        success: boolean;
+        project?: Project;
+        error?: string;
+      }>;
+
+      /**
+       * Saves project configuration and state.
+       *
+       * @param project - Project to save
+       * @returns Promise resolving to success status or error
+       */
+      saveProject: (project: Project) => Promise<{
+        success: boolean;
+        error?: string;
+      }>;
+
+      /**
+       * Gets a list of recently opened projects.
+       *
+       * @returns Promise resolving to recent projects or error
+       */
+      getRecentProjects: () => Promise<{
+        success: boolean;
+        projects?: Project[];
+        error?: string;
+      }>;
+
+      // File system operations for schemas
+      /**
+       * Scans a directory for schema files matching the pattern.
+       *
+       * @param path - Directory path to scan
+       * @param pattern - File pattern (e.g., "*.json")
+       * @returns Promise resolving to found files or error
+       */
+      scanDirectory: (
+        path: string,
+        pattern: string,
+      ) => Promise<{
+        success: boolean;
+        files?: string[];
+        error?: string;
+      }>;
+
+      /**
+       * Reads and parses a JSON schema file.
+       *
+       * @param filePath - Path to the schema file
+       * @returns Promise resolving to parsed schema or error
+       */
+      readSchema: (filePath: string) => Promise<{
+        success: boolean;
+        schema?: Schema;
+        error?: string;
+      }>;
+
+      /**
+       * Validates a JSON schema file.
+       *
+       * @param filePath - Path to the schema file
+       * @returns Promise resolving to validation result or error
+       */
+      validateSchema: (filePath: string) => Promise<{
+        success: boolean;
+        result?: ValidationResult;
+        error?: string;
+      }>;
+
+      /**
+       * Watches a directory for file changes.
+       *
+       * @param path - Directory path to watch
+       * @returns Promise resolving to success status or error
+       */
+      watchDirectory: (path: string) => Promise<{
+        success: boolean;
+        error?: string;
+      }>;
+
+      /**
+       * Stops watching a directory for file changes.
+       *
+       * @param path - Directory path to stop watching
+       * @returns Promise resolving to success status or error
+       */
+      unwatchDirectory: (path: string) => Promise<{
+        success: boolean;
+        error?: string;
+      }>;
+
+      // Dialog operations
+      /**
+       * Shows a folder selection dialog.
+       *
+       * @param options - Dialog options
+       * @returns Promise resolving to selected path or error
+       */
+      showFolderDialog: (options?: { title?: string; defaultPath?: string }) => Promise<{
+        success: boolean;
+        path?: string;
+        error?: string;
+      }>;
+
+      /**
+       * Shows a file selection dialog.
+       *
+       * @param options - Dialog options
+       * @returns Promise resolving to selected files or error
+       */
+      showFileDialog: (options?: {
+        title?: string;
+        defaultPath?: string;
+        filters?: Array<{ name: string; extensions: string[] }>;
+        multiSelections?: boolean;
+      }) => Promise<{
+        success: boolean;
+        paths?: string[];
+        error?: string;
+      }>;
     };
   }
 }

@@ -1,42 +1,32 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
-import tsconfigPaths from 'vite-tsconfig-paths';
+import path from 'node:path';
 
-// https://vitejs.dev/config
+const projectRootDir = path.resolve(__dirname, '..'); // root van je project
+const rendererPath = path.resolve(projectRootDir, 'src/renderer');
+
 export default defineConfig({
-  plugins: [react(), tailwindcss(), tsconfigPaths()],
-  envPrefix: ['VITE_'], // Ensure VITE_ variables are exposed
-
-  // Development server optimizations
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      '@': rendererPath,
+    },
+  },
+  envPrefix: ['VITE_'],
   server: {
     port: 5173,
     strictPort: true,
-    hmr: {
-      port: 5173,
-    },
-    // Performance optimizations
-    fs: {
-      strict: false,
-    },
+    hmr: { port: 5173 },
+    fs: { strict: false },
   },
-
-  // Optimize dependencies for faster startup
-  optimizeDeps: {
-    force: false,
-  },
-
-  // Disable source maps in development for faster builds
+  optimizeDeps: { force: false },
   build: {
     sourcemap: false,
     rollupOptions: {
-      output: {
-        format: 'es',
-      },
+      output: { format: 'es' },
     },
   },
-
-  // Ensure proper ES module support
   define: {
     'process.env': {},
   },

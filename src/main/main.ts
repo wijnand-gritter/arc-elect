@@ -18,6 +18,8 @@ import fs from 'fs/promises';
 import logger from './main-logger';
 import './main-store';
 import { performanceMonitor } from './performance-monitor';
+// Import project manager to initialize IPC handlers
+import './project-manager';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
