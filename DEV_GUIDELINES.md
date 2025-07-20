@@ -1064,7 +1064,7 @@ Conventional commits provide a standardized way to write commit messages, making
 }
 ```
 
-#### ESLint (`eslint.config.js`)
+#### ESLint (`eslint.config.mjs`)
 
 - Modern ESLint v9 configuration
 - TypeScript support with `@typescript-eslint`
@@ -1130,7 +1130,7 @@ npm run prepare
 
 #### ESLint Errors
 
-- Check `eslint.config.js` for configuration issues
+- Check `eslint.config.mjs` for configuration issues
 - Ensure all dependencies are installed
 - Verify TypeScript types are correct
 
