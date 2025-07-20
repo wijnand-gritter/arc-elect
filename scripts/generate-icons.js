@@ -63,7 +63,7 @@ function generateLinuxIcons() {
 function generateWindowsIcon() {
   console.log('🖼️  Generating Windows icon...');
 
-  const sourceIcon = 'src/assets/arc-elect-icon.png';
+  const sourceIcon = 'src/assets/arc-elect-icon-white-bg.png';
   const outputPath = 'build/icons/win/icon.ico';
 
   // Create ICO with multiple sizes
@@ -99,7 +99,7 @@ function generateWindowsIcon() {
 function generateMacIcon() {
   console.log('🖼️  Generating macOS icon...');
 
-  const sourceIcon = 'src/assets/arc-elect-icon.png';
+  const sourceIcon = 'src/assets/arc-elect-icon-white-bg.png';
   const outputPath = 'build/icons/mac/icon.icns';
 
   // Create ICNS with multiple sizes
@@ -153,8 +153,8 @@ function main() {
     process.exit(1);
   }
 
-  if (!fs.existsSync('src/assets/arc-elect-icon.png')) {
-    console.error('❌ Source icon not found: src/assets/arc-elect-icon.png');
+  if (!fs.existsSync('src/assets/arc-elect-icon-white-bg.png')) {
+    console.error('❌ Source icon not found: src/assets/arc-elect-icon-white-bg.png');
     process.exit(1);
   }
 

@@ -17,7 +17,7 @@ const { execSync } = require('child_process');
 function generateMacIcon() {
   console.log('🖼️  Generating macOS icon...');
 
-  const sourceIcon = 'src/assets/arc-elect-icon.png';
+  const sourceIcon = 'src/assets/arc-elect-icon-white-bg.png';
   const outputPath = 'build/icons/mac/icon.icns';
 
   try {
@@ -37,8 +37,8 @@ function generateMacIcon() {
 function main() {
   console.log('🚀 Starting macOS icon generation for ARC ELECT...\n');
 
-  if (!fs.existsSync('src/assets/arc-elect-icon.png')) {
-    console.error('❌ Source icon not found: src/assets/arc-elect-icon.png');
+  if (!fs.existsSync('src/assets/arc-elect-icon-white-bg.png')) {
+    console.error('❌ Source icon not found: src/assets/arc-elect-icon-white-bg.png');
     process.exit(1);
   }
 
