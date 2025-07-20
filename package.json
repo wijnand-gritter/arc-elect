@@ -24,7 +24,10 @@
     "format": "prettier --write .",
     "docs": "typedoc",
     "docs:clean": "rm -rf docs",
-    "docs:view": "open docs/README.md"
+    "docs:view": "open docs/README.md",
+    "icons": "node scripts/generate-icons.js",
+    "icons:mac": "node scripts/generate-mac-icon.js",
+    "icons:clean": "rm -rf build/icons"
   },
   "keywords": [],
   "author": {

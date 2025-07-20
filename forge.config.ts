@@ -10,9 +10,26 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
+    icon: 'build/icons/mac/icon.icns',
   },
   rebuildConfig: {},
-  makers: [new MakerSquirrel({}), new MakerZIP({}, ['darwin']), new MakerRpm({}), new MakerDeb({})],
+  makers: [
+    new MakerSquirrel({
+      iconUrl: 'build/icons/win/icon.ico',
+      setupIcon: 'build/icons/win/icon.ico',
+    }),
+    new MakerZIP({}, ['darwin']),
+    new MakerRpm({
+      options: {
+        icon: 'build/icons/linux/256x256.png',
+      },
+    }),
+    new MakerDeb({
+      options: {
+        icon: 'build/icons/linux/256x256.png',
+      },
+    }),
+  ],
   plugins: [
     new VitePlugin({
       // `build` can specify multiple entry builds, which can be Main process, Preload scripts, Worker process, etc.
