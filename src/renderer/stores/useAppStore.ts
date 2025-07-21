@@ -71,6 +71,8 @@ interface AppState {
   clearSchemaError: () => void;
   /** Function to load the last project on startup */
   loadLastProject: () => Promise<void>;
+  /** Function to delete a project from recent projects */
+  deleteProject: (projectId: string) => Promise<void>;
 }
 
 /**
@@ -310,6 +312,42 @@ export const useAppStore = create<AppState>()(
             currentPage: 'home',
           });
           logger.error('Store: Exception loading last project', { error });
+        }
+      },
+
+      /**
+       * Deletes a project from the recent projects list.
+       *
+       * @param projectId - ID of the project to delete
+       * @returns Promise that resolves when project is deleted
+       */
+      deleteProject: async (projectId: string) => {
+        const startTime = Date.now();
+        logger.info('Store: Deleting project - START', { projectId });
+
+        try {
+          const result = await window.api.deleteProject(projectId);
+          if (result.success) {
+            const state = get();
+            const updatedRecentProjects = state.recentProjects.filter((p) => p.id !== projectId);
+
+            // If the deleted project was the current project, clear it
+            const shouldClearCurrent = state.currentProject?.id === projectId;
+
+            set({
+              recentProjects: updatedRecentProjects,
+              ...(shouldClearCurrent && { currentProject: null, currentPage: 'home' }),
+            });
+
+            logger.info(`Store: Project deleted in ${Date.now() - startTime}ms`, { projectId });
+          } else {
+            logger.error('Store: Failed to delete project', { error: result.error });
+            throw new Error(result.error || 'Failed to delete project');
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          logger.error('Store: Exception deleting project', { projectId, error });
+          throw new Error(`Failed to delete project: ${errorMessage}`);
         }
       },
     }),

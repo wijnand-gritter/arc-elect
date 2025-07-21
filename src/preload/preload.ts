@@ -127,6 +127,14 @@ contextBridge.exposeInMainWorld('api', {
    */
   getRecentProjects: () => ipcRenderer.invoke('project:getRecent'),
 
+  /**
+   * Deletes a project from the recent projects list.
+   *
+   * @param projectId - ID of the project to delete
+   * @returns Promise resolving to success status or error
+   */
+  deleteProject: (projectId: string) => ipcRenderer.invoke('project:delete', projectId),
+
   // File System Operations API
 
   /**

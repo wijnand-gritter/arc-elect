@@ -64,6 +64,11 @@ class ProjectManager {
       return this.getRecentProjects();
     });
 
+    // Delete project
+    ipcMain.handle('project:delete', async (_event, projectId: string) => {
+      return this.deleteProject(projectId);
+    });
+
     // Directory scanning
     ipcMain.handle('fs:scan', async (_event, dirPath: string, pattern: string) => {
       return this.scanDirectory(dirPath, pattern);
@@ -282,6 +287,48 @@ class ProjectManager {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('ProjectManager: Failed to get recent projects', { error });
       return { success: false, error: `Failed to get recent projects: ${errorMessage}` };
+    }
+  }
+
+  /**
+   * Deletes a project from the recent projects list.
+   */
+  private async deleteProject(projectId: string): Promise<{
+    success: boolean;
+    error?: string;
+  }> {
+    const startTime = Date.now();
+    logger.info('ProjectManager: Deleting project - START', { projectId });
+
+    try {
+      // Check if project exists
+      if (!this.projects.has(projectId)) {
+        return { success: false, error: 'Project not found' };
+      }
+
+      const project = this.projects.get(projectId);
+      if (!project) {
+        return { success: false, error: 'Project not found' };
+      }
+
+      // Stop watching the project directory if it's being watched
+      if (this.watchers.has(projectId)) {
+        const watcher = this.watchers.get(projectId);
+        if (watcher) {
+          watcher.close();
+          this.watchers.delete(projectId);
+        }
+      }
+
+      // Remove project from the projects map
+      this.projects.delete(projectId);
+
+      logger.info(`ProjectManager: Project deleted in ${Date.now() - startTime}ms`, { projectId });
+      return { success: true };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('ProjectManager: Failed to delete project', { projectId, error });
+      return { success: false, error: `Failed to delete project: ${errorMessage}` };
     }
   }
 

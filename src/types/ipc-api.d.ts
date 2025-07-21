@@ -154,6 +154,17 @@ declare global {
         error?: string;
       }>;
 
+      /**
+       * Deletes a project from the recent projects list.
+       *
+       * @param projectId - ID of the project to delete
+       * @returns Promise resolving to success status or error
+       */
+      deleteProject: (projectId: string) => Promise<{
+        success: boolean;
+        error?: string;
+      }>;
+
       // File system operations for schemas
       /**
        * Scans a directory for schema files matching the pattern.

@@ -12,9 +12,10 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FolderOpen, FileText, Calendar, Settings, Plus } from 'lucide-react';
+import { FolderOpen, FileText, Calendar, Settings, Plus, Trash2 } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
 import { CreateProjectModal } from './CreateProjectModal';
+import { toast } from 'sonner';
 
 import type { Project } from '../../types/schema-editor';
 
@@ -46,9 +47,11 @@ interface ProjectOverviewProps {
  */
 export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.Element {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const recentProjects = useAppStore((state) => state.recentProjects);
   const loadProject = useAppStore((state) => state.loadProject);
+  const deleteProject = useAppStore((state) => state.deleteProject);
 
   /**
    * Handles opening a recent project.
@@ -69,6 +72,38 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
    */
   const handleCloseModal = () => {
     setIsCreateModalOpen(false);
+  };
+
+  /**
+ * Handles opening the delete confirmation dialog.
+ */
+  const handleDeleteClick = (projectId: string, projectName: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent opening the project when clicking delete
+    setProjectToDelete({ id: projectId, name: projectName });
+  };
+
+  /**
+   * Handles confirming project deletion.
+   */
+  const handleConfirmDelete = async () => {
+    if (!projectToDelete) return;
+
+    try {
+      await deleteProject(projectToDelete.id);
+      toast.success('Project deleted', { description: `${projectToDelete.name} has been removed from recent projects` });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error('Failed to delete project', { description: errorMessage });
+    } finally {
+      setProjectToDelete(null);
+    }
+  };
+
+  /**
+   * Handles canceling project deletion.
+   */
+  const handleCancelDelete = () => {
+    setProjectToDelete(null);
   };
 
   return (
@@ -179,11 +214,10 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
                 {recentProjects.slice(0, 5).map((recentProject) => (
                   <div
                     key={recentProject.id}
-                    className={`flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer ${
-                      recentProject.id === project.id
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border/50 hover:bg-muted/50'
-                    }`}
+                    className={`flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer ${recentProject.id === project.id
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border/50 hover:bg-muted/50'
+                      }`}
                     onClick={() => handleOpenProject(recentProject.path)}
                   >
                     <div className="flex-1 min-w-0">
@@ -193,11 +227,22 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
                         Last opened: {new Date(recentProject.lastModified).toLocaleDateString()}
                       </p>
                     </div>
-                    {recentProject.id === project.id && (
-                      <Badge variant="default" className="shrink-0 ml-2">
-                        Current
-                      </Badge>
-                    )}
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
+                      {recentProject.id === project.id && (
+                        <Badge variant="default">
+                          Current
+                        </Badge>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                        onClick={(e) => handleDeleteClick(recentProject.id, recentProject.name, e)}
+                        title="Delete project from recent list"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -208,6 +253,26 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
 
       {/* Create Project Modal */}
       <CreateProjectModal isOpen={isCreateModalOpen} onClose={handleCloseModal} />
+
+      {/* Delete Confirmation Dialog */}
+      {projectToDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background border border-border rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-2">Delete Project</h3>
+            <p className="text-muted-foreground mb-4">
+              Are you sure you want to remove "{projectToDelete.name}" from your recent projects? This action cannot be undone.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={handleCancelDelete}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleConfirmDelete}>
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
