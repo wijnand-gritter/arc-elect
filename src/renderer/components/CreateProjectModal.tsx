@@ -9,10 +9,11 @@
  * @version 1.0.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Dialog,
   DialogContent,
@@ -21,7 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { FolderOpen, Loader2 } from 'lucide-react';
+import { FolderOpen, Loader2, AlertTriangle } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
 import { safeHandler } from '@/lib/error-handling';
 import type { ProjectConfig } from '../../types/schema-editor';
@@ -65,6 +66,7 @@ export function CreateProjectModal({
 
   const createProject = useAppStore((state) => state.createProject);
   const isLoadingProject = useAppStore((state) => state.isLoadingProject);
+  const recentProjects = useAppStore((state) => state.recentProjects);
 
   /**
    * Handles folder selection via electron dialog.
@@ -102,6 +104,11 @@ export function CreateProjectModal({
       return;
     }
 
+    // Check for path validation errors
+    if (pathValidation && !pathValidation.isValid) {
+      return;
+    }
+
     const config: ProjectConfig = {
       name: projectName.trim(),
       path: selectedPath,
@@ -127,7 +134,24 @@ export function CreateProjectModal({
     onClose();
   };
 
-  const canCreateProject = selectedPath && projectName.trim() && !isLoadingProject;
+  /**
+   * Validates if the selected path already exists in recent projects.
+   */
+  const pathValidation = useMemo(() => {
+    if (!selectedPath) return null;
+
+    const existingProject = recentProjects.find(project => project.path === selectedPath);
+    if (existingProject) {
+      return {
+        isValid: false,
+        message: `A project with this path already exists: "${existingProject.name}"`,
+      };
+    }
+
+    return { isValid: true };
+  }, [selectedPath, recentProjects]);
+
+  const canCreateProject = selectedPath && projectName.trim() && !isLoadingProject && pathValidation?.isValid !== false;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -180,8 +204,16 @@ export function CreateProjectModal({
             </div>
           </div>
 
+          {/* Path Validation Alert */}
+          {pathValidation && !pathValidation.isValid && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{pathValidation.message}</AlertDescription>
+            </Alert>
+          )}
+
           {/* Help Text */}
-          {selectedPath && (
+          {selectedPath && pathValidation?.isValid !== false && (
             <p className="text-xs text-muted-foreground">
               The application will scan this folder and its subdirectories for JSON files and load
               them as schemas.
