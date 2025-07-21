@@ -14,12 +14,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { FolderOpen, Loader2 } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
@@ -30,10 +30,10 @@ import type { ProjectConfig } from '../../types/schema-editor';
  * Create project modal props.
  */
 interface CreateProjectModalProps {
-    /** Whether the modal is open */
-    isOpen: boolean;
-    /** Function to call when modal should close */
-    onClose: () => void;
+  /** Whether the modal is open */
+  isOpen: boolean;
+  /** Function to call when modal should close */
+  onClose: () => void;
 }
 
 /**
@@ -55,160 +55,156 @@ interface CreateProjectModalProps {
  * <CreateProjectModal isOpen={true} onClose={() => {}} />
  * ```
  */
-export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps): React.JSX.Element {
-    const [selectedPath, setSelectedPath] = useState<string>('');
-    const [projectName, setProjectName] = useState<string>('');
-    const [isSelecting, setIsSelecting] = useState<boolean>(false);
+export function CreateProjectModal({
+  isOpen,
+  onClose,
+}: CreateProjectModalProps): React.JSX.Element {
+  const [selectedPath, setSelectedPath] = useState<string>('');
+  const [projectName, setProjectName] = useState<string>('');
+  const [isSelecting, setIsSelecting] = useState<boolean>(false);
 
-    const createProject = useAppStore((state) => state.createProject);
-    const isLoadingProject = useAppStore((state) => state.isLoadingProject);
+  const createProject = useAppStore((state) => state.createProject);
+  const isLoadingProject = useAppStore((state) => state.isLoadingProject);
 
-    /**
-     * Handles folder selection via electron dialog.
-     */
-    const handleSelectFolder = safeHandler(async () => {
-        setIsSelecting(true);
+  /**
+   * Handles folder selection via electron dialog.
+   */
+  const handleSelectFolder = safeHandler(async () => {
+    setIsSelecting(true);
 
-        try {
-            const result = await window.api.showFolderDialog({
-                title: 'Select Project Folder',
-                ...(selectedPath && { defaultPath: selectedPath }),
-            });
+    try {
+      const result = await window.api.showFolderDialog({
+        title: 'Select Project Folder',
+        ...(selectedPath && { defaultPath: selectedPath }),
+      });
 
-            if (result.success && result.path) {
-                setSelectedPath(result.path);
+      if (result.success && result.path) {
+        setSelectedPath(result.path);
 
-                // Auto-generate project name from folder name if not set
-                if (!projectName) {
-                    const folderName = result.path.split(/[/\\]/).pop() || 'New Project';
-                    setProjectName(folderName);
-                }
-            }
-        } catch (error) {
-            console.error('Failed to select folder:', error);
-        } finally {
-            setIsSelecting(false);
+        // Auto-generate project name from folder name if not set
+        if (!projectName) {
+          const folderName = result.path.split(/[/\\]/).pop() || 'New Project';
+          setProjectName(folderName);
         }
-    });
+      }
+    } catch (error) {
+      console.error('Failed to select folder:', error);
+    } finally {
+      setIsSelecting(false);
+    }
+  });
 
-    /**
-     * Handles project creation.
-     */
-    const handleCreateProject = safeHandler(async () => {
-        if (!selectedPath || !projectName.trim()) {
-            return;
-        }
+  /**
+   * Handles project creation.
+   */
+  const handleCreateProject = safeHandler(async () => {
+    if (!selectedPath || !projectName.trim()) {
+      return;
+    }
 
-        const config: ProjectConfig = {
-            name: projectName.trim(),
-            path: selectedPath,
-            schemaPattern: '*.json',
-            settings: {
-                autoValidate: true,
-                watchForChanges: true,
-                maxFileSize: 10 * 1024 * 1024, // 10MB
-                allowedExtensions: ['.json'],
-            },
-        };
-
-        await createProject(config);
-        handleClose();
-    });
-
-    /**
-     * Handles closing the modal and resetting form.
-     */
-    const handleClose = () => {
-        setSelectedPath('');
-        setProjectName('');
-        onClose();
+    const config: ProjectConfig = {
+      name: projectName.trim(),
+      path: selectedPath,
+      schemaPattern: '*.json',
+      settings: {
+        autoValidate: true,
+        watchForChanges: true,
+        maxFileSize: 10 * 1024 * 1024, // 10MB
+        allowedExtensions: ['.json'],
+      },
     };
 
-    const canCreateProject = selectedPath && projectName.trim() && !isLoadingProject;
+    await createProject(config);
+    handleClose();
+  });
 
-    return (
-        <Dialog open={isOpen} onOpenChange={handleClose}>
-            <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle>Create New Project</DialogTitle>
-                    <DialogDescription>
-                        Create a new project by selecting a folder containing JSON schema files.
-                        The application will scan the folder and its subdirectories for JSON files.
-                    </DialogDescription>
-                </DialogHeader>
+  /**
+   * Handles closing the modal and resetting form.
+   */
+  const handleClose = () => {
+    setSelectedPath('');
+    setProjectName('');
+    onClose();
+  };
 
-                <div className="space-y-4">
-                    {/* Project Name Input */}
-                    <div className="space-y-2">
-                        <Label htmlFor="modal-project-name">Project Name</Label>
-                        <Input
-                            id="modal-project-name"
-                            placeholder="Enter project name"
-                            value={projectName}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProjectName(e.target.value)}
-                            disabled={isLoadingProject}
-                        />
-                    </div>
+  const canCreateProject = selectedPath && projectName.trim() && !isLoadingProject;
 
-                    {/* Folder Selection */}
-                    <div className="space-y-2">
-                        <Label htmlFor="modal-project-path">Project Folder</Label>
-                        <div className="flex gap-2">
-                            <Input
-                                id="modal-project-path"
-                                placeholder="Select a folder containing JSON schemas"
-                                value={selectedPath}
-                                readOnly
-                                disabled={isLoadingProject}
-                            />
-                            <Button
-                                variant="outline"
-                                onClick={handleSelectFolder}
-                                disabled={isSelecting || isLoadingProject}
-                                className="shrink-0"
-                            >
-                                {isSelecting ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                    <FolderOpen className="h-4 w-4" />
-                                )}
-                                Browse
-                            </Button>
-                        </div>
-                    </div>
+  return (
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Create New Project</DialogTitle>
+          <DialogDescription>
+            Create a new project by selecting a folder containing JSON schema files. The application
+            will scan the folder and its subdirectories for JSON files.
+          </DialogDescription>
+        </DialogHeader>
 
-                    {/* Help Text */}
-                    {selectedPath && (
-                        <p className="text-xs text-muted-foreground">
-                            The application will scan this folder and its subdirectories for JSON files
-                            and load them as schemas.
-                        </p>
-                    )}
-                </div>
+        <div className="space-y-4">
+          {/* Project Name Input */}
+          <div className="space-y-2">
+            <Label htmlFor="modal-project-name">Project Name</Label>
+            <Input
+              id="modal-project-name"
+              placeholder="Enter project name"
+              value={projectName}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProjectName(e.target.value)}
+              disabled={isLoadingProject}
+            />
+          </div>
 
-                <DialogFooter>
-                    <Button
-                        variant="outline"
-                        onClick={handleClose}
-                        disabled={isLoadingProject}
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        onClick={handleCreateProject}
-                        disabled={!canCreateProject}
-                    >
-                        {isLoadingProject ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Creating...
-                            </>
-                        ) : (
-                            'Create Project'
-                        )}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-} 
+          {/* Folder Selection */}
+          <div className="space-y-2">
+            <Label htmlFor="modal-project-path">Project Folder</Label>
+            <div className="flex gap-2">
+              <Input
+                id="modal-project-path"
+                placeholder="Select a folder containing JSON schemas"
+                value={selectedPath}
+                readOnly
+                disabled={isLoadingProject}
+              />
+              <Button
+                variant="outline"
+                onClick={handleSelectFolder}
+                disabled={isSelecting || isLoadingProject}
+                className="shrink-0"
+              >
+                {isSelecting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FolderOpen className="h-4 w-4" />
+                )}
+                Browse
+              </Button>
+            </div>
+          </div>
+
+          {/* Help Text */}
+          {selectedPath && (
+            <p className="text-xs text-muted-foreground">
+              The application will scan this folder and its subdirectories for JSON files and load
+              them as schemas.
+            </p>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose} disabled={isLoadingProject}>
+            Cancel
+          </Button>
+          <Button onClick={handleCreateProject} disabled={!canCreateProject}>
+            {isLoadingProject ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              'Create Project'
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

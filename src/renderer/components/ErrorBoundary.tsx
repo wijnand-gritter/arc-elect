@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
-import logger from '../lib/renderer-logger';
+import logger from '@/lib/renderer-logger';
 
 /**
  * Props interface for the ErrorBoundary component.

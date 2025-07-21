@@ -1,18 +1,10 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
-import path from 'node:path';
-
-const projectRootDir = path.resolve(__dirname, '..'); // root van je project
-const rendererPath = path.resolve(projectRootDir, 'src/renderer');
+import tsconfigPaths from 'vite-tsconfig-paths';
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
-  resolve: {
-    alias: {
-      '@': rendererPath,
-    },
-  },
+  plugins: [react(), tailwindcss(), tsconfigPaths()],
   envPrefix: ['VITE_'],
   server: {
     port: 5173,

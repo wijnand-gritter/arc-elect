@@ -14,7 +14,7 @@ This directory contains all custom and shared UI components for the renderer, in
 2. You can also add your own custom components here. Use the same structure and naming conventions as shadcn/ui for consistency.
 3. Import and use components in your pages or other components:
    ```tsx
-   import { Button } from '@/components/ui/button';
+   import { Button } from '@//components/ui/button';
    <Button>Click me</Button>;
    ```
 

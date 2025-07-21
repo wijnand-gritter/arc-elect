@@ -33,23 +33,23 @@ import { ProjectError } from '../components/ProjectError';
  * ```
  */
 export function Project(): React.JSX.Element {
-    const { currentProject, isLoadingProject, projectError } = useAppStore();
+  const { currentProject, isLoadingProject, projectError } = useAppStore();
 
-    // Show loading state
-    if (isLoadingProject) {
-        return <ProjectLoading />;
-    }
+  // Show loading state
+  if (isLoadingProject) {
+    return <ProjectLoading />;
+  }
 
-    // Show error state
-    if (projectError) {
-        return <ProjectError error={projectError} />;
-    }
+  // Show error state
+  if (projectError) {
+    return <ProjectError error={projectError} />;
+  }
 
-    // Show setup state when no project is loaded
-    if (!currentProject) {
-        return <ProjectSetup />;
-    }
+  // Show setup state when no project is loaded
+  if (!currentProject) {
+    return <ProjectSetup />;
+  }
 
-    // Show project overview when project is loaded
-    return <ProjectOverview project={currentProject} />;
-} 
+  // Show project overview when project is loaded
+  return <ProjectOverview project={currentProject} />;
+}

@@ -10,9 +10,7 @@
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "dev": "electron-forge start",
-    "vite": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
+    "build": "electron-forge make",
     "test": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
@@ -29,7 +27,7 @@
     "icons:mac": "node scripts/generate-mac-icon.js",
     "icons:setup": "node scripts/setup-icons.js",
     "icons:clean": "rm -rf build/icons",
-    "icons:full": "npm run icons && npm run icons:mac && npm run icons:setup"
+    "icons:full": "npm run icons:clean && npm run icons && npm run icons:mac && npm run icons:setup"
   },
   "keywords": [],
   "author": {
