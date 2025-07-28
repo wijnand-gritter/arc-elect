@@ -12,6 +12,12 @@
 
 import { contextBridge, ipcRenderer } from 'electron';
 
+// Listen for app shutdown events
+ipcRenderer.on('app:before-quit', () => {
+  // Dispatch a custom event that the renderer can listen to
+  window.dispatchEvent(new CustomEvent('app:before-quit'));
+});
+
 /**
  * Secure IPC bridge exposed to the renderer process.
  *

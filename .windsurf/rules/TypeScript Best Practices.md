@@ -1,0 +1,921 @@
+---
+trigger: always_on
+description:
+globs:
+---
+
+# TypeScript Best Practices
+
+## Type Safety
+
+### Strict Configuration
+
+- Enable strict TypeScript configuration
+- Use `strict: true` in tsconfig.json
+- Enable all strict flags for maximum type safety
+- Avoid using `any` type
+
+```typescript
+// ✅ Good: Strict typing
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
+const getUser = async (id: string): Promise<User> => {
+  const response = await fetch(`/api/users/${id}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch user');
+  }
+  return response.json();
+};
+
+// ❌ Bad: Loose typing
+const getUser = async (id: any): Promise<any> => {
+  const response = await fetch(`/api/users/${id}`);
+  return response.json();
+};
+```
+
+### Type Guards
+
+- Use type guards for runtime type checking
+- Implement proper type narrowing
+- Use discriminated unions for complex types
+- Validate external data with type guards
+
+```typescript
+// ✅ Good: Type guards
+interface ApiResponse<T> {
+  success: true;
+  data: T;
+}
+
+interface ApiError {
+  success: false;
+  error: string;
+}
+
+type ApiResult<T> = ApiResponse<T> | ApiError;
+
+function isSuccess<T>(result: ApiResult<T>): result is ApiResponse<T> {
+  return result.success === true;
+}
+
+const handleApiResult = <T>(result: ApiResult<T>): T => {
+  if (isSuccess(result)) {
+    return result.data;
+  }
+  throw new Error(result.error);
+};
+```
+
+## Interface Design
+
+### Interface vs Type
+
+- Use interfaces for object shapes and component props
+- Use type aliases for unions, intersections, and utility types
+- Prefer interfaces for extensibility
+- Use readonly properties when appropriate
+
+```typescript
+// ✅ Good: Interface for component props
+interface ButtonProps {
+  children: React.ReactNode;
+  onClick?: () => void;
+  variant?: 'primary' | 'secondary';
+  disabled?: boolean;
+  readonly id: string;
+}
+
+// ✅ Good: Type for utility types
+type ButtonVariant = 'primary' | 'secondary';
+type Optional<T> = T | undefined;
+type NonNullable<T> = T extends null | undefined ? never : T;
+```
+
+### Interface Extension
+
+- Extend interfaces rather than duplicating code
+- Use composition over inheritance
+- Keep interfaces focused and single-purpose
+- Document complex interfaces
+
+```typescript
+// ✅ Good: Interface extension
+interface BaseComponentProps {
+  className?: string;
+  id?: string;
+}
+
+interface ButtonProps extends BaseComponentProps {
+  onClick?: () => void;
+  variant?: 'primary' | 'secondary';
+}
+
+interface InputProps extends BaseComponentProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}
+```
+
+## Generic Usage
+
+### Generic Components
+
+- Use generics for reusable components
+- Provide meaningful generic constraints
+- Use default generic parameters when appropriate
+- Document generic type parameters
+
+```typescript
+// ✅ Good: Generic component with constraints
+interface ListProps<T> {
+  items: T[];
+  renderItem: (item: T, index: number) => React.ReactNode;
+  keyExtractor: (item: T) => string;
+}
+
+function List<T>({ items, renderItem, keyExtractor }: ListProps<T>) {
+  return (
+    <div>
+      {items.map((item, index) => (
+        <div key={keyExtractor(item)}>
+          {renderItem(item, index)}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Usage
+<List<User>
+  items={users}
+  renderItem={(user) => <UserCard user={user} />}
+  keyExtractor={(user) => user.id}
+/>
+```
+
+### Generic Utilities
+
+- Create generic utility functions
+- Use proper type constraints
+- Leverage TypeScript's utility types
+- Implement type-safe APIs
+
+```typescript
+// ✅ Good: Generic utility function
+function createApiClient<T>(baseUrl: string) {
+  return {
+    async get(id: string): Promise<T> {
+      const response = await fetch(`${baseUrl}/${id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch');
+      }
+      return response.json();
+    },
+
+    async post(data: Omit<T, 'id'>): Promise<T> {
+      const response = await fetch(baseUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to create');
+      }
+      return response.json();
+    },
+  };
+}
+```
+
+## Function Types
+
+### Function Signatures
+
+- Use explicit return types for public functions
+- Use function overloads for complex APIs
+- Implement proper error handling types
+- Use async/await consistently
+
+```typescript
+// ✅ Good: Explicit function signatures
+async function fetchUser(id: string): Promise<User> {
+  const response = await fetch(`/api/users/${id}`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch user: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+// ✅ Good: Function overloads
+function processData(data: string): string;
+function processData(data: number): number;
+function processData(data: string | number): string | number {
+  if (typeof data === 'string') {
+    return data.toUpperCase();
+  }
+  return data * 2;
+}
+```
+
+### Callback Types
+
+- Use proper callback type definitions
+- Implement error handling in callbacks
+- Use void for functions that don't return values
+- Document callback parameters
+
+```typescript
+// ✅ Good: Callback type definitions
+type SuccessCallback<T> = (result: T) => void;
+type ErrorCallback = (error: Error) => void;
+
+interface ApiOptions<T> {
+  onSuccess?: SuccessCallback<T>;
+  onError?: ErrorCallback;
+  timeout?: number;
+}
+
+async function apiCall<T>(url: string, options: ApiOptions<T> = {}): Promise<T> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const result = await response.json();
+    options.onSuccess?.(result);
+    return result;
+  } catch (error) {
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    options.onError?.(errorObj);
+    throw errorObj;
+  }
+}
+```
+
+## State Management Types
+
+### Zustand Store Types
+
+- Define proper store state interfaces
+- Use TypeScript for store actions
+- Implement proper state updates
+- Use selectors for derived state
+
+```typescript
+// ✅ Good: Zustand store with proper types
+interface AppState {
+  user: User | null;
+  theme: 'light' | 'dark' | 'system';
+  isLoading: boolean;
+}
+
+interface AppActions {
+  setUser: (user: User | null) => void;
+  setTheme: (theme: AppState['theme']) => void;
+  setLoading: (loading: boolean) => void;
+  loadUser: () => Promise<void>;
+}
+
+type AppStore = AppState & AppActions;
+
+const useAppStore = create<AppStore>((set, get) => ({
+  user: null,
+  theme: 'system',
+  isLoading: false,
+
+  setUser: (user) => set({ user }),
+  setTheme: (theme) => set({ theme }),
+  setLoading: (isLoading) => set({ isLoading }),
+
+  loadUser: async () => {
+    set({ isLoading: true });
+    try {
+      const user = await fetchUser();
+      set({ user, isLoading: false });
+    } catch (error) {
+      set({ isLoading: false });
+      throw error;
+    }
+  },
+}));
+```
+
+## Component Props
+
+### Props Interface Design
+
+- Use interfaces for component props
+- Make props optional when appropriate
+- Use proper prop types for children
+- Implement prop validation
+
+```typescript
+// ✅ Good: Component props interface
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+  size?: 'small' | 'medium' | 'large';
+  closeOnOverlayClick?: boolean;
+}
+
+const Modal: React.FC<ModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+  size = 'medium',
+  closeOnOverlayClick = true,
+}) => {
+  // Component implementation
+};
+```
+
+### Event Handler Types
+
+- Use proper event handler types
+- Implement proper event handling
+- Use generic event types when appropriate
+- Handle form events correctly
+
+```typescript
+// ✅ Good: Event handler types
+interface FormProps {
+  onSubmit: (data: FormData) => void;
+  onChange?: (field: string, value: string) => void;
+  onBlur?: (field: string) => void;
+}
+
+const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  event.preventDefault();
+  const formData = new FormData(event.currentTarget);
+  onSubmit(Object.fromEntries(formData));
+};
+
+const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  onChange?.(event.target.name, event.target.value);
+};
+```
+
+## Error Handling Types
+
+### Error Types
+
+- Define custom error types
+- Use discriminated unions for error handling
+- Implement proper error hierarchies
+- Use Result types for error handling
+
+```typescript
+// ✅ Good: Custom error types
+class ApiError extends Error {
+  constructor(
+    message: string,
+    public statusCode: number,
+    public code?: string,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+class ValidationError extends Error {
+  constructor(
+    message: string,
+    public field: string,
+    public value: unknown,
+  ) {
+    super(message);
+    this.name = 'ValidationError';
+  }
+}
+
+// ✅ Good: Result type for error handling
+type Result<T, E = Error> = { success: true; data: T } | { success: false; error: E };
+
+async function safeApiCall<T>(url: string): Promise<Result<T, ApiError>> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      return {
+        success: false,
+        error: new ApiError('API call failed', response.status),
+      };
+    }
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error) {
+    return {
+      success: false,
+      error: new ApiError('Network error', 0),
+    };
+  }
+}
+```
+
+## Utility Types
+
+### TypeScript Utility Types
+
+- Leverage built-in utility types
+- Create custom utility types when needed
+- Use conditional types for complex logic
+- Implement proper type transformations
+
+```typescript
+// ✅ Good: Using utility types
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: Date;
+}
+
+// Make all properties optional
+type PartialUser = Partial<User>;
+
+// Make specific properties required
+type CreateUserRequest = Pick<User, 'name' | 'email'>;
+
+// Omit specific properties
+type UserResponse = Omit<User, 'password'>;
+
+// Make specific properties readonly
+type ReadonlyUser = Readonly<Pick<User, 'id' | 'createdAt'>> & Omit<User, 'id' | 'createdAt'>;
+
+// ✅ Good: Custom utility types
+type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
+};
+
+type NonNullableFields<T> = {
+  [P in keyof T]: NonNullable<T[P]>;
+};
+
+type AsyncReturnType<T> = T extends (...args: any[]) => Promise<infer R> ? R : never;
+```
+
+# TypeScript Best Practices
+
+## Type Safety
+
+### Strict Configuration
+
+- Enable strict TypeScript configuration
+- Use `strict: true` in tsconfig.json
+- Enable all strict flags for maximum type safety
+- Avoid using `any` type
+
+```typescript
+// ✅ Good: Strict typing
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
+const getUser = async (id: string): Promise<User> => {
+  const response = await fetch(`/api/users/${id}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch user');
+  }
+  return response.json();
+};
+
+// ❌ Bad: Loose typing
+const getUser = async (id: any): Promise<any> => {
+  const response = await fetch(`/api/users/${id}`);
+  return response.json();
+};
+```
+
+### Type Guards
+
+- Use type guards for runtime type checking
+- Implement proper type narrowing
+- Use discriminated unions for complex types
+- Validate external data with type guards
+
+```typescript
+// ✅ Good: Type guards
+interface ApiResponse<T> {
+  success: true;
+  data: T;
+}
+
+interface ApiError {
+  success: false;
+  error: string;
+}
+
+type ApiResult<T> = ApiResponse<T> | ApiError;
+
+function isSuccess<T>(result: ApiResult<T>): result is ApiResponse<T> {
+  return result.success === true;
+}
+
+const handleApiResult = <T>(result: ApiResult<T>): T => {
+  if (isSuccess(result)) {
+    return result.data;
+  }
+  throw new Error(result.error);
+};
+```
+
+## Interface Design
+
+### Interface vs Type
+
+- Use interfaces for object shapes and component props
+- Use type aliases for unions, intersections, and utility types
+- Prefer interfaces for extensibility
+- Use readonly properties when appropriate
+
+```typescript
+// ✅ Good: Interface for component props
+interface ButtonProps {
+  children: React.ReactNode;
+  onClick?: () => void;
+  variant?: 'primary' | 'secondary';
+  disabled?: boolean;
+  readonly id: string;
+}
+
+// ✅ Good: Type for utility types
+type ButtonVariant = 'primary' | 'secondary';
+type Optional<T> = T | undefined;
+type NonNullable<T> = T extends null | undefined ? never : T;
+```
+
+### Interface Extension
+
+- Extend interfaces rather than duplicating code
+- Use composition over inheritance
+- Keep interfaces focused and single-purpose
+- Document complex interfaces
+
+```typescript
+// ✅ Good: Interface extension
+interface BaseComponentProps {
+  className?: string;
+  id?: string;
+}
+
+interface ButtonProps extends BaseComponentProps {
+  onClick?: () => void;
+  variant?: 'primary' | 'secondary';
+}
+
+interface InputProps extends BaseComponentProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}
+```
+
+## Generic Usage
+
+### Generic Components
+
+- Use generics for reusable components
+- Provide meaningful generic constraints
+- Use default generic parameters when appropriate
+- Document generic type parameters
+
+```typescript
+// ✅ Good: Generic component with constraints
+interface ListProps<T> {
+  items: T[];
+  renderItem: (item: T, index: number) => React.ReactNode;
+  keyExtractor: (item: T) => string;
+}
+
+function List<T>({ items, renderItem, keyExtractor }: ListProps<T>) {
+  return (
+    <div>
+      {items.map((item, index) => (
+        <div key={keyExtractor(item)}>
+          {renderItem(item, index)}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Usage
+<List<User>
+  items={users}
+  renderItem={(user) => <UserCard user={user} />}
+  keyExtractor={(user) => user.id}
+/>
+```
+
+### Generic Utilities
+
+- Create generic utility functions
+- Use proper type constraints
+- Leverage TypeScript's utility types
+- Implement type-safe APIs
+
+```typescript
+// ✅ Good: Generic utility function
+function createApiClient<T>(baseUrl: string) {
+  return {
+    async get(id: string): Promise<T> {
+      const response = await fetch(`${baseUrl}/${id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch');
+      }
+      return response.json();
+    },
+
+    async post(data: Omit<T, 'id'>): Promise<T> {
+      const response = await fetch(baseUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to create');
+      }
+      return response.json();
+    },
+  };
+}
+```
+
+## Function Types
+
+### Function Signatures
+
+- Use explicit return types for public functions
+- Use function overloads for complex APIs
+- Implement proper error handling types
+- Use async/await consistently
+
+```typescript
+// ✅ Good: Explicit function signatures
+async function fetchUser(id: string): Promise<User> {
+  const response = await fetch(`/api/users/${id}`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch user: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+// ✅ Good: Function overloads
+function processData(data: string): string;
+function processData(data: number): number;
+function processData(data: string | number): string | number {
+  if (typeof data === 'string') {
+    return data.toUpperCase();
+  }
+  return data * 2;
+}
+```
+
+### Callback Types
+
+- Use proper callback type definitions
+- Implement error handling in callbacks
+- Use void for functions that don't return values
+- Document callback parameters
+
+```typescript
+// ✅ Good: Callback type definitions
+type SuccessCallback<T> = (result: T) => void;
+type ErrorCallback = (error: Error) => void;
+
+interface ApiOptions<T> {
+  onSuccess?: SuccessCallback<T>;
+  onError?: ErrorCallback;
+  timeout?: number;
+}
+
+async function apiCall<T>(url: string, options: ApiOptions<T> = {}): Promise<T> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const result = await response.json();
+    options.onSuccess?.(result);
+    return result;
+  } catch (error) {
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    options.onError?.(errorObj);
+    throw errorObj;
+  }
+}
+```
+
+## State Management Types
+
+### Zustand Store Types
+
+- Define proper store state interfaces
+- Use TypeScript for store actions
+- Implement proper state updates
+- Use selectors for derived state
+
+```typescript
+// ✅ Good: Zustand store with proper types
+interface AppState {
+  user: User | null;
+  theme: 'light' | 'dark' | 'system';
+  isLoading: boolean;
+}
+
+interface AppActions {
+  setUser: (user: User | null) => void;
+  setTheme: (theme: AppState['theme']) => void;
+  setLoading: (loading: boolean) => void;
+  loadUser: () => Promise<void>;
+}
+
+type AppStore = AppState & AppActions;
+
+const useAppStore = create<AppStore>((set, get) => ({
+  user: null,
+  theme: 'system',
+  isLoading: false,
+
+  setUser: (user) => set({ user }),
+  setTheme: (theme) => set({ theme }),
+  setLoading: (isLoading) => set({ isLoading }),
+
+  loadUser: async () => {
+    set({ isLoading: true });
+    try {
+      const user = await fetchUser();
+      set({ user, isLoading: false });
+    } catch (error) {
+      set({ isLoading: false });
+      throw error;
+    }
+  },
+}));
+```
+
+## Component Props
+
+### Props Interface Design
+
+- Use interfaces for component props
+- Make props optional when appropriate
+- Use proper prop types for children
+- Implement prop validation
+
+```typescript
+// ✅ Good: Component props interface
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+  size?: 'small' | 'medium' | 'large';
+  closeOnOverlayClick?: boolean;
+}
+
+const Modal: React.FC<ModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+  size = 'medium',
+  closeOnOverlayClick = true,
+}) => {
+  // Component implementation
+};
+```
+
+### Event Handler Types
+
+- Use proper event handler types
+- Implement proper event handling
+- Use generic event types when appropriate
+- Handle form events correctly
+
+```typescript
+// ✅ Good: Event handler types
+interface FormProps {
+  onSubmit: (data: FormData) => void;
+  onChange?: (field: string, value: string) => void;
+  onBlur?: (field: string) => void;
+}
+
+const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  event.preventDefault();
+  const formData = new FormData(event.currentTarget);
+  onSubmit(Object.fromEntries(formData));
+};
+
+const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  onChange?.(event.target.name, event.target.value);
+};
+```
+
+## Error Handling Types
+
+### Error Types
+
+- Define custom error types
+- Use discriminated unions for error handling
+- Implement proper error hierarchies
+- Use Result types for error handling
+
+```typescript
+// ✅ Good: Custom error types
+class ApiError extends Error {
+  constructor(
+    message: string,
+    public statusCode: number,
+    public code?: string,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+class ValidationError extends Error {
+  constructor(
+    message: string,
+    public field: string,
+    public value: unknown,
+  ) {
+    super(message);
+    this.name = 'ValidationError';
+  }
+}
+
+// ✅ Good: Result type for error handling
+type Result<T, E = Error> = { success: true; data: T } | { success: false; error: E };
+
+async function safeApiCall<T>(url: string): Promise<Result<T, ApiError>> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      return {
+        success: false,
+        error: new ApiError('API call failed', response.status),
+      };
+    }
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error) {
+    return {
+      success: false,
+      error: new ApiError('Network error', 0),
+    };
+  }
+}
+```
+
+## Utility Types
+
+### TypeScript Utility Types
+
+- Leverage built-in utility types
+- Create custom utility types when needed
+- Use conditional types for complex logic
+- Implement proper type transformations
+
+```typescript
+// ✅ Good: Using utility types
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: Date;
+}
+
+// Make all properties optional
+type PartialUser = Partial<User>;
+
+// Make specific properties required
+type CreateUserRequest = Pick<User, 'name' | 'email'>;
+
+// Omit specific properties
+type UserResponse = Omit<User, 'password'>;
+
+// Make specific properties readonly
+type ReadonlyUser = Readonly<Pick<User, 'id' | 'createdAt'>> & Omit<User, 'id' | 'createdAt'>;
+
+// ✅ Good: Custom utility types
+type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
+};
+
+type NonNullableFields<T> = {
+  [P in keyof T]: NonNullable<T[P]>;
+};
+
+type AsyncReturnType<T> = T extends (...args: any[]) => Promise<infer R> ? R : never;
+```

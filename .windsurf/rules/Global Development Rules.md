@@ -1,0 +1,343 @@
+---
+trigger: always_on
+description:
+globs:
+---
+
+# Global Development Rules
+
+## Project Structure & Architecture
+
+### Directory Organization
+
+- Use clear, semantic directory names with lowercase and dashes
+- Organize by feature/domain rather than by type
+- Keep related files close together
+- Separate main process, renderer process, and shared code
+
+### File Naming Conventions
+
+- Components: PascalCase (e.g., `UserProfile.tsx`)
+- Utilities/Hooks: camelCase (e.g., `useAuth.ts`, `formatDate.ts`)
+- Pages: PascalCase (e.g., `Home.tsx`, `Settings.tsx`)
+- Types/Interfaces: PascalCase (e.g., `User.ts`, `ApiResponse.ts`)
+- Constants: UPPER_SNAKE_CASE (e.g., `API_ENDPOINTS.ts`)
+
+### Import Organization
+
+- Group imports: external libraries, internal modules, relative imports
+- Use absolute imports with path aliases when possible
+- Prefer named exports over default exports
+- Use barrel exports for cleaner imports
+
+## TypeScript Best Practices
+
+### Type Safety
+
+- Enable strict TypeScript configuration
+- Use explicit types for function parameters and return values
+- Avoid `any` type - use `unknown` or proper types
+- Use type guards for runtime type checking
+- Leverage TypeScript's utility types
+
+### Interface Design
+
+- Use interfaces for object shapes and component props
+- Prefer interfaces over type aliases for object types
+- Use readonly properties when appropriate
+- Extend interfaces rather than duplicating code
+
+### Generic Usage
+
+- Use generics for reusable components and utilities
+- Provide meaningful generic constraints
+- Use default generic parameters when appropriate
+
+## React Development
+
+### Component Architecture
+
+- Use functional components with hooks
+- Keep components focused and single-purpose
+- Prefer composition over inheritance
+- Use custom hooks for reusable logic
+- Implement proper error boundaries
+
+### State Management
+
+- Use local state for component-specific data
+- Use context for shared state across components
+- Use external state management (Zustand/Redux) for global state
+- Keep state as close to where it's used as possible
+
+### Performance Optimization
+
+- Use React.memo for expensive components
+- Use useCallback for event handlers passed to child components
+- Use useMemo for expensive calculations
+- Implement proper dependency arrays in useEffect
+- Use lazy loading for code splitting
+
+### Props & Children
+
+- Use TypeScript interfaces for component props
+- Provide default values for optional props
+- Use children prop for component composition
+- Destructure props at the component level
+
+## Electron-Specific Patterns
+
+### Security First
+
+- Never enable nodeIntegration in renderer process
+- Use contextBridge for secure IPC communication
+- Validate all IPC data in main process
+- Use preload scripts for API exposure
+- Implement proper CSP headers
+
+### Process Separation
+
+- Keep main process code minimal and focused
+- Use IPC for inter-process communication
+- Handle errors appropriately in each process
+- Use proper logging for debugging
+
+### File Operations
+
+- Always validate file paths before operations
+- Use IPC bridge for file operations from renderer
+- Implement proper error handling for file operations
+- Log all file operations for debugging
+
+## Error Handling & Logging
+
+### Error Handling Strategy
+
+- Use try-catch blocks for async operations
+- Implement global error boundaries
+- Provide user-friendly error messages
+- Log errors with context for debugging
+- Use proper error types and hierarchies
+
+### Logging Best Practices
+
+- Use structured logging with context
+- Log at appropriate levels (debug, info, warn, error)
+- Include relevant data in log messages
+- Use consistent log formatting
+- Implement log rotation and management
+
+### User Feedback
+
+- Show loading states for async operations
+- Display meaningful error messages to users
+- Use toast notifications for user feedback
+- Implement retry mechanisms where appropriate
+
+## Code Quality & Standards
+
+### Code Style
+
+- Use consistent indentation (2 spaces)
+- Use single quotes for strings
+- Use semicolons consistently
+- Use trailing commas in objects and arrays
+- Keep line length reasonable (80-100 characters)
+
+### Naming Conventions
+
+- Use descriptive, meaningful names
+- Use camelCase for variables and functions
+- Use PascalCase for components and types
+- Use UPPER_SNAKE_CASE for constants
+- Avoid abbreviations unless widely understood
+
+### Documentation
+
+- Write clear, concise comments
+- Document complex algorithms and business logic
+- Use JSDoc for function documentation
+- Keep documentation up to date
+- Document API contracts and interfaces
+
+## Testing Strategy
+
+### Test Organization
+
+- Write tests alongside the code they test
+- Use descriptive test names
+- Group related tests with describe blocks
+- Keep tests focused and isolated
+- Use proper test data and fixtures
+
+### Testing Best Practices
+
+- Test behavior, not implementation
+- Use meaningful assertions
+- Mock external dependencies
+- Test error conditions and edge cases
+- Maintain good test coverage
+
+### E2E Testing
+
+- Test user workflows, not implementation details
+- Use semantic selectors over CSS selectors
+- Handle async operations properly
+- Keep tests independent and isolated
+- Use page objects for reusable test logic
+
+## Performance & Optimization
+
+### Bundle Optimization
+
+- Use code splitting for large applications
+- Implement lazy loading for routes and components
+- Optimize images and assets
+- Use tree shaking to eliminate dead code
+- Monitor bundle size regularly
+
+### Runtime Performance
+
+- Avoid unnecessary re-renders
+- Use proper memoization techniques
+- Optimize expensive operations
+- Implement proper cleanup in useEffect
+- Monitor performance metrics
+
+### Development Performance
+
+- Use fast build tools (Vite, esbuild)
+- Implement hot module replacement
+- Use development-specific optimizations
+- Monitor build and startup times
+- Optimize development workflow
+
+## Git & Version Control
+
+### Commit Standards
+
+- Use conventional commit format
+- Write descriptive commit messages
+- Keep commits focused and atomic
+- Reference issues when applicable
+- Use appropriate commit types
+
+### Branch Strategy
+
+- Use feature branches for new development
+- Keep branches short-lived
+- Use descriptive branch names
+- Implement proper code review process
+- Use semantic versioning
+
+### Code Review
+
+- Review for functionality and security
+- Check for code quality and standards
+- Ensure proper testing coverage
+- Verify documentation updates
+- Consider performance implications
+
+## Security Considerations
+
+### Input Validation
+
+- Validate all user inputs
+- Sanitize data before processing
+- Use parameterized queries
+- Implement proper authentication
+- Use HTTPS for all communications
+
+### Data Protection
+
+- Encrypt sensitive data at rest
+- Use secure communication protocols
+- Implement proper access controls
+- Follow principle of least privilege
+- Regular security audits
+
+### Dependency Management
+
+- Keep dependencies updated
+- Use dependency scanning tools
+- Audit dependencies regularly
+- Use lock files for reproducible builds
+- Monitor for security vulnerabilities
+
+## Accessibility & UX
+
+### Accessibility Standards
+
+- Follow WCAG guidelines
+- Use semantic HTML elements
+- Provide proper ARIA attributes
+- Ensure keyboard navigation
+- Test with screen readers
+
+### User Experience
+
+- Design for clarity and simplicity
+- Provide clear feedback for user actions
+- Implement proper loading states
+- Use consistent design patterns
+- Consider mobile and responsive design
+
+### Internationalization
+
+- Use proper text encoding
+- Implement i18n for multi-language support
+- Consider cultural differences
+- Use appropriate date and number formats
+- Test with different locales
+
+## Development Workflow
+
+### Environment Setup
+
+- Use consistent development environments
+- Document setup requirements
+- Use environment variables for configuration
+- Implement proper build scripts
+- Use development tools effectively
+
+### Code Review Process
+
+- Implement mandatory code reviews
+- Use automated quality checks
+- Provide constructive feedback
+- Ensure knowledge sharing
+- Maintain code quality standards
+
+### Deployment & Release
+
+- Use automated deployment pipelines
+- Implement proper versioning
+- Test in staging environments
+- Monitor production performance
+- Have rollback procedures
+
+## Maintenance & Monitoring
+
+### Code Maintenance
+
+- Regular dependency updates
+- Code refactoring and cleanup
+- Performance monitoring
+- Security audits
+- Documentation updates
+
+### Monitoring & Observability
+
+- Implement proper logging
+- Use application monitoring
+- Track performance metrics
+- Monitor error rates
+- Set up alerts for critical issues
+
+### Technical Debt
+
+- Identify and track technical debt
+- Plan regular refactoring sessions
+- Balance new features with maintenance
+- Document technical decisions
+- Regular code quality reviews

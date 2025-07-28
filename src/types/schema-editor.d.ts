@@ -117,6 +117,15 @@ export interface Schema {
   importSource?: 'json' | 'raml';
   /** When the schema was imported */
   importDate?: Date;
+  /** Validation errors found during validation */
+  validationErrors?: ValidationError[];
+  references: SchemaReference[]; // What this schema references
+  referencedBy: string[]; // What references this schema
+}
+
+export interface SchemaReference {
+  $ref: string;
+  schemaName: string;
 }
 
 /**
@@ -164,10 +173,14 @@ export interface ValidationResult {
 export interface ValidationError {
   /** JSON path to the error location */
   path: string;
+  /** Instance path to the error location (Ajv format) */
+  instancePath?: string;
   /** Error message */
   message: string;
   /** Error severity */
   severity: 'error' | 'warning';
+  /** Validation keyword that caused the error */
+  keyword?: string;
   /** Suggested fix for the error */
   suggestion?: string;
 }
@@ -320,174 +333,16 @@ export interface SchemaFilters {
   /** Search term */
   search: string;
   /** Validation status filter */
-  validationStatus: ValidationStatus[];
-  /** Reference count range filter */
-  referenceCount: RangeFilter;
-  /** File size range filter */
-  fileSize: RangeFilter;
-  /** Date range filter */
-  dateRange: DateRange;
-}
-
-/**
- * Range filter for numeric values.
- */
-export interface RangeFilter {
-  /** Minimum value */
-  min?: number;
-  /** Maximum value */
-  max?: number;
-}
-
-/**
- * Date range filter.
- */
-export interface DateRange {
-  /** Start date */
-  start?: Date;
-  /** End date */
-  end?: Date;
-}
-
-/**
- * Editor state interfaces
- */
-
-/**
- * Represents an open editor tab.
- */
-export interface EditorTab {
-  /** Unique tab identifier */
-  id: string;
-  /** ID of the schema being edited */
-  schemaId: string;
-  /** Tab title */
-  title: string;
-  /** Current content in the editor */
-  content: string;
-  /** Whether the tab has unsaved changes */
-  isDirty: boolean;
-  /** Whether this tab is currently active */
-  isActive: boolean;
-  /** When the tab was last saved */
-  lastSaved: Date;
-}
-
-/**
- * State for the editor interface.
- */
-export interface EditorState {
-  /** Open editor tabs */
-  tabs: EditorTab[];
-  /** ID of the currently active tab */
-  activeTabId: string | null;
-  /** Monaco editor configuration */
-  editorConfig: MonacoEditorConfig;
-  /** Set of tab IDs with unsaved changes */
-  unsavedChanges: Set<string>;
-}
-
-/**
- * Configuration for Monaco editor.
- */
-export interface MonacoEditorConfig {
-  /** Editor theme */
-  theme: 'vs' | 'vs-dark' | 'hc-black';
-  /** Font size */
-  fontSize: number;
-  /** Whether to show line numbers */
-  lineNumbers: boolean;
-  /** Whether to show minimap */
-  minimap: boolean;
-  /** Whether to enable word wrap */
-  wordWrap: boolean;
-  /** Tab size */
-  tabSize: number;
+  validationStatus: ValidationStatus | 'all';
+  /** Sort field */
+  sortBy: SortField;
+  /** Sort direction */
+  sortDirection: 'asc' | 'desc';
 }
 
 /**
  * Analytics interfaces
  */
-
-/**
- * Analytics data for schemas.
- */
-export interface SchemaAnalytics {
-  /** Circular references found */
-  circularReferences: CircularReference[];
-  /** Complexity metrics */
-  complexityMetrics: ComplexityMetrics;
-  /** Reference graph data */
-  referenceGraph: ReferenceGraph;
-  /** Validation statistics */
-  validationStats: ValidationStatistics;
-  /** Performance metrics */
-  performanceMetrics: PerformanceMetrics;
-}
-
-/**
- * A circular reference between schemas.
- */
-export interface CircularReference {
-  /** IDs of schemas involved in the circular reference */
-  schemas: string[];
-  /** Path of the circular reference */
-  path: string[];
-  /** Severity of the circular reference */
-  severity: 'low' | 'medium' | 'high';
-  /** Impact analysis */
-  impact: string[];
-}
-
-/**
- * Complexity metrics for schemas.
- */
-export interface ComplexityMetrics {
-  /** Maximum depth of schema structure */
-  maxDepth: number;
-  /** Average number of properties per schema */
-  avgProperties: number;
-  /** Total number of properties across all schemas */
-  totalProperties: number;
-  /** Number of schemas with high complexity */
-  highComplexityCount: number;
-}
-
-/**
- * Reference graph data.
- */
-export interface ReferenceGraph {
-  /** Nodes in the reference graph */
-  nodes: ReferenceNode[];
-  /** Edges in the reference graph */
-  edges: ReferenceEdge[];
-}
-
-/**
- * A node in the reference graph.
- */
-export interface ReferenceNode {
-  /** Schema ID */
-  id: string;
-  /** Schema name */
-  name: string;
-  /** Number of incoming references */
-  inDegree: number;
-  /** Number of outgoing references */
-  outDegree: number;
-}
-
-/**
- * An edge in the reference graph.
- */
-export interface ReferenceEdge {
-  /** Source schema ID */
-  source: string;
-  /** Target schema ID */
-  target: string;
-  /** Reference path */
-  path: string[];
-}
 
 /**
  * Validation statistics.
@@ -503,18 +358,4 @@ export interface ValidationStatistics {
   error: number;
   /** Number of schemas pending validation */
   pending: number;
-}
-
-/**
- * Performance metrics.
- */
-export interface PerformanceMetrics {
-  /** Average load time for schemas */
-  avgLoadTime: number;
-  /** Average validation time */
-  avgValidationTime: number;
-  /** Memory usage in MB */
-  memoryUsage: number;
-  /** CPU usage percentage */
-  cpuUsage: number;
 }

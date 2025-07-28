@@ -1,0 +1,291 @@
+---
+trigger: always_on
+description:
+globs:
+---
+
+# Electron Security Rules
+
+## IPC Communication Security
+
+### Context Bridge Usage
+
+- Always use `contextBridge.exposeInMainWorld()` for API exposure
+- Never expose Node.js APIs directly to renderer
+- Validate all data passed through IPC
+- Use typed interfaces for IPC communication
+
+### IPC Handler Validation
+
+```typescript
+// ✅ Good: Validate all inputs
+ipcMain.handle('api:action', async (event, data) => {
+  if (!isValidData(data)) {
+    return { success: false, error: 'Invalid data' };
+  }
+  return { success: true, result: processData(data) };
+});
+
+// ❌ Bad: No validation
+ipcMain.handle('api:action', async (event, data) => {
+  return processData(data); // No validation
+});
+```
+
+### File Operation Security
+
+- Always validate file paths before operations
+- Use absolute paths and path validation
+- Implement file size limits
+- Log all file operations for audit trail
+
+## Renderer Process Security
+
+### Node Integration
+
+- Never enable `nodeIntegration: true`
+- Always use `contextIsolation: true`
+- Keep `sandbox: false` only when necessary
+- Use preload scripts for API exposure
+
+### Web Security
+
+- Implement proper Content Security Policy (CSP)
+- Disable `webSecurity: false` in production
+- Use `allowRunningInsecureContent: false`
+- Validate all external URLs and content
+
+### Window Management
+
+- Block new window creation by default
+- Validate window URLs before opening
+- Use `webContents.setWindowOpenHandler()` for control
+- Implement proper window lifecycle management
+
+## Main Process Security
+
+### Process Isolation
+
+- Keep main process minimal and focused
+- Handle all sensitive operations in main process
+- Use proper error handling and logging
+- Implement process crash recovery
+
+### Certificate Handling
+
+- Validate certificates in production
+- Allow self-signed certificates only in development
+- Implement proper certificate error handling
+- Use secure communication protocols
+
+### Resource Management
+
+- Implement proper cleanup on app exit
+- Handle memory leaks and resource disposal
+- Monitor process performance and resource usage
+- Implement proper error recovery mechanisms
+
+## Data Security
+
+### Input Validation
+
+- Validate all user inputs and IPC data
+- Sanitize data before processing
+- Use type-safe interfaces for all data
+- Implement proper error handling for invalid data
+
+### Storage Security
+
+- Encrypt sensitive data at rest
+- Use secure storage mechanisms (electron-store with encryption)
+- Implement proper access controls
+- Regular security audits of stored data
+
+### Communication Security
+
+- Use HTTPS for all external communications
+- Validate all network requests
+- Implement proper authentication mechanisms
+- Use secure protocols for IPC communication
+
+## Development vs Production
+
+### Development Security
+
+- Enable DevTools only in development
+- Use development-specific security relaxations carefully
+- Implement proper logging for debugging
+- Test security measures in development
+
+### Production Security
+
+- Disable all development features
+- Enable all security measures
+- Implement proper error handling
+- Use code signing for distribution
+
+## Security Monitoring
+
+### Logging and Auditing
+
+- Log all security-relevant events
+- Implement proper audit trails
+- Monitor for suspicious activities
+- Regular security log reviews
+
+### Error Handling
+
+- Never expose sensitive information in error messages
+- Implement proper error logging
+- Use user-friendly error messages
+- Handle security errors gracefully
+
+### Updates and Maintenance
+
+- Keep Electron and dependencies updated
+- Monitor for security vulnerabilities
+- Implement proper update mechanisms
+- Regular security assessments
+
+# Electron Security Rules
+
+## IPC Communication Security
+
+### Context Bridge Usage
+
+- Always use `contextBridge.exposeInMainWorld()` for API exposure
+- Never expose Node.js APIs directly to renderer
+- Validate all data passed through IPC
+- Use typed interfaces for IPC communication
+
+### IPC Handler Validation
+
+```typescript
+// ✅ Good: Validate all inputs
+ipcMain.handle('api:action', async (event, data) => {
+  if (!isValidData(data)) {
+    return { success: false, error: 'Invalid data' };
+  }
+  return { success: true, result: processData(data) };
+});
+
+// ❌ Bad: No validation
+ipcMain.handle('api:action', async (event, data) => {
+  return processData(data); // No validation
+});
+```
+
+### File Operation Security
+
+- Always validate file paths before operations
+- Use absolute paths and path validation
+- Implement file size limits
+- Log all file operations for audit trail
+
+## Renderer Process Security
+
+### Node Integration
+
+- Never enable `nodeIntegration: true`
+- Always use `contextIsolation: true`
+- Keep `sandbox: false` only when necessary
+- Use preload scripts for API exposure
+
+### Web Security
+
+- Implement proper Content Security Policy (CSP)
+- Disable `webSecurity: false` in production
+- Use `allowRunningInsecureContent: false`
+- Validate all external URLs and content
+
+### Window Management
+
+- Block new window creation by default
+- Validate window URLs before opening
+- Use `webContents.setWindowOpenHandler()` for control
+- Implement proper window lifecycle management
+
+## Main Process Security
+
+### Process Isolation
+
+- Keep main process minimal and focused
+- Handle all sensitive operations in main process
+- Use proper error handling and logging
+- Implement process crash recovery
+
+### Certificate Handling
+
+- Validate certificates in production
+- Allow self-signed certificates only in development
+- Implement proper certificate error handling
+- Use secure communication protocols
+
+### Resource Management
+
+- Implement proper cleanup on app exit
+- Handle memory leaks and resource disposal
+- Monitor process performance and resource usage
+- Implement proper error recovery mechanisms
+
+## Data Security
+
+### Input Validation
+
+- Validate all user inputs and IPC data
+- Sanitize data before processing
+- Use type-safe interfaces for all data
+- Implement proper error handling for invalid data
+
+### Storage Security
+
+- Encrypt sensitive data at rest
+- Use secure storage mechanisms (electron-store with encryption)
+- Implement proper access controls
+- Regular security audits of stored data
+
+### Communication Security
+
+- Use HTTPS for all external communications
+- Validate all network requests
+- Implement proper authentication mechanisms
+- Use secure protocols for IPC communication
+
+## Development vs Production
+
+### Development Security
+
+- Enable DevTools only in development
+- Use development-specific security relaxations carefully
+- Implement proper logging for debugging
+- Test security measures in development
+
+### Production Security
+
+- Disable all development features
+- Enable all security measures
+- Implement proper error handling
+- Use code signing for distribution
+
+## Security Monitoring
+
+### Logging and Auditing
+
+- Log all security-relevant events
+- Implement proper audit trails
+- Monitor for suspicious activities
+- Regular security log reviews
+
+### Error Handling
+
+- Never expose sensitive information in error messages
+- Implement proper error logging
+- Use user-friendly error messages
+- Handle security errors gracefully
+
+### Updates and Maintenance
+
+- Keep Electron and dependencies updated
+- Monitor for security vulnerabilities
+- Implement proper update mechanisms
+- Regular security assessments

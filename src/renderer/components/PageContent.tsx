@@ -16,6 +16,7 @@ import { Settings } from '@/pages/Settings';
 import { Project } from '@/pages/Project';
 import { Explore } from '@/pages/Explore';
 import { Build } from '@/pages/Build';
+import { Analytics } from '@/pages/Analytics';
 
 /**
  * PageContent component for dynamic page rendering.
@@ -72,6 +73,7 @@ export function PageContent(): React.JSX.Element {
           {currentPage === 'project' && <Project />}
           {currentPage === 'explore' && <Explore />}
           {currentPage === 'build' && <Build />}
+          {currentPage === 'analytics' && <Analytics />}
           {currentPage === 'settings' && <Settings />}
         </div>
       </div>

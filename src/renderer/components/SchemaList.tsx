@@ -10,21 +10,15 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Grid3X3, List, Search, Filter, SortAsc, FileText } from 'lucide-react';
+import { Grid3X3, List, FileText } from 'lucide-react';
 import { SchemaCard } from './SchemaCard';
+import { SchemaSearch } from './schema/SchemaSearch';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Schema, ValidationStatus, SortField } from '../../types/schema-editor';
+import { useAppStore } from '../stores/useAppStore';
+import type { Schema } from '../../types/schema-editor';
 
 /**
  * Schema list props.
@@ -76,10 +70,11 @@ export function SchemaList({
   selectedSchemaId,
 }: SchemaListProps): React.JSX.Element {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<ValidationStatus | 'all'>('all');
-  const [sortBy, setSortBy] = useState<SortField>('name');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+
+  // Get search state from store
+  const searchQuery = useAppStore((state) => state.searchQuery);
+  const searchFilters = useAppStore((state) => state.searchFilters);
 
   /**
    * Filters and sorts schemas based on current state.
@@ -88,32 +83,28 @@ export function SchemaList({
     let filtered = schemas.filter((schema) => {
       // Search filter
       const matchesSearch =
-        searchTerm === '' ||
-        schema.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        searchQuery === '' ||
+        schema.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (schema.metadata.title &&
-          schema.metadata.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          schema.metadata.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (schema.metadata.description &&
-          schema.metadata.description.toLowerCase().includes(searchTerm.toLowerCase()));
+          schema.metadata.description.toLowerCase().includes(searchQuery.toLowerCase()));
 
       // Status filter
-      const matchesStatus = statusFilter === 'all' || schema.validationStatus === statusFilter;
+      const matchesStatus = searchFilters.validationStatus === 'all' || schema.validationStatus === searchFilters.validationStatus;
 
       return matchesSearch && matchesStatus;
     });
 
     // Sort schemas
     filtered.sort((a, b) => {
-      let aValue: string | number;
-      let bValue: string | number;
+      let aValue: any;
+      let bValue: any;
 
-      switch (sortBy) {
+      switch (searchFilters.sortBy) {
         case 'name':
           aValue = a.name.toLowerCase();
           bValue = b.name.toLowerCase();
-          break;
-        case 'title':
-          aValue = (a.metadata.title || a.name).toLowerCase();
-          bValue = (b.metadata.title || b.name).toLowerCase();
           break;
         case 'lastModified':
           aValue = a.metadata.lastModified.getTime();
@@ -132,16 +123,18 @@ export function SchemaList({
           bValue = b.name.toLowerCase();
       }
 
-      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
+      if (searchFilters.sortDirection === 'asc') {
+        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+      } else {
+        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+      }
     });
 
     return filtered;
-  }, [schemas, searchTerm, statusFilter, sortBy, sortDirection]);
+  }, [schemas, searchQuery, searchFilters]);
 
   /**
-   * Gets validation status counts for filter display.
+   * Gets validation status counts for display.
    */
   const getStatusCounts = () => {
     const counts = {
@@ -159,169 +152,128 @@ export function SchemaList({
     return counts;
   };
 
-  const statusCounts = getStatusCounts();
-
   /**
    * Renders loading skeletons.
    */
   const renderSkeletons = () => {
-    const skeletonCount = 6;
-    return Array.from({ length: skeletonCount }).map((_, index) => (
-      <Card key={index} className="animate-pulse">
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-2 flex-1">
-              <Skeleton className="w-5 h-5" />
-              <div className="flex-1">
-                <Skeleton className="h-5 w-3/4 mb-2" />
-                <Skeleton className="h-4 w-1/2" />
-              </div>
-            </div>
-            <Skeleton className="w-16 h-6" />
-          </div>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Skeleton className="h-4 w-20" />
-              <Skeleton className="h-4 w-16" />
-            </div>
-            <div className="flex gap-2">
-              <Skeleton className="h-8 flex-1" />
-              <Skeleton className="h-8 flex-1" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    const skeletons = Array.from({ length: 6 }, (_, i) => (
+      <div key={i} className="space-y-3">
+        <Skeleton className="h-48 w-full" />
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
+        </div>
+      </div>
     ));
+
+    return viewMode === 'grid' ? (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {skeletons}
+      </div>
+    ) : (
+      <div className="space-y-4">
+        {skeletons.map((skeleton, i) => (
+          <div key={i} className="flex items-center space-x-4">
+            <Skeleton className="h-12 w-12" />
+            <div className="space-y-2 flex-1">
+              <Skeleton className="h-4 w-1/4" />
+              <Skeleton className="h-4 w-1/2" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   };
+
+  const statusCounts = getStatusCounts();
 
   return (
     <div className="space-y-4">
-      {/* Header with controls */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold">Schemas</h2>
-          <Badge variant="outline">{filteredAndSortedSchemas.length} schemas</Badge>
-        </div>
+      {/* Search and Filters */}
+      <SchemaSearch
+        isExpanded={isSearchExpanded}
+        onToggleExpanded={() => setIsSearchExpanded(!isSearchExpanded)}
+      />
 
-        <div className="flex items-center gap-2">
-          {/* View mode toggle */}
-          <div className="flex items-center border rounded-md">
+      {/* View Controls */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <Button
-              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              variant={viewMode === 'grid' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setViewMode('grid')}
-              className="rounded-r-none"
             >
               <Grid3X3 className="w-4 h-4" />
             </Button>
             <Button
-              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              variant={viewMode === 'list' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setViewMode('list')}
-              className="rounded-l-none"
             >
               <List className="w-4 h-4" />
             </Button>
           </div>
+
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <FileText className="w-4 h-4" />
+            <span>
+              {filteredAndSortedSchemas.length} of {schemas.length} schemas
+            </span>
+          </div>
+        </div>
+
+        {/* Status Summary */}
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-xs">
+            All: {statusCounts.all}
+          </Badge>
+          <Badge variant="default" className="text-xs">
+            Valid: {statusCounts.valid}
+          </Badge>
+          <Badge variant="destructive" className="text-xs">
+            Issues: {statusCounts.invalid + statusCounts.error}
+          </Badge>
         </div>
       </div>
 
-      {/* Search and filters */}
-      <div className="flex items-center gap-4">
-        {/* Search */}
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search schemas..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-
-        {/* Status filter */}
-        <Select
-          value={statusFilter}
-          onValueChange={(value) => setStatusFilter(value as ValidationStatus | 'all')}
-        >
-          <SelectTrigger className="w-40">
-            <Filter className="w-4 h-4 mr-2" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All ({statusCounts.all})</SelectItem>
-            <SelectItem value="valid">Valid ({statusCounts.valid})</SelectItem>
-            <SelectItem value="invalid">Invalid ({statusCounts.invalid})</SelectItem>
-            <SelectItem value="error">Error ({statusCounts.error})</SelectItem>
-            <SelectItem value="pending">Pending ({statusCounts.pending})</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {/* Sort */}
-        <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortField)}>
-          <SelectTrigger className="w-40">
-            <SortAsc className="w-4 h-4 mr-2" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="name">Name</SelectItem>
-            <SelectItem value="title">Title</SelectItem>
-            <SelectItem value="lastModified">Last Modified</SelectItem>
-            <SelectItem value="fileSize">File Size</SelectItem>
-            <SelectItem value="validationStatus">Status</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {/* Sort direction */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
-        >
-          <SortAsc className={`w-4 h-4 ${sortDirection === 'desc' ? 'rotate-180' : ''}`} />
-        </Button>
-      </div>
-
-      {/* Schema grid/list */}
+      {/* Schema List */}
       {isLoading ? (
-        <div
-          className={
-            viewMode === 'grid'
-              ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
-              : 'space-y-4'
-          }
-        >
-          {renderSkeletons()}
-        </div>
+        renderSkeletons()
       ) : filteredAndSortedSchemas.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <FileText className="w-12 h-12 text-muted-foreground mb-4" />
-            <CardTitle className="text-lg mb-2">No schemas found</CardTitle>
-            <CardDescription>
-              {searchTerm || statusFilter !== 'all'
-                ? 'Try adjusting your search or filters'
-                : 'No schemas have been loaded yet'}
-            </CardDescription>
+            <h3 className="text-lg font-medium mb-2">No schemas found</h3>
+            <p className="text-sm text-muted-foreground text-center">
+              {searchQuery || searchFilters.validationStatus !== 'all'
+                ? 'Try adjusting your search criteria or filters'
+                : 'No schemas available in this project'}
+            </p>
           </CardContent>
         </Card>
-      ) : (
-        <div
-          className={
-            viewMode === 'grid'
-              ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
-              : 'space-y-4'
-          }
-        >
+      ) : viewMode === 'grid' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredAndSortedSchemas.map((schema) => (
             <SchemaCard
               key={schema.id}
               schema={schema}
-              onClick={onSchemaClick || undefined}
-              onEdit={onSchemaEdit || undefined}
-              onView={onSchemaView || undefined}
+              onClick={onSchemaClick}
+              onEdit={onSchemaEdit}
+              onView={onSchemaView}
+              selected={selectedSchemaId === schema.id}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filteredAndSortedSchemas.map((schema) => (
+            <SchemaCard
+              key={schema.id}
+              schema={schema}
+              onClick={onSchemaClick}
+              onEdit={onSchemaEdit}
+              onView={onSchemaView}
               selected={selectedSchemaId === schema.id}
             />
           ))}

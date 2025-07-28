@@ -11,6 +11,7 @@
  */
 
 import { toast } from 'sonner';
+import logger from './renderer-logger';
 
 /**
  * Wraps a function with error handling and logging.
@@ -39,7 +40,7 @@ export function safeHandler<T extends (...args: unknown[]) => unknown>(
     try {
       return fn(...args) as ReturnType<T>;
     } catch (error) {
-      console.error('Error in safeHandler:', error);
+      logger.error('Error in safeHandler', { error: error.message, stack: error.stack });
 
       // Show user-friendly error message
       toast.error('An error occurred', {
@@ -76,7 +77,7 @@ export function safeAsyncHandler<T extends (...args: unknown[]) => Promise<unkno
     try {
       return (await fn(...args)) as Awaited<ReturnType<T>>;
     } catch (error) {
-      console.error('Error in safeAsyncHandler:', error);
+      logger.error('Error in safeAsyncHandler', { error: error.message, stack: error.stack });
 
       // Show user-friendly error message
       toast.error('An error occurred', {

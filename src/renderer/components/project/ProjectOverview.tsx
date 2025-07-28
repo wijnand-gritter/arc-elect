@@ -2,52 +2,52 @@
  * Project overview component for JSON Schema Editor.
  *
  * This component displays information about the currently loaded project.
+ * When no project is provided, it shows the setup view.
  *
  * @module ProjectOverview
  * @author Wijnand Gritter
  * @version 1.0.0
  */
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { FolderOpen, FileText, Calendar, Settings, Plus, Trash2 } from 'lucide-react';
-import { useAppStore } from '../stores/useAppStore';
-import { CreateProjectModal } from './CreateProjectModal';
+import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
+import { useAppStore } from '../../stores/useAppStore';
+import { CreateProjectModal } from '../CreateProjectModal';
+import { FolderOpen, Plus, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
-import type { Project } from '../../types/schema-editor';
+import type { Project } from '../../../types/schema-editor';
 
 /**
  * Project overview component props.
  */
 interface ProjectOverviewProps {
-  /** The project to display */
-  project: Project;
+  /** The project to display (optional - if not provided, shows setup view) */
+  project?: Project;
 }
 
 /**
  * Project overview component.
  *
  * This component displays:
- * - Project metadata (name, path, creation date)
- * - Project status and statistics
- * - Quick actions (explore, build, settings)
- * - Recent projects list
- * - Create new project button
+ * - Setup view when no project is loaded (welcome card, recent projects)
+ * - Project overview when project is loaded (project header, status, recent projects)
+ * - Shared functionality for creating and deleting projects
  *
  * @param props - Component props
- * @returns JSX element representing the project overview
+ * @returns JSX element representing the project overview or setup view
  *
  * @example
  * ```tsx
- * <ProjectOverview project={currentProject} />
+ * <ProjectOverview /> // Shows setup view
+ * <ProjectOverview project={currentProject} /> // Shows project overview
  * ```
  */
 export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.Element {
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [projectToDelete, setProjectToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
+  const [projectToDelete, setProjectToDelete] = React.useState<{ id: string; name: string } | null>(null);
 
   const recentProjects = useAppStore((state) => state.recentProjects);
   const loadProject = useAppStore((state) => state.loadProject);
@@ -108,43 +108,138 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
     setProjectToDelete(null);
   };
 
+  // If no project is provided, show setup view
+  if (!project) {
+    return (
+      <>
+        <div className="px-4 lg:px-6 space-y-6">
+          {/* Welcome Card */}
+          <Card className="glass-blue border-0">
+            <CardHeader className="gradient-accent rounded-t-lg border-b border-primary/20">
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-primary animate-pulse-blue"></div>
+                JSON Schema Editor
+              </CardTitle>
+              <CardDescription className="text-muted-foreground">
+                Create a new project or open an existing one to start working with JSON schemas
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 p-6">
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Welcome to the JSON Schema Editor. Create a new project by selecting a folder
+                  containing JSON schema files, or open one of your recent projects to continue
+                  working.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Projects Card */}
+          <Card className="glass-blue border-0">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Recent Projects</CardTitle>
+                <CardDescription>
+                  Quickly open recently used projects or create a new one
+                </CardDescription>
+              </div>
+              <Button
+                onClick={handleCreateProject}
+                className="border-gradient hover-lift hover:gradient-accent transition-all duration-200 text-foreground"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                New Project
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {recentProjects.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <FolderOpen className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                  <h3 className="text-lg font-medium mb-2">No projects yet</h3>
+                  <p className="text-sm mb-4">
+                    Create your first project to start working with JSON schemas
+                  </p>
+                  <Button
+                    onClick={handleCreateProject}
+                    className="border-gradient hover-lift hover:gradient-accent transition-all duration-200 text-foreground"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create First Project
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {recentProjects.map((recentProject) => (
+                    <div
+                      key={recentProject.id}
+                      className="flex items-center justify-between p-3 rounded-lg border border-border/50 hover:bg-muted/50 transition-colors cursor-pointer"
+                      onClick={() => handleOpenProject(recentProject.path)}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-sm truncate">{recentProject.name}</h4>
+                        <p className="text-xs text-muted-foreground truncate">{recentProject.path}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Last opened: {new Date(recentProject.lastModified).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 ml-2">
+                        <Button variant="outline" size="sm">
+                          <FolderOpen className="h-4 w-4 mr-1" />
+                          Open
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                          onClick={(e) => handleDeleteClick(recentProject.id, recentProject.name, e)}
+                          title="Delete project from recent list"
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Create Project Modal */}
+        <CreateProjectModal isOpen={isCreateModalOpen} onClose={handleCloseModal} />
+
+        {/* Delete Confirmation Dialog */}
+        {projectToDelete && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-background border border-border rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold mb-2">Delete Project</h3>
+              <p className="text-muted-foreground mb-4">
+                Are you sure you want to remove "{projectToDelete.name}" from your recent projects? This action cannot be undone.
+              </p>
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={handleCancelDelete}>
+                  Cancel
+                </Button>
+                <Button variant="destructive" onClick={handleConfirmDelete}>
+                  Delete
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  // Show project overview when project is provided
   return (
     <>
       <div className="px-4 lg:px-6 space-y-6">
-        {/* Project Header */}
-        <Card className="glass-blue border-0">
-          <CardHeader className="gradient-accent rounded-t-lg border-b border-primary/20">
-            <CardTitle className="text-foreground flex items-center gap-2">
-              <FolderOpen className="w-5 h-5" />
-              {project.name}
-            </CardTitle>
-            <CardDescription className="text-muted-foreground">{project.path}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Schemas:</span>
-                <Badge variant="secondary">{project.status.totalSchemas}</Badge>
-              </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Created:</span>
-                <span className="text-sm">{new Date(project.createdAt).toLocaleDateString()}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Settings className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Pattern:</span>
-                <Badge variant="outline">{project.schemaPattern}</Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Project Status */}
         <Card className="glass-blue border-0">
           <CardHeader>
-            <CardTitle>Project Status</CardTitle>
+            <CardTitle>{project.name}</CardTitle>
             <CardDescription>Current status and validation information</CardDescription>
           </CardHeader>
           <CardContent>
@@ -216,11 +311,10 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
                 {recentProjects.slice(0, 5).map((recentProject) => (
                   <div
                     key={recentProject.id}
-                    className={`flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer ${
-                      recentProject.id === project.id
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border/50 hover:bg-muted/50'
-                    }`}
+                    className={`flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer ${recentProject.id === project.id
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border/50 hover:bg-muted/50'
+                      }`}
                     onClick={() => handleOpenProject(recentProject.path)}
                   >
                     <div className="flex-1 min-w-0">
@@ -239,7 +333,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
                         onClick={(e) => handleDeleteClick(recentProject.id, recentProject.name, e)}
                         title="Delete project from recent list"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <XCircle className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>

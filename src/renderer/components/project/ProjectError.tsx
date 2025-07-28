@@ -9,10 +9,10 @@
  */
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { Button } from '../ui/button';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
-import { useAppStore } from '../stores/useAppStore';
+import { useAppStore } from '../../stores/useAppStore';
 
 /**
  * Project error component props.

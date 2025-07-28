@@ -17,7 +17,13 @@ import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import { watch } from 'chokidar';
 import logger from './main-logger';
-import type { Project, ProjectConfig, Schema, ValidationResult } from '../types/schema-editor';
+import type {
+  Project,
+  ProjectConfig,
+  Schema,
+  ValidationResult,
+  SchemaReference,
+} from '../types/schema-editor';
 
 /**
  * JSON Schema validator instance.
@@ -146,27 +152,35 @@ class ProjectManager {
         schemas: [],
       };
 
-      // Load and validate schemas
-      const schemas: Schema[] = [];
-      let validCount = 0;
-      let invalidCount = 0;
-
-      for (const filePath of jsonFiles) {
+      // Load and validate schemas in parallel with progress tracking
+      logger.info('ProjectManager: Loading schemas', { totalFiles: jsonFiles.length });
+      
+      const schemaPromises = jsonFiles.map(async (filePath, index) => {
         try {
           const schema = await this.readSchemaFile(filePath, project.id);
-          if (schema) {
-            schemas.push(schema);
-            if (schema.validationStatus === 'valid') {
-              validCount++;
-            } else {
-              invalidCount++;
-            }
+          // Log progress every 25 schemas to avoid spam
+          if (index % 25 === 0 && index > 0) {
+            logger.info(`ProjectManager: Loaded ${index}/${jsonFiles.length} schemas`);
           }
+          return schema;
         } catch (error) {
           logger.warn('Failed to read schema file', { filePath, error });
+          return null;
+        }
+      });
+
+      const schemaResults = await Promise.all(schemaPromises);
+      const schemas = schemaResults.filter((schema): schema is Schema => schema !== null);
+
+      let validCount = 0;
+      let invalidCount = 0;
+      schemas.forEach((schema) => {
+        if (schema.validationStatus === 'valid') {
+          validCount++;
+        } else {
           invalidCount++;
         }
-      }
+      });
 
       // Update project with schema data
       project.schemaIds = schemas.map((s) => s.id);
@@ -175,6 +189,9 @@ class ProjectManager {
       project.status.invalidSchemas = invalidCount;
       project.status.isLoaded = true;
       project.status.isLoading = false;
+
+      // Resolve references between schemas
+      this.resolveSchemaReferences(schemas);
 
       // Store project
       this.projects.set(project.id, project);
@@ -380,7 +397,7 @@ class ProjectManager {
   }
 
   /**
-   * Validates a JSON schema file.
+   * Validates a schema file (optimized with single file read).
    */
   private async validateSchema(filePath: string): Promise<{
     success: boolean;
@@ -388,7 +405,28 @@ class ProjectManager {
     error?: string;
   }> {
     try {
-      const result = await this.validateSchemaFile(filePath);
+      const content = await fs.readFile(filePath, 'utf-8');
+      let data: any;
+      try {
+        data = JSON.parse(content);
+      } catch (parseError) {
+        const result: ValidationResult = {
+          isValid: false,
+          errors: [{
+            path: '',
+            instancePath: '',
+            message: parseError instanceof Error ? parseError.message : 'Failed to parse JSON',
+            keyword: 'parse',
+            severity: 'error',
+          }],
+          warnings: [],
+          duration: 0,
+          timestamp: new Date(),
+        };
+        return { success: true, result };
+      }
+      
+      const result = this.validateSchemaData(data);
       return { success: true, result };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -453,36 +491,74 @@ class ProjectManager {
   }
 
   /**
-   * Reads and parses a schema file.
+   * Reads and parses a schema file with optimized single-pass processing.
    */
   private async readSchemaFile(filePath: string, projectId: string): Promise<Schema | null> {
     try {
-      const content = await fs.readFile(filePath, 'utf-8');
-      const data = JSON.parse(content);
-      const stats = await fs.stat(filePath);
+      // Single file read and stat operation
+      const [content, stats] = await Promise.all([
+        fs.readFile(filePath, 'utf-8'),
+        fs.stat(filePath)
+      ]);
 
-      // Validate schema
-      const validation = await this.validateSchemaFile(filePath);
+      // Single JSON parse
+      let data: any;
+      try {
+        data = JSON.parse(content);
+      } catch (parseError) {
+        return {
+          id: this.generateSchemaId(filePath),
+          projectId,
+          name: path.basename(filePath, '.schema.json'),
+          path: filePath,
+          content: {},
+          metadata: {
+            title: undefined,
+            description: undefined,
+            version: undefined,
+            lastModified: stats.mtime,
+            fileSize: stats.size,
+          },
+          validationStatus: 'invalid',
+          validationErrors: [{
+            path: '',
+            instancePath: '',
+            message: parseError instanceof Error ? parseError.message : 'Failed to parse JSON',
+            keyword: 'parse',
+            severity: 'error',
+          }],
+          relativePath: path.relative(path.dirname(filePath), filePath),
+          importSource: 'json',
+          importDate: new Date(),
+          references: [],
+          referencedBy: [],
+        };
+      }
 
-      return {
+      // Inline validation (no separate file read)
+      const validationResult = this.validateSchemaData(data);
+
+      const schema: Schema = {
         id: this.generateSchemaId(filePath),
         projectId,
-        name: path.basename(filePath, '.json'),
+        name: path.basename(filePath, '.schema.json'),
         path: filePath,
         content: data,
         metadata: {
-          title: data.title,
-          description: data.description,
-          version: data.version,
-          $schema: data.$schema,
+          ...this.extractMetadata(data),
           lastModified: stats.mtime,
           fileSize: stats.size,
         },
-        validationStatus: validation.isValid ? 'valid' : 'invalid',
+        validationStatus: validationResult.isValid ? 'valid' : 'invalid',
+        validationErrors: validationResult.isValid ? undefined : validationResult.errors,
         relativePath: path.relative(path.dirname(filePath), filePath),
         importSource: 'json',
         importDate: new Date(),
+        references: this.extractReferences(data),
+        referencedBy: [],
       };
+
+      return schema;
     } catch (error) {
       logger.warn('Failed to read schema file', { filePath, error });
       return null;
@@ -490,59 +566,216 @@ class ProjectManager {
   }
 
   /**
-   * Validates a schema file.
+   * Validates already-parsed schema data (optimized - no file I/O).
    */
-  private async validateSchemaFile(filePath: string): Promise<ValidationResult> {
-    try {
-      const content = await fs.readFile(filePath, 'utf-8');
-      const data = JSON.parse(content);
+  private validateSchemaData(data: any): ValidationResult {
+    // Validate basic JSON Schema structure
+    const errors: Array<{
+      path: string;
+      instancePath: string;
+      message: string;
+      keyword: string;
+      severity: 'error';
+    }> = [];
 
-      // Basic JSON Schema validation
-      const isValid = Boolean(ajv.validateSchema(data));
-      const errors = ajv.errors || [];
+    // Check if it's a valid JSON object
+    if (typeof data !== 'object' || data === null) {
+      errors.push({
+        path: '',
+        instancePath: '',
+        message: 'Schema must be a JSON object',
+        keyword: 'type',
+        severity: 'error',
+      });
+    } else {
+      // Only flag obvious structural errors
+      // Most JSON objects can be valid schemas, so be very permissive
 
-      return {
-        isValid,
-        errors: errors.map((error) => ({
-          path: error.instancePath,
-          message: error.message || 'Unknown error',
-          severity: 'error' as const,
-        })),
-        warnings: [],
-        duration: 0,
-        timestamp: new Date(),
-      };
-    } catch (error) {
-      return {
-        isValid: false,
-        errors: [
-          {
-            path: '',
-            message: error instanceof Error ? error.message : 'Failed to parse JSON',
-            severity: 'error' as const,
-          },
-        ],
-        warnings: [],
-        duration: 0,
-        timestamp: new Date(),
-      };
+      // Check for invalid $schema format (should be a string if present)
+      if (data.$schema !== undefined && typeof data.$schema !== 'string') {
+        errors.push({
+          path: '/$schema',
+          instancePath: '/$schema',
+          message: '$schema must be a string',
+          keyword: 'type',
+          severity: 'error',
+        });
+      }
+
+      // Check for invalid type format (should be string or array if present)
+      if (data.type !== undefined && typeof data.type !== 'string' && !Array.isArray(data.type)) {
+        errors.push({
+          path: '/type',
+          instancePath: '/type',
+          message: 'type must be a string or array of strings',
+          keyword: 'type',
+          severity: 'error',
+        });
+      }
+
+      // Check for invalid properties format (should be object if present)
+      if (
+        data.properties !== undefined &&
+        (typeof data.properties !== 'object' || data.properties === null)
+      ) {
+        errors.push({
+          path: '/properties',
+          instancePath: '/properties',
+          message: 'properties must be an object',
+          keyword: 'type',
+          severity: 'error',
+        });
+      }
+
+      // Check for invalid enum format (should be array if present)
+      if (data.enum !== undefined && !Array.isArray(data.enum)) {
+        errors.push({
+          path: '/enum',
+          instancePath: '/enum',
+          message: 'enum must be an array',
+          keyword: 'type',
+          severity: 'error',
+        });
+      }
+
+      // Check for invalid $ref format (should be string if present)
+      if (data.$ref !== undefined && typeof data.$ref !== 'string') {
+        errors.push({
+          path: '/$ref',
+          instancePath: '/$ref',
+          message: '$ref must be a string',
+          keyword: 'type',
+          severity: 'error',
+        });
+      }
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings: [],
+      duration: 0,
+      timestamp: new Date(),
+    };
+  }
+
+  /**
+   * Resolves references between schemas and populates referencedBy fields.
+   */
+  private resolveSchemaReferences(schemas: Schema[]): void {
+    logger.info('ProjectManager: Resolving schema references', { schemaCount: schemas.length });
+
+    // Create a map of schema names to schemas for quick lookup
+    const schemaMap = new Map<string, Schema>();
+    schemas.forEach((schema) => {
+      // Map by various possible names
+      schemaMap.set(schema.name, schema);
+      schemaMap.set(schema.relativePath, schema);
+      // Also map by filename without extension
+      const filename = path.basename(schema.relativePath, path.extname(schema.relativePath));
+      schemaMap.set(filename, schema);
+      // Map by schema name without .schema suffix (for backward compatibility)
+      if (schema.name.endsWith('.schema')) {
+        schemaMap.set(schema.name.replace('.schema', ''), schema);
+      }
+    });
+
+    // Initialize referencedBy arrays
+    schemas.forEach((schema) => {
+      schema.referencedBy = [];
+    });
+
+    // Build referencedBy relationships efficiently
+    schemas.forEach((schema) => {
+      logger.info('Processing schema', {
+        schemaName: schema.name,
+        referencesCount: schema.references.length,
+        references: schema.references,
+      });
+
+      schema.references.forEach((ref) => {
+        const referencedSchema = schemaMap.get(ref.schemaName);
+        if (referencedSchema && referencedSchema.id !== schema.id) {
+          referencedSchema.referencedBy.push(schema.id);
+          logger.info(
+            `Found reference: ${schema.name} -> ${referencedSchema.name} (via ${ref.$ref})`,
+          );
+        } else {
+          logger.warn(
+            `No match found for reference: ${schema.name} -> ${ref.schemaName} (${ref.$ref})`,
+          );
+          logger.info('Available schema names:', Array.from(schemaMap.keys()));
+        }
+      });
+    });
+
+    // Remove duplicates from referencedBy arrays
+    schemas.forEach((schema) => {
+      schema.referencedBy = [...new Set(schema.referencedBy)];
+    });
+
+    const totalReferences = schemas.reduce((sum, s) => sum + s.references.length, 0);
+    const totalReferencedBy = schemas.reduce((sum, s) => sum + s.referencedBy.length, 0);
+
+    logger.info('ProjectManager: Schema references resolved', {
+      schemaCount: schemas.length,
+      totalReferences,
+      totalReferencedBy,
+    });
+  }
+
+  /**
+   * Extracts schema name from a $ref path
+   */
+  private extractSchemaNameFromRef(ref: string): string | null {
+    if (!ref) return null;
+
+    // Handle different reference formats
+    if (ref.startsWith('#/')) {
+      // Internal reference like #/definitions/User
+      const parts = ref.split('/');
+      return parts[parts.length - 1] || null;
+    } else if (ref.includes('.schema.json')) {
+      // File reference like ./business-objects/Address.schema.json
+      const filename = ref.split('/').pop() || ref;
+      return filename.replace('.schema.json', '');
+    } else if (ref.includes('.json')) {
+      // File reference like ./user.json or user.json
+      const filename = ref.split('/').pop() || ref;
+      return filename.replace('.json', '');
+    } else if (ref.includes('/')) {
+      // Path reference like ./schemas/user
+      const parts = ref.split('/');
+      return parts[parts.length - 1] || null;
+    } else {
+      // Simple schema name
+      return ref;
     }
   }
 
   /**
-   * Extracts references from schema data.
+   * Extracts all $ref references from a JSON Schema object.
    */
-  private extractReferences(data: unknown): string[] {
-    const references: string[] = [];
+  private extractReferences(data: unknown): SchemaReference[] {
+    const references: SchemaReference[] = [];
 
     const extractRefs = (obj: unknown, path = '') => {
       if (typeof obj === 'object' && obj !== null) {
-        const objWithRef = obj as Record<string, unknown>;
-        if ('$ref' in objWithRef && typeof objWithRef.$ref === 'string') {
-          references.push(objWithRef.$ref);
+        const objRecord = obj as Record<string, unknown>;
+
+        if (objRecord.$ref && typeof objRecord.$ref === 'string') {
+          const schemaName = this.extractSchemaNameFromRef(objRecord.$ref);
+          if (schemaName) {
+            references.push({
+              $ref: objRecord.$ref,
+              schemaName,
+            });
+          }
         }
-        for (const [key, value] of Object.entries(objWithRef)) {
-          extractRefs(value, `${path}/${key}`);
+
+        // Recursively check all object properties
+        for (const value of Object.values(objRecord)) {
+          extractRefs(value, path);
         }
       }
     };

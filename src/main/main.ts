@@ -12,7 +12,10 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
 import started from 'electron-squirrel-startup';
-import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
+import installExtension, {
+  REACT_DEVELOPER_TOOLS,
+  REDUX_DEVTOOLS,
+} from 'electron-devtools-installer';
 import fs from 'fs/promises';
 
 import logger from './main-logger';
@@ -86,6 +89,15 @@ app.on('render-process-gone', (_event, _webContents, details) => {
  */
 app.on('before-quit', () => {
   logger.info('Application shutting down');
+
+  // Notify renderer process to save state
+  const windows = BrowserWindow.getAllWindows();
+  if (windows.length > 0) {
+    const mainWindow = windows[0];
+    if (!mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('app:before-quit');
+    }
+  }
 });
 
 /**
@@ -208,6 +220,19 @@ const createWindow = async (): Promise<void> => {
         .catch((err) => {
           const reactDevToolsTime = Date.now() - reactDevToolsStartTime;
           logger.error(`Failed to install React DevTools in ${reactDevToolsTime}ms:`, err);
+        });
+
+      // Install Redux DevTools
+      const reduxDevToolsStartTime = Date.now();
+      logger.debug('Installing Redux DevTools - START');
+      installExtension(REDUX_DEVTOOLS)
+        .then(() => {
+          const reduxDevToolsTime = Date.now() - reduxDevToolsStartTime;
+          logger.debug(`Redux DevTools installed successfully in ${reduxDevToolsTime}ms`);
+        })
+        .catch((err) => {
+          const reduxDevToolsTime = Date.now() - reduxDevToolsStartTime;
+          logger.error(`Failed to install Redux DevTools in ${reduxDevToolsTime}ms:`, err);
         });
     }
   } else {

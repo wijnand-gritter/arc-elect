@@ -11,10 +11,9 @@
 
 import React from 'react';
 import { useAppStore } from '../stores/useAppStore';
-import { ProjectSetup } from '../components/ProjectSetup';
-import { ProjectOverview } from '../components/ProjectOverview';
-import { ProjectLoading } from '../components/ProjectLoading';
-import { ProjectError } from '../components/ProjectError';
+import { ProjectOverview } from '../components/project/ProjectOverview';
+import { ProjectLoading } from '../components/project/ProjectLoading';
+import { ProjectError } from '../components/project/ProjectError';
 
 /**
  * Project page component for the JSON Schema Editor.
@@ -45,11 +44,6 @@ export function Project(): React.JSX.Element {
     return <ProjectError error={projectError} />;
   }
 
-  // Show setup state when no project is loaded
-  if (!currentProject) {
-    return <ProjectSetup />;
-  }
-
-  // Show project overview when project is loaded
+  // Show project overview (handles both setup and overview states)
   return <ProjectOverview project={currentProject} />;
 }

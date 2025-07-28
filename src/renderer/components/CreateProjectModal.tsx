@@ -11,6 +11,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
+import logger from '../lib/renderer-logger';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -90,7 +91,7 @@ export function CreateProjectModal({
         }
       }
     } catch (error) {
-      console.error('Failed to select folder:', error);
+      logger.error('Failed to select folder', { error: error.message, stack: error.stack });
     } finally {
       setIsSelecting(false);
     }
@@ -140,7 +141,7 @@ export function CreateProjectModal({
   const pathValidation = useMemo(() => {
     if (!selectedPath) return null;
 
-    const existingProject = recentProjects.find(project => project.path === selectedPath);
+    const existingProject = recentProjects.find((project) => project.path === selectedPath);
     if (existingProject) {
       return {
         isValid: false,
@@ -151,7 +152,8 @@ export function CreateProjectModal({
     return { isValid: true };
   }, [selectedPath, recentProjects]);
 
-  const canCreateProject = selectedPath && projectName.trim() && !isLoadingProject && pathValidation?.isValid !== false;
+  const canCreateProject =
+    selectedPath && projectName.trim() && !isLoadingProject && pathValidation?.isValid !== false;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>

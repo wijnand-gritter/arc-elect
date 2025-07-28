@@ -10,7 +10,7 @@
  * @version 1.0.0
  */
 
-import { Menu, FolderOpen, Search, Edit, Settings } from 'lucide-react';
+import { Menu, FolderOpen, Search, Edit, Settings, BarChart3 } from 'lucide-react';
 import { ArcElectLogo } from './ui/arc-elect-logo';
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
@@ -36,7 +36,7 @@ interface MenuItem {
   /** URL for external links */
   url?: string;
   /** Internal page route */
-  page?: 'project' | 'explore' | 'build' | 'settings';
+  page?: 'project' | 'explore' | 'build' | 'settings' | 'analytics';
   /** Description for dropdown items */
   description?: string;
   /** Icon component for the menu item */
@@ -99,6 +99,20 @@ const defaultMenu: MenuItem[] = [
     title: 'Explore',
     page: 'explore',
     icon: <Search className="size-5 shrink-0" />,
+    items: [
+      {
+        title: 'Browse Schemas',
+        page: 'explore',
+        description: 'Browse and search schemas',
+        icon: <Search className="size-4" />,
+      },
+      {
+        title: 'Analytics',
+        page: 'analytics',
+        description: 'View project analytics and insights',
+        icon: <BarChart3 className="size-4" />,
+      },
+    ],
   },
   {
     title: 'Build',
@@ -155,7 +169,7 @@ const TopNavigationBar = ({
    *
    * @param page - The page to navigate to
    */
-  const handlePageChange = (page: 'project' | 'explore' | 'build' | 'settings') => {
+  const handlePageChange = (page: 'project' | 'explore' | 'build' | 'settings' | 'analytics') => {
     setPage(page);
   };
 
@@ -180,48 +194,41 @@ const TopNavigationBar = ({
               </NavigationMenu>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {/* Search */}
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-              <Search className="h-4 w-4" />
-              <span className="sr-only">Search</span>
-            </Button>
 
-            {/* Settings */}
+          {/* Right side - Settings and other actions */}
+          <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0"
               onClick={() => handlePageChange('settings')}
+              className={`${currentPage === 'settings' ? 'bg-accent' : ''}`}
             >
-              <Settings className="h-4 w-4" />
-              <span className="sr-only">Settings</span>
+              <Settings className="size-4" />
             </Button>
           </div>
         </nav>
 
         {/* Mobile Menu */}
-        <div className="flex items-center justify-between md:hidden">
+        <div className="flex justify-between md:hidden">
           <button
             onClick={handleLogoClick}
             className="flex items-center hover:opacity-80 transition-opacity"
           >
-            <ArcElectLogo className="h-8 w-auto" />
+            <ArcElectLogo className="h-6 w-auto" />
           </button>
 
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <Menu className="h-4 w-4" />
-                <span className="sr-only">Toggle menu</span>
+              <Button variant="ghost" size="sm">
+                <Menu className="size-4" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+            <SheetContent side="right">
               <SheetHeader>
                 <SheetTitle>Navigation</SheetTitle>
               </SheetHeader>
-              <div className="mt-4">
-                <Accordion type="single" collapsible className="w-full">
+              <div className="mt-6">
+                <Accordion type="single" collapsible>
                   {menu.map((item) => renderMobileMenuItem(item, currentPage, handlePageChange))}
                 </Accordion>
               </div>
@@ -244,7 +251,7 @@ const TopNavigationBar = ({
 const renderMenuItem = (
   item: MenuItem,
   currentPage: string,
-  handlePageChange: (page: 'project' | 'explore' | 'build' | 'settings') => void,
+  handlePageChange: (page: 'project' | 'explore' | 'build' | 'settings' | 'analytics') => void,
 ) => {
   if (item.items) {
     return (
@@ -256,7 +263,7 @@ const renderMenuItem = (
           <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-[.75fr_1fr] lg:w-[600px]">
             {item.items.map((subItem) => (
               <li key={subItem.title}>
-                <SubMenuLink item={subItem} />
+                <SubMenuLink item={subItem} onPageChange={handlePageChange} />
               </li>
             ))}
           </ul>
@@ -268,11 +275,10 @@ const renderMenuItem = (
   return (
     <NavigationMenuItem key={item.title}>
       <NavigationMenuLink
-        className={`block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground ${
-          currentPage === item.page
-            ? 'bg-accent text-accent-foreground'
-            : 'text-muted-foreground hover:text-foreground'
-        }`}
+        className={`block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground ${currentPage === item.page
+          ? 'bg-accent text-accent-foreground'
+          : 'text-muted-foreground hover:text-foreground'
+          }`}
         onClick={() => item.page && handlePageChange(item.page)}
       >
         <div className="flex items-center gap-2">
@@ -295,7 +301,7 @@ const renderMenuItem = (
 const renderMobileMenuItem = (
   item: MenuItem,
   currentPage: string,
-  handlePageChange: (page: 'project' | 'explore' | 'build' | 'settings') => void,
+  handlePageChange: (page: 'project' | 'explore' | 'build' | 'settings' | 'analytics') => void,
 ) => {
   if (item.items) {
     return (
@@ -308,7 +314,8 @@ const renderMobileMenuItem = (
             {item.items.map((subItem) => (
               <div
                 key={subItem.title}
-                className="flex items-center gap-2 p-2 hover:bg-accent rounded-md"
+                className="flex items-center gap-2 p-2 hover:bg-accent rounded-md cursor-pointer"
+                onClick={() => subItem.page && handlePageChange(subItem.page)}
               >
                 {subItem.icon}
                 <span className="text-sm">{subItem.title}</span>
@@ -323,11 +330,10 @@ const renderMobileMenuItem = (
   return (
     <div
       key={item.title}
-      className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors ${
-        currentPage === item.page
-          ? 'bg-accent text-accent-foreground'
-          : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-      }`}
+      className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors ${currentPage === item.page
+        ? 'bg-accent text-accent-foreground'
+        : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+        }`}
       onClick={() => item.page && handlePageChange(item.page)}
     >
       {item.icon}
@@ -341,13 +347,30 @@ const renderMobileMenuItem = (
  *
  * @param props - Component props
  * @param props.item - The submenu item to render
+ * @param props.onPageChange - Function to handle page navigation
  * @returns JSX element representing the submenu link
  */
-const SubMenuLink = ({ item }: { item: MenuItem }) => {
+const SubMenuLink = ({
+  item,
+  onPageChange
+}: {
+  item: MenuItem;
+  onPageChange: (page: 'project' | 'explore' | 'build' | 'settings' | 'analytics') => void;
+}) => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (item.page) {
+      onPageChange(item.page);
+    } else if (item.url) {
+      window.open(item.url, '_blank');
+    }
+  };
+
   return (
     <NavigationMenuLink asChild>
       <a
-        href={item.url}
+        href="#"
+        onClick={handleClick}
         className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
       >
         <div className="flex items-center gap-2">
