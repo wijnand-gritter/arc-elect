@@ -153,13 +153,14 @@ class ProjectManager {
       };
 
       // Load and validate schemas in parallel with progress tracking
+      const schemaLoadStart = Date.now();
       logger.info('ProjectManager: Loading schemas', { totalFiles: jsonFiles.length });
-      
+
       const schemaPromises = jsonFiles.map(async (filePath, index) => {
         try {
           const schema = await this.readSchemaFile(filePath, project.id);
-          // Log progress every 25 schemas to avoid spam
-          if (index % 25 === 0 && index > 0) {
+          // Log progress every 50 schemas to reduce logging overhead
+          if (index % 50 === 0 && index > 0) {
             logger.info(`ProjectManager: Loaded ${index}/${jsonFiles.length} schemas`);
           }
           return schema;
@@ -171,6 +172,12 @@ class ProjectManager {
 
       const schemaResults = await Promise.all(schemaPromises);
       const schemas = schemaResults.filter((schema): schema is Schema => schema !== null);
+
+      const schemaLoadDuration = Date.now() - schemaLoadStart;
+      logger.info(`ProjectManager: Schemas loaded in ${schemaLoadDuration}ms`, {
+        loaded: schemas.length,
+        failed: jsonFiles.length - schemas.length,
+      });
 
       let validCount = 0;
       let invalidCount = 0;
@@ -191,13 +198,19 @@ class ProjectManager {
       project.status.isLoading = false;
 
       // Resolve references between schemas
+      const refResolutionStart = Date.now();
       this.resolveSchemaReferences(schemas);
+      const refResolutionDuration = Date.now() - refResolutionStart;
+      logger.info(`ProjectManager: Reference resolution completed in ${refResolutionDuration}ms`);
 
       // Store project
       this.projects.set(project.id, project);
 
       // Set up file watching
+      const watchSetupStart = Date.now();
       await this.setupProjectWatching(project);
+      const watchSetupDuration = Date.now() - watchSetupStart;
+      logger.info(`ProjectManager: File watching setup completed in ${watchSetupDuration}ms`);
 
       logger.info(`ProjectManager: Project created in ${Date.now() - startTime}ms`, {
         projectId: project.id,
@@ -412,20 +425,22 @@ class ProjectManager {
       } catch (parseError) {
         const result: ValidationResult = {
           isValid: false,
-          errors: [{
-            path: '',
-            instancePath: '',
-            message: parseError instanceof Error ? parseError.message : 'Failed to parse JSON',
-            keyword: 'parse',
-            severity: 'error',
-          }],
+          errors: [
+            {
+              path: '',
+              instancePath: '',
+              message: parseError instanceof Error ? parseError.message : 'Failed to parse JSON',
+              keyword: 'parse',
+              severity: 'error',
+            },
+          ],
           warnings: [],
           duration: 0,
           timestamp: new Date(),
         };
         return { success: true, result };
       }
-      
+
       const result = this.validateSchemaData(data);
       return { success: true, result };
     } catch (error) {
@@ -498,7 +513,7 @@ class ProjectManager {
       // Single file read and stat operation
       const [content, stats] = await Promise.all([
         fs.readFile(filePath, 'utf-8'),
-        fs.stat(filePath)
+        fs.stat(filePath),
       ]);
 
       // Single JSON parse
@@ -520,13 +535,15 @@ class ProjectManager {
             fileSize: stats.size,
           },
           validationStatus: 'invalid',
-          validationErrors: [{
-            path: '',
-            instancePath: '',
-            message: parseError instanceof Error ? parseError.message : 'Failed to parse JSON',
-            keyword: 'parse',
-            severity: 'error',
-          }],
+          validationErrors: [
+            {
+              path: '',
+              instancePath: '',
+              message: parseError instanceof Error ? parseError.message : 'Failed to parse JSON',
+              keyword: 'parse',
+              severity: 'error',
+            },
+          ],
           relativePath: path.relative(path.dirname(filePath), filePath),
           importSource: 'json',
           importDate: new Date(),
@@ -660,67 +677,68 @@ class ProjectManager {
   }
 
   /**
-   * Resolves references between schemas and populates referencedBy fields.
+   * Resolves references between schemas and populates referencedBy fields (optimized).
    */
   private resolveSchemaReferences(schemas: Schema[]): void {
-    logger.info('ProjectManager: Resolving schema references', { schemaCount: schemas.length });
-
-    // Create a map of schema names to schemas for quick lookup
+    const startTime = Date.now();
+    
+    // Pre-allocate referencedBy arrays and create lookup map in single pass
     const schemaMap = new Map<string, Schema>();
+    const referencedByMap = new Map<string, Set<string>>();
+    
     schemas.forEach((schema) => {
-      // Map by various possible names
+      // Initialize referencedBy tracking
+      referencedByMap.set(schema.id, new Set());
+      
+      // Build lookup map with all possible name variations
       schemaMap.set(schema.name, schema);
       schemaMap.set(schema.relativePath, schema);
-      // Also map by filename without extension
+      
+      // Filename without extension
       const filename = path.basename(schema.relativePath, path.extname(schema.relativePath));
       schemaMap.set(filename, schema);
-      // Map by schema name without .schema suffix (for backward compatibility)
+      
+      // Schema name without .schema suffix (backward compatibility)
       if (schema.name.endsWith('.schema')) {
         schemaMap.set(schema.name.replace('.schema', ''), schema);
       }
     });
 
-    // Initialize referencedBy arrays
+    // Process references efficiently
+    let totalReferences = 0;
+    let resolvedReferences = 0;
+    let unresolvedReferences = 0;
+    
     schemas.forEach((schema) => {
-      schema.referencedBy = [];
-    });
-
-    // Build referencedBy relationships efficiently
-    schemas.forEach((schema) => {
-      logger.info('Processing schema', {
-        schemaName: schema.name,
-        referencesCount: schema.references.length,
-        references: schema.references,
-      });
-
+      totalReferences += schema.references.length;
+      
       schema.references.forEach((ref) => {
         const referencedSchema = schemaMap.get(ref.schemaName);
         if (referencedSchema && referencedSchema.id !== schema.id) {
-          referencedSchema.referencedBy.push(schema.id);
-          logger.info(
-            `Found reference: ${schema.name} -> ${referencedSchema.name} (via ${ref.$ref})`,
-          );
+          referencedByMap.get(referencedSchema.id)!.add(schema.id);
+          resolvedReferences++;
         } else {
-          logger.warn(
-            `No match found for reference: ${schema.name} -> ${ref.schemaName} (${ref.$ref})`,
-          );
-          logger.info('Available schema names:', Array.from(schemaMap.keys()));
+          unresolvedReferences++;
+          // Only log unresolved references in debug mode to avoid spam
+          if (process.env.NODE_ENV === 'development') {
+            logger.debug(`Unresolved reference: ${schema.name} -> ${ref.schemaName}`);
+          }
         }
       });
     });
 
-    // Remove duplicates from referencedBy arrays
+    // Convert Sets back to arrays for final schema objects
     schemas.forEach((schema) => {
-      schema.referencedBy = [...new Set(schema.referencedBy)];
+      schema.referencedBy = Array.from(referencedByMap.get(schema.id) || []);
     });
 
-    const totalReferences = schemas.reduce((sum, s) => sum + s.references.length, 0);
-    const totalReferencedBy = schemas.reduce((sum, s) => sum + s.referencedBy.length, 0);
-
+    const duration = Date.now() - startTime;
     logger.info('ProjectManager: Schema references resolved', {
       schemaCount: schemas.length,
       totalReferences,
-      totalReferencedBy,
+      resolvedReferences,
+      unresolvedReferences,
+      duration: `${duration}ms`,
     });
   }
 

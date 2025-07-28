@@ -47,7 +47,9 @@ interface ProjectOverviewProps {
  */
 export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.Element {
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
-  const [projectToDelete, setProjectToDelete] = React.useState<{ id: string; name: string } | null>(null);
+  const [projectToDelete, setProjectToDelete] = React.useState<{ id: string; name: string } | null>(
+    null,
+  );
 
   const recentProjects = useAppStore((state) => state.recentProjects);
   const loadProject = useAppStore((state) => state.loadProject);
@@ -178,7 +180,9 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
                     >
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-sm truncate">{recentProject.name}</h4>
-                        <p className="text-xs text-muted-foreground truncate">{recentProject.path}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {recentProject.path}
+                        </p>
                         <p className="text-xs text-muted-foreground">
                           Last opened: {new Date(recentProject.lastModified).toLocaleDateString()}
                         </p>
@@ -192,7 +196,9 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
                           variant="ghost"
                           size="sm"
                           className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                          onClick={(e) => handleDeleteClick(recentProject.id, recentProject.name, e)}
+                          onClick={(e) =>
+                            handleDeleteClick(recentProject.id, recentProject.name, e)
+                          }
                           title="Delete project from recent list"
                         >
                           <XCircle className="h-4 w-4" />
@@ -215,7 +221,8 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
             <div className="bg-background border border-border rounded-lg p-6 max-w-md w-full mx-4">
               <h3 className="text-lg font-semibold mb-2">Delete Project</h3>
               <p className="text-muted-foreground mb-4">
-                Are you sure you want to remove "{projectToDelete.name}" from your recent projects? This action cannot be undone.
+                Are you sure you want to remove "{projectToDelete.name}" from your recent projects?
+                This action cannot be undone.
               </p>
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" onClick={handleCancelDelete}>
@@ -311,10 +318,11 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
                 {recentProjects.slice(0, 5).map((recentProject) => (
                   <div
                     key={recentProject.id}
-                    className={`flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer ${recentProject.id === project.id
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border/50 hover:bg-muted/50'
-                      }`}
+                    className={`flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer ${
+                      recentProject.id === project.id
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border/50 hover:bg-muted/50'
+                    }`}
                     onClick={() => handleOpenProject(recentProject.path)}
                   >
                     <div className="flex-1 min-w-0">

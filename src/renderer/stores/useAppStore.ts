@@ -12,12 +12,7 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import logger from '../lib/renderer-logger';
-import type {
-  Project,
-  ProjectConfig,
-  Schema,
-  SchemaFilters,
-} from '../../types/schema-editor';
+import type { Project, ProjectConfig, Schema, SchemaFilters } from '../../types/schema-editor';
 
 /**
  * Available theme options for the application.
@@ -28,8 +23,6 @@ export type Theme = 'light' | 'dark' | 'system';
  * Available page routes in the application.
  */
 export type Page = 'home' | 'about' | 'settings' | 'project' | 'explore' | 'build' | 'analytics';
-
-
 
 /**
  * Saved search configuration.
@@ -178,7 +171,6 @@ export const useAppStore = create<AppState>()(
         isLoadingProject: false,
         projectError: null,
 
-
         // Search and filtering
         searchQuery: '',
         searchFilters: {
@@ -303,9 +295,14 @@ export const useAppStore = create<AppState>()(
               logger.info('Store: Project loaded with schemas', {
                 projectName: result.project.name,
                 schemaCount: result.project.schemas?.length || 0,
-                schemaIds: result.project.schemas?.map(s => ({ name: s.name, id: s.id, referencedByCount: s.referencedBy?.length || 0 })) || []
+                schemaIds:
+                  result.project.schemas?.map((s) => ({
+                    name: s.name,
+                    id: s.id,
+                    referencedByCount: s.referencedBy?.length || 0,
+                  })) || [],
               });
-              
+
               set({
                 currentProject: result.project,
                 recentProjects: [
@@ -379,8 +376,6 @@ export const useAppStore = create<AppState>()(
         clearProjectError: () => {
           set({ projectError: null });
         },
-
-
 
         /**
          * Loads the last project on application startup.

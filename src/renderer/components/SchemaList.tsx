@@ -91,7 +91,9 @@ export function SchemaList({
           schema.metadata.description.toLowerCase().includes(searchQuery.toLowerCase()));
 
       // Status filter
-      const matchesStatus = searchFilters.validationStatus === 'all' || schema.validationStatus === searchFilters.validationStatus;
+      const matchesStatus =
+        searchFilters.validationStatus === 'all' ||
+        schema.validationStatus === searchFilters.validationStatus;
 
       return matchesSearch && matchesStatus;
     });
