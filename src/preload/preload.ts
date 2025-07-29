@@ -12,6 +12,37 @@
 
 import { contextBridge, ipcRenderer } from 'electron';
 
+// RAML conversion interfaces
+interface RamlFileConversionParams {
+  sourceFile: string;
+  destinationDirectory: string;
+  options: {
+    preserveStructure: boolean;
+    generateExamples: boolean;
+    includeAnnotations: boolean;
+    namingConvention: 'kebab-case' | 'camelCase' | 'PascalCase' | 'snake_case';
+    validateOutput: boolean;
+  };
+}
+
+interface RamlBatchConversionParams {
+  sourceDirectory: string;
+  destinationDirectory: string;
+  options: {
+    preserveStructure: boolean;
+    generateExamples: boolean;
+    includeAnnotations: boolean;
+    namingConvention: 'kebab-case' | 'camelCase' | 'PascalCase' | 'snake_case';
+    validateOutput: boolean;
+  };
+  progressCallback?: (progress: {
+    current: number;
+    total: number;
+    currentFile: string;
+    phase: string;
+  }) => void;
+}
+
 // Listen for app shutdown events
 ipcRenderer.on('app:before-quit', () => {
   // Dispatch a custom event that the renderer can listen to
@@ -196,7 +227,15 @@ contextBridge.exposeInMainWorld('api', {
    * @param options - Conversion options
    * @returns Promise resolving to conversion result or error
    */
-  convertRamlFile: (options: any) => ipcRenderer.invoke('raml:convert', options),
+  convertRamlFile: (options: RamlFileConversionParams) => ipcRenderer.invoke('raml:convert', options),
+
+  /**
+   * Converts multiple RAML files to JSON Schema in batch.
+   *
+   * @param options - Batch conversion options
+   * @returns Promise resolving to batch conversion result or error
+   */
+  convertRamlBatch: (options: RamlBatchConversionParams) => ipcRenderer.invoke('raml:convertBatch', options),
 
   /**
    * Clears a directory of all files.

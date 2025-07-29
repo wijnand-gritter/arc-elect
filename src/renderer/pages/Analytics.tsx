@@ -33,6 +33,15 @@ import {
   Target,
   GitBranch,
   Eye,
+  ArrowRight,
+  Layers,
+  Download,
+  ExternalLink,
+  Maximize,
+  Server,
+  Plus,
+  Minus,
+  RotateCcw,
 } from 'lucide-react';
 import {
   BarChart,
@@ -600,99 +609,336 @@ export function Analytics(): React.JSX.Element {
           {/* References Tab */}
           <TabsContent value="references" className="space-y-6">
             {/* Circular References */}
-            {analytics.circularReferences.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <AlertTriangle className="w-5 h-5 text-destructive" />
-                    Circular References Detected
-                  </CardTitle>
-                  <CardDescription>
-                    These circular references may cause issues in schema processing
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-[200px]">
-                    <div className="space-y-3">
-                      {analytics.circularReferences.map((ref, index) => (
-                        <Alert
-                          key={index}
-                          variant={ref.severity === 'high' ? 'destructive' : 'default'}
-                        >
-                          <AlertTriangle className="h-4 w-4" />
-                          <AlertTitle className="flex items-center gap-2">
-                            {ref.type === 'direct' ? 'Direct' : 'Indirect'} Circular Reference
-                            <Badge
-                              variant={
-                                ref.severity === 'high'
-                                  ? 'destructive'
-                                  : ref.severity === 'medium'
-                                    ? 'secondary'
-                                    : 'default'
-                              }
-                            >
-                              {ref.severity}
-                            </Badge>
-                          </AlertTitle>
-                          <AlertDescription>
-                            <div className="mt-2">
-                              <p className="text-sm">Path: {ref.path.join(' → ')}</p>
-                              <p className="text-sm">Depth: {ref.depth} levels</p>
-                            </div>
-                          </AlertDescription>
-                        </Alert>
-                      ))}
+            {analytics.circularReferences.length > 0 ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Circular References List */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <AlertTriangle className="w-5 h-5 text-destructive" />
+                          Circular References
+                        </CardTitle>
+                        <CardDescription>
+                          {analytics.circularReferences.length} circular dependencies detected
+                        </CardDescription>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        <Download className="w-4 h-4 mr-2" />
+                        Export
+                      </Button>
                     </div>
-                  </ScrollArea>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-[400px]">
+                      <div className="space-y-3">
+                        {analytics.circularReferences.map((ref, index) => (
+                          <Alert
+                            key={index}
+                            variant={ref.severity === 'high' ? 'destructive' : 'default'}
+                            className="cursor-pointer hover:bg-accent/50 transition-colors"
+                          >
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertTitle className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                {ref.type === 'direct' ? 'Direct' : 'Indirect'} Reference
+                                <Badge
+                                  variant={
+                                    ref.severity === 'high'
+                                      ? 'destructive'
+                                      : ref.severity === 'medium'
+                                        ? 'secondary'
+                                        : 'default'
+                                  }
+                                >
+                                  {ref.severity}
+                                </Badge>
+                              </div>
+                              <Button variant="ghost" size="sm">
+                                <ExternalLink className="w-3 h-3" />
+                              </Button>
+                            </AlertTitle>
+                            <AlertDescription>
+                              <div className="mt-2 space-y-2">
+                                <div className="flex items-center gap-2 text-sm">
+                                  <Layers className="w-3 h-3" />
+                                  <span>Depth: {ref.depth} levels</span>
+                                </div>
+                                <div className="bg-muted/30 p-2 rounded text-xs font-mono">
+                                  {ref.path.map((step, i) => (
+                                    <span key={i}>
+                                      {step}
+                                      {i < ref.path.length - 1 && (
+                                        <ArrowRight className="w-3 h-3 inline mx-1" />
+                                      )}
+                                    </span>
+                                  ))}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  Type: {ref.type} • Severity: {ref.severity}
+                                </div>
+                              </div>
+                            </AlertDescription>
+                          </Alert>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+
+                {/* Circular Reference Visualization */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Network className="w-5 h-5" />
+                      Reference Flow
+                    </CardTitle>
+                    <CardDescription>
+                      Visual representation of circular dependencies
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[400px] flex items-center justify-center">
+                      <div className="text-center space-y-4">
+                        <div className="relative">
+                          {/* Simple circular reference visualization */}
+                          <div className="w-32 h-32 border-4 border-dashed border-destructive rounded-full flex items-center justify-center">
+                            <div className="text-center">
+                              <AlertTriangle className="w-8 h-8 text-destructive mx-auto mb-2" />
+                              <div className="text-sm font-medium">
+                                {analytics.circularReferences.length}
+                              </div>
+                              <div className="text-xs text-muted-foreground">Cycles</div>
+                            </div>
+                          </div>
+                          {/* Animated arrows */}
+                          <div className="absolute inset-0 animate-spin" style={{ animationDuration: '8s' }}>
+                            <ArrowRight className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-2 w-4 h-4 text-destructive" />
+                            <ArrowRight className="absolute right-0 top-1/2 transform translate-x-2 -translate-y-1/2 rotate-90 w-4 h-4 text-destructive" />
+                            <ArrowRight className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-2 rotate-180 w-4 h-4 text-destructive" />
+                            <ArrowRight className="absolute left-0 top-1/2 transform -translate-x-2 -translate-y-1/2 -rotate-90 w-4 h-4 text-destructive" />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="text-sm font-medium">Severity Breakdown</div>
+                          <div className="flex gap-2 justify-center">
+                            {['high', 'medium', 'low'].map(severity => {
+                              const count = analytics.circularReferences.filter(ref => ref.severity === severity).length;
+                              return count > 0 ? (
+                                <Badge
+                                  key={severity}
+                                  variant={severity === 'high' ? 'destructive' : severity === 'medium' ? 'secondary' : 'default'}
+                                  className="text-xs"
+                                >
+                                  {severity}: {count}
+                                </Badge>
+                              ) : null;
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="flex items-center justify-center py-12">
+                  <div className="text-center space-y-4">
+                    <CheckCircle className="w-16 h-16 mx-auto text-green-500" />
+                    <div>
+                      <h3 className="text-lg font-medium">No Circular References</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Your schema references are clean and well-structured
+                      </p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             )}
+
+            {/* Interactive Reference Graph */}
+            <Card className="mb-6">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Network className="w-5 h-5" />
+                      Interactive Reference Graph
+                    </CardTitle>
+                    <CardDescription>
+                      Explore schema relationships and dependencies
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm">
+                      <Maximize className="w-4 h-4 mr-2" />
+                      Fullscreen
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      <Download className="w-4 h-4 mr-2" />
+                      Export
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[500px] border rounded-lg bg-muted/20 relative overflow-hidden">
+                  {/* Graph Visualization Area */}
+                  <div className="absolute inset-4 flex items-center justify-center">
+                    <div className="text-center space-y-4">
+                      {/* Central Hub */}
+                      <div className="relative">
+                        <div className="w-24 h-24 bg-primary/10 border-2 border-primary rounded-full flex items-center justify-center">
+                          <div className="text-center">
+                            <Server className="w-6 h-6 mx-auto mb-1" />
+                            <div className="text-xs font-medium">Core</div>
+                          </div>
+                        </div>
+                        
+                        {/* Connected Nodes */}
+                        {analytics.referenceGraph.nodes.slice(0, 6).map((node, index) => {
+                          const angle = (index * 60) * (Math.PI / 180);
+                          const radius = 80;
+                          const x = Math.cos(angle) * radius;
+                          const y = Math.sin(angle) * radius;
+                          
+                          return (
+                            <div
+                              key={node.id}
+                              className="absolute w-16 h-16 bg-background border-2 border-border rounded-full flex items-center justify-center cursor-pointer hover:border-primary transition-colors"
+                              style={{
+                                left: `calc(50% + ${x}px - 32px)`,
+                                top: `calc(50% + ${y}px - 32px)`,
+                              }}
+                              title={node.name}
+                            >
+                              <div className="text-center">
+                                <FileText className="w-4 h-4 mx-auto mb-1" />
+                                <div className="text-xs font-medium truncate w-12">
+                                  {node.name.split('.')[0]}
+                                </div>
+                              </div>
+                              
+                              {/* Connection Line */}
+                              <svg
+                                className="absolute inset-0 pointer-events-none"
+                                style={{ width: '200px', height: '200px', left: '-84px', top: '-84px' }}
+                              >
+                                <line
+                                  x1="100"
+                                  y1="100"
+                                  x2={100 - x}
+                                  y2={100 - y}
+                                  stroke="currentColor"
+                                  strokeWidth="1"
+                                  className="text-border opacity-40"
+                                />
+                              </svg>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      
+                      <div className="text-sm text-muted-foreground">
+                        Click nodes to explore connections
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Graph Controls */}
+                  <div className="absolute top-4 right-4 flex flex-col gap-2">
+                    <Button variant="outline" size="sm">
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      <Minus className="w-4 h-4" />
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      <RotateCcw className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  
+                  {/* Legend */}
+                  <div className="absolute bottom-4 left-4 bg-background/80 backdrop-blur-sm border rounded p-3 space-y-2">
+                    <div className="text-xs font-medium">Legend</div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <div className="w-3 h-3 bg-primary/10 border border-primary rounded-full"></div>
+                      <span>Core Schema</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <div className="w-3 h-3 bg-background border border-border rounded-full"></div>
+                      <span>Referenced Schema</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <div className="w-4 h-0 border-t border-border"></div>
+                      <span>Reference Link</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Reference Graph Stats */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Network className="w-5 h-5" />
-                    Reference Graph
+                    <BarChart3 className="w-5 h-5" />
+                    Graph Metrics
                   </CardTitle>
                   <CardDescription>Network analysis of schema references</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="text-center p-3 border rounded">
-                        <div className="text-2xl font-bold">
+                      <div className="text-center p-3 border rounded hover:bg-accent/50 transition-colors">
+                        <div className="text-2xl font-bold text-primary">
                           {analytics.referenceGraph.metrics.nodeCount}
                         </div>
                         <div className="text-sm text-muted-foreground">Nodes</div>
                       </div>
-                      <div className="text-center p-3 border rounded">
-                        <div className="text-2xl font-bold">
+                      <div className="text-center p-3 border rounded hover:bg-accent/50 transition-colors">
+                        <div className="text-2xl font-bold text-primary">
                           {analytics.referenceGraph.metrics.edgeCount}
                         </div>
                         <div className="text-sm text-muted-foreground">Edges</div>
                       </div>
                     </div>
                     <Separator />
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
                         <span className="text-sm">Graph Density</span>
-                        <span className="text-sm font-medium">
-                          {(analytics.referenceGraph.metrics.density * 100).toFixed(1)}%
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-primary transition-all duration-300"
+                              style={{ width: `${analytics.referenceGraph.metrics.density * 100}%` }}
+                            />
+                          </div>
+                          <span className="text-sm font-medium min-w-[3rem]">
+                            {(analytics.referenceGraph.metrics.density * 100).toFixed(1)}%
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between items-center">
                         <span className="text-sm">Average Degree</span>
                         <span className="text-sm font-medium">
                           {analytics.referenceGraph.metrics.averageDegree.toFixed(1)}
                         </span>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between items-center">
                         <span className="text-sm">Connected Components</span>
-                        <span className="text-sm font-medium">
+                        <Badge variant="outline">
                           {analytics.referenceGraph.metrics.connectedComponents}
-                        </span>
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Circular References</span>
+                        <Badge variant={analytics.circularReferences.length > 0 ? 'destructive' : 'default'}>
+                          {analytics.circularReferences.length}
+                        </Badge>
                       </div>
                     </div>
                   </div>
@@ -702,39 +948,91 @@ export function Analytics(): React.JSX.Element {
               {/* Most Referenced Schemas */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <GitBranch className="w-5 h-5" />
-                    Most Referenced
-                  </CardTitle>
-                  <CardDescription>Schemas with highest reference counts</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <GitBranch className="w-5 h-5" />
+                        Most Referenced
+                      </CardTitle>
+                      <CardDescription>Schemas with highest reference counts</CardDescription>
+                    </div>
+                    <Button variant="outline" size="sm">
+                      <Eye className="w-4 h-4 mr-2" />
+                      View All
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-[250px]">
+                  <ScrollArea className="h-[400px]">
                     <div className="space-y-3">
                       {analytics.referenceGraph.nodes
                         .sort((a, b) => b.inDegree - a.inDegree)
-                        .slice(0, 10)
-                        .map((node) => {
+                        .slice(0, 15)
+                        .map((node, index) => {
                           const schema = schemas.find((s) => s.id === node.id);
+                          const maxInDegree = Math.max(...analytics.referenceGraph.nodes.map(n => n.inDegree));
+                          const barWidth = maxInDegree > 0 ? (node.inDegree / maxInDegree) * 100 : 0;
+                          
                           return (
                             <div
                               key={node.id}
-                              className="flex items-center justify-between p-3 border rounded"
+                              className="group relative p-3 border rounded-lg hover:bg-accent/50 transition-all duration-200 cursor-pointer"
                             >
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">
-                                  {schema?.metadata.title || schema?.name || node.name}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                  Centrality: {node.centrality.toFixed(2)}
-                                </p>
+                              {/* Rank indicator */}
+                              <div className="absolute -left-2 top-1/2 transform -translate-y-1/2">
+                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                                  index === 0 ? 'bg-yellow-500 text-yellow-900' :
+                                  index === 1 ? 'bg-gray-400 text-gray-900' :
+                                  index === 2 ? 'bg-amber-600 text-amber-100' :
+                                  'bg-muted text-muted-foreground'
+                                }`}>
+                                  {index + 1}
+                                </div>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline">{node.inDegree} refs</Badge>
+                              
+                              <div className="ml-4">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium truncate group-hover:text-primary transition-colors">
+                                      {schema?.metadata.title || schema?.name || node.name}
+                                    </p>
+                                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                                      <span>Centrality: {node.centrality.toFixed(2)}</span>
+                                      <span>•</span>
+                                      <span>Out: {node.outDegree}</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Badge 
+                                      variant={index < 3 ? 'default' : 'outline'}
+                                      className={index < 3 ? 'bg-primary' : ''}
+                                    >
+                                      {node.inDegree} refs
+                                    </Badge>
+                                    <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <ExternalLink className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                                
+                                {/* Reference bar */}
+                                <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-gradient-to-r from-primary to-primary/60 transition-all duration-500 ease-out"
+                                    style={{ width: `${barWidth}%` }}
+                                  />
+                                </div>
                               </div>
                             </div>
                           );
                         })}
+                      
+                      {analytics.referenceGraph.nodes.length === 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <GitBranch className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                          <p>No reference data available</p>
+                        </div>
+                      )}
                     </div>
                   </ScrollArea>
                 </CardContent>

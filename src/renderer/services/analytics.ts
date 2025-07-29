@@ -206,7 +206,7 @@ export class AnalyticsService {
    * Detects circular references in the schema collection.
    * Uses DFS with deduplication to avoid counting the same cycle multiple times.
    */
-  private detectCircularReferences(schemas: Schema[]): CircularReference[] {
+  public detectCircularReferences(schemas: Schema[]): CircularReference[] {
     const circularRefs: CircularReference[] = [];
     const schemaMap = new Map(schemas.map((s) => [s.id, s]));
     const globalVisited = new Set<string>();
@@ -326,7 +326,7 @@ export class AnalyticsService {
   /**
    * Calculates complexity metrics for each schema.
    */
-  private calculateComplexityMetrics(schemas: Schema[]): Map<string, ComplexityMetrics> {
+  public calculateComplexityMetrics(schemas: Schema[]): Map<string, ComplexityMetrics> {
     const metrics = new Map<string, ComplexityMetrics>();
 
     for (const schema of schemas) {
@@ -373,7 +373,7 @@ export class AnalyticsService {
   /**
    * Builds a reference graph from the schema collection.
    */
-  private buildReferenceGraph(schemas: Schema[]): ReferenceGraph {
+  public buildReferenceGraph(schemas: Schema[]): ReferenceGraph {
     const nodes: ReferenceNode[] = [];
     const edges: ReferenceEdge[] = [];
     const inDegreeMap = new Map<string, number>();
@@ -441,7 +441,7 @@ export class AnalyticsService {
   /**
    * Calculates project-level metrics.
    */
-  private calculateProjectMetrics(
+  public calculateProjectMetrics(
     schemas: Schema[],
     complexityMetrics: Map<string, ComplexityMetrics>,
     circularReferences: CircularReference[],

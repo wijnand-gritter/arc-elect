@@ -1,12 +1,12 @@
 /**
  * Live Preview component for JSON Schema visualization.
- * 
+ *
  * This component provides real-time preview of JSON schemas with:
  * - Sample data generation
  * - Multiple preview modes (tree, form, example)
  * - Schema structure visualization
  * - Interactive preview configuration
- * 
+ *
  * @module LivePreview
  * @author Wijnand Gritter
  * @version 1.0.0
@@ -18,17 +18,17 @@ import { Button } from '../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
-import { 
-  Eye, 
-  Code, 
-  TreePine, 
-  FileText, 
-  Shuffle, 
-  Copy, 
+import {
+  Eye,
+  Code,
+  TreePine,
+  FileText,
+  Shuffle,
+  Copy,
   Download,
   Settings,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import logger from '../../lib/renderer-logger';
@@ -153,7 +153,7 @@ class SampleDataGenerator {
     const minItems = schema.minItems || 1;
     const maxItems = schema.maxItems || 3;
     const length = Math.floor(Math.random() * (maxItems - minItems + 1)) + minItems;
-    
+
     const items = [];
     for (let i = 0; i < length; i++) {
       const item = this.generateSample(schema.items, depth + 1);
@@ -166,10 +166,10 @@ class SampleDataGenerator {
 
   private static generateObject(schema: JSONSchema, depth: number): Record<string, unknown> {
     const obj: Record<string, unknown> = {};
-    
+
     if (schema.properties) {
       const required = schema.required || [];
-      
+
       // Add required properties
       for (const key of required) {
         if (schema.properties[key]) {
@@ -179,7 +179,7 @@ class SampleDataGenerator {
           }
         }
       }
-      
+
       // Add some optional properties (50% chance each)
       for (const [key, propSchema] of Object.entries(schema.properties)) {
         if (!required.includes(key) && Math.random() > 0.5) {
@@ -190,7 +190,7 @@ class SampleDataGenerator {
         }
       }
     }
-    
+
     return obj;
   }
 }
@@ -234,7 +234,7 @@ export function LivePreview({ schemaContent, schemaName, isValid, errors = [] }:
         setIsGenerating(false);
       }
     }),
-    [parsedSchema, schemaName]
+    [parsedSchema, schemaName],
   );
 
   // Copy to clipboard
@@ -243,7 +243,7 @@ export function LivePreview({ schemaContent, schemaName, isValid, errors = [] }:
       await navigator.clipboard.writeText(content);
       toast.success('Copied to clipboard');
     }),
-    []
+    [],
   );
 
   // Download as file
@@ -260,7 +260,7 @@ export function LivePreview({ schemaContent, schemaName, isValid, errors = [] }:
       URL.revokeObjectURL(url);
       toast.success(`Downloaded ${filename}`);
     }),
-    []
+    [],
   );
 
   // Render schema structure
@@ -268,14 +268,17 @@ export function LivePreview({ schemaContent, schemaName, isValid, errors = [] }:
     if (!schema || depth > 5) return null;
 
     const indent = '  '.repeat(depth);
-    
+
     if (schema.type === 'object' && schema.properties) {
       return (
         <div className="font-mono text-sm">
-          <div>{indent}{'{'}</div>
+          <div>
+            {indent}
+            {'{'}
+          </div>
           {Object.entries(schema.properties).map(([key, prop]: [string, JSONSchema]) => (
             <div key={key} className="ml-4">
-              <span className="text-blue-600">"{key}"</span>: 
+              <span className="text-blue-600">"{key}"</span>:
               <span className="text-green-600 ml-1">{prop.type || 'any'}</span>
               {prop.description && (
                 <span className="text-muted-foreground ml-2">// {prop.description}</span>
@@ -285,7 +288,10 @@ export function LivePreview({ schemaContent, schemaName, isValid, errors = [] }:
               )}
             </div>
           ))}
-          <div>{indent}{'}'}</div>
+          <div>
+            {indent}
+            {'}'}
+          </div>
         </div>
       );
     }
@@ -300,9 +306,7 @@ export function LivePreview({ schemaContent, schemaName, isValid, errors = [] }:
       );
     }
 
-    return (
-      <span className="text-green-600">{schema.type || 'any'}</span>
-    );
+    return <span className="text-green-600">{schema.type || 'any'}</span>;
   };
 
   if (!isValid) {
@@ -313,9 +317,7 @@ export function LivePreview({ schemaContent, schemaName, isValid, errors = [] }:
             <AlertCircle className="w-4 h-4 text-destructive" />
             Preview Unavailable
           </CardTitle>
-          <CardDescription>
-            Cannot preview schema due to validation errors
-          </CardDescription>
+          <CardDescription>Cannot preview schema due to validation errors</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -405,10 +407,12 @@ export function LivePreview({ schemaContent, schemaName, isValid, errors = [] }:
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => downloadAsFile(
-                        JSON.stringify(sampleData, null, 2),
-                        `${schemaName}-sample.json`
-                      )}
+                      onClick={() =>
+                        downloadAsFile(
+                          JSON.stringify(sampleData, null, 2),
+                          `${schemaName}-sample.json`,
+                        )
+                      }
                     >
                       <Download className="w-3 h-3 mr-1" />
                       Download
@@ -421,9 +425,7 @@ export function LivePreview({ schemaContent, schemaName, isValid, errors = [] }:
               ) : (
                 <div className="text-center py-8">
                   <FileText className="w-12 h-12 mx-auto text-muted-foreground opacity-50 mb-4" />
-                  <p className="text-sm text-muted-foreground mb-4">
-                    No sample data generated yet
-                  </p>
+                  <p className="text-sm text-muted-foreground mb-4">No sample data generated yet</p>
                   <Button onClick={generateSampleData} disabled={isGenerating}>
                     <Shuffle className="w-4 h-4 mr-2" />
                     Generate Sample Data
@@ -440,9 +442,7 @@ export function LivePreview({ schemaContent, schemaName, isValid, errors = [] }:
               ) : (
                 <div className="text-center py-8">
                   <AlertCircle className="w-12 h-12 mx-auto text-muted-foreground opacity-50 mb-4" />
-                  <p className="text-sm text-muted-foreground">
-                    Invalid schema structure
-                  </p>
+                  <p className="text-sm text-muted-foreground">Invalid schema structure</p>
                 </div>
               )}
             </TabsContent>
@@ -450,18 +450,14 @@ export function LivePreview({ schemaContent, schemaName, isValid, errors = [] }:
             <TabsContent value="form" className="mt-0">
               <div className="text-center py-8">
                 <Code className="w-12 h-12 mx-auto text-muted-foreground opacity-50 mb-4" />
-                <p className="text-sm text-muted-foreground">
-                  Form preview coming soon
-                </p>
+                <p className="text-sm text-muted-foreground">Form preview coming soon</p>
               </div>
             </TabsContent>
 
             <TabsContent value="tree" className="mt-0">
               <div className="text-center py-8">
                 <TreePine className="w-12 h-12 mx-auto text-muted-foreground opacity-50 mb-4" />
-                <p className="text-sm text-muted-foreground">
-                  Tree view coming soon
-                </p>
+                <p className="text-sm text-muted-foreground">Tree view coming soon</p>
               </div>
             </TabsContent>
           </ScrollArea>

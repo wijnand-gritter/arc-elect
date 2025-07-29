@@ -17,6 +17,7 @@ import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import { watch } from 'chokidar';
 import logger from './main-logger';
+import { ramlConverter } from './raml-converter';
 import type {
   Project,
   ProjectConfig,
@@ -24,6 +25,65 @@ import type {
   ValidationResult,
   SchemaReference,
 } from '../types/schema-editor';
+
+/**
+ * RAML conversion options interface.
+ */
+interface RamlConversionOptions {
+  preserveStructure: boolean;
+  generateExamples: boolean;
+  includeAnnotations: boolean;
+  namingConvention: 'kebab-case' | 'camelCase' | 'PascalCase' | 'snake_case';
+  validateOutput: boolean;
+}
+
+/**
+ * RAML file conversion parameters.
+ */
+interface RamlFileConversionParams {
+  sourcePath: string;
+  destinationPath: string;
+  options: RamlConversionOptions;
+}
+
+/**
+ * RAML batch conversion parameters.
+ */
+interface RamlBatchConversionParams {
+  sourceDirectory: string;
+  destinationDirectory: string;
+  options: RamlConversionOptions;
+  progressCallback?: (progress: {
+    current: number;
+    total: number;
+    currentFile: string;
+    phase: string;
+  }) => void;
+}
+
+/**
+ * RAML conversion result interface.
+ */
+interface RamlConversionResult {
+  success: boolean;
+  error?: string;
+  result?: unknown;
+}
+
+/**
+ * RAML batch conversion result interface.
+ */
+interface RamlBatchConversionResult {
+  success: boolean;
+  results: unknown[];
+  summary: {
+    total: number;
+    successful: number;
+    failed: number;
+    warnings: number;
+  };
+  error?: string;
+}
 
 /**
  * JSON Schema validator instance.
@@ -111,8 +171,12 @@ class ProjectManager {
       }
     });
 
-    ipcMain.handle('raml:convert', async (_event, options: any) => {
+    ipcMain.handle('raml:convert', async (_event, options: RamlFileConversionParams) => {
       return this.convertRamlFile(options);
+    });
+
+    ipcMain.handle('raml:convertBatch', async (_event, options: RamlBatchConversionParams) => {
+      return this.convertRamlBatch(options);
     });
 
     ipcMain.handle('raml:clearDirectory', async (_event, directoryPath: string) => {
@@ -996,42 +1060,100 @@ class ProjectManager {
   }
 
   /**
-   * Converts a single RAML file to JSON Schema.
-   * This is a placeholder that will be replaced with the user's conversion script.
+   * Converts a single RAML file to JSON Schema using the RAML converter.
    */
-  public async convertRamlFile(options: {
-    sourcePath: string;
-    destinationPath: string;
-    options: any;
-  }): Promise<{ success: boolean; error?: string }> {
+  public async convertRamlFile(options: RamlFileConversionParams): Promise<RamlConversionResult> {
     try {
-      logger.info('ProjectManager: Converting RAML file (placeholder)', {
+      logger.info('ProjectManager: Converting RAML file', {
         sourcePath: options.sourcePath,
         destinationPath: options.destinationPath,
+        options: options.options,
       });
 
-      // PLACEHOLDER: This is where the actual RAML conversion script will be called
-      // For now, we'll simulate a successful conversion
+      // Use the RAML converter service
+      const result = await ramlConverter.convertFile(
+        options.sourcePath,
+        options.destinationPath,
+        options.options
+      );
 
-      // In a real implementation, this would:
-      // 1. Read the RAML file
-      // 2. Parse it using a RAML parser
-      // 3. Convert it to JSON Schema format
-      // 4. Write the result to the destination path
-
-      // Simulate processing time
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      // For now, return success
-      // The user will replace this with their actual conversion logic
-      return { success: true };
+      if (result.success) {
+        logger.info('ProjectManager: RAML conversion completed successfully', {
+          inputFile: result.inputFile,
+          outputFile: result.outputFile,
+        });
+        
+        return {
+          success: true,
+          result: {
+            inputFile: result.inputFile,
+            outputFile: result.outputFile,
+            schema: result.schema,
+          },
+        };
+      } else {
+        logger.error('ProjectManager: RAML conversion failed', {
+          inputFile: result.inputFile,
+          error: result.error,
+        });
+        
+        return {
+          success: false,
+          error: result.error,
+        };
+      }
     } catch (error) {
-      logger.error('ProjectManager: RAML conversion failed', {
+      logger.error('ProjectManager: RAML conversion failed with exception', {
         sourcePath: options.sourcePath,
         error,
       });
       return {
         success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Converts multiple RAML files to JSON Schema in batch.
+   */
+  public async convertRamlBatch(options: RamlBatchConversionParams): Promise<RamlBatchConversionResult> {
+    try {
+      logger.info('ProjectManager: Starting batch RAML conversion', {
+        sourceDirectory: options.sourceDirectory,
+        destinationDirectory: options.destinationDirectory,
+        options: options.options,
+      });
+
+      // Use the RAML converter service for batch processing
+      const result = await ramlConverter.convertBatch(
+        options.sourceDirectory,
+        options.destinationDirectory,
+        options.options,
+        options.progressCallback
+      );
+
+      logger.info('ProjectManager: Batch RAML conversion completed', {
+        sourceDirectory: options.sourceDirectory,
+        destinationDirectory: options.destinationDirectory,
+        summary: result.summary,
+      });
+
+      return {
+        success: result.success,
+        results: result.results,
+        summary: result.summary,
+      };
+    } catch (error) {
+      logger.error('ProjectManager: Batch RAML conversion failed with exception', {
+        sourceDirectory: options.sourceDirectory,
+        destinationDirectory: options.destinationDirectory,
+        error,
+      });
+      return {
+        success: false,
+        results: [],
+        summary: { total: 0, successful: 0, failed: 0, warnings: 0 },
         error: error instanceof Error ? error.message : 'Unknown error',
       };
     }

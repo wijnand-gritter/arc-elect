@@ -367,7 +367,7 @@ export function Build(): React.JSX.Element {
       setTabValidationErrors((prev) => ({ ...prev, [tabId]: errors }));
       setEditorTabs((prev) => prev.map((tab) => (tab.id === tabId ? { ...tab, errors } : tab)));
     }),
-    []
+    [],
   );
 
   // Get active tab
@@ -417,17 +417,20 @@ export function Build(): React.JSX.Element {
   }, [updateScrollButtons]);
 
   // Scroll tabs left or right
-  const scrollTabs = useCallback((direction: 'left' | 'right') => {
-    const container = document.getElementById('tab-container');
-    if (container) {
-      const scrollAmount = 200;
-      container.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth',
-      });
-      setTimeout(updateScrollButtons, 300);
-    }
-  }, [updateScrollButtons]);
+  const scrollTabs = useCallback(
+    (direction: 'left' | 'right') => {
+      const container = document.getElementById('tab-container');
+      if (container) {
+        const scrollAmount = 200;
+        container.scrollBy({
+          left: direction === 'left' ? -scrollAmount : scrollAmount,
+          behavior: 'smooth',
+        });
+        setTimeout(updateScrollButtons, 300);
+      }
+    },
+    [updateScrollButtons],
+  );
 
   // Batch validation functionality
   const handleBatchValidation = useCallback(
@@ -458,16 +461,18 @@ export function Build(): React.JSX.Element {
               results.errors.push({
                 schemaId: schema.id,
                 schemaName: schema.name,
-                errors: [{
-                  line: 1,
-                  column: 1,
-                  message: `Failed to read file: ${fileResult.error}`,
-                  severity: 'error',
-                  startLineNumber: 1,
-                  startColumn: 1,
-                  endLineNumber: 1,
-                  endColumn: 1,
-                }],
+                errors: [
+                  {
+                    line: 1,
+                    column: 1,
+                    message: `Failed to read file: ${fileResult.error}`,
+                    severity: 'error',
+                    startLineNumber: 1,
+                    startColumn: 1,
+                    endLineNumber: 1,
+                    endColumn: 1,
+                  },
+                ],
               });
               continue;
             }
@@ -481,16 +486,18 @@ export function Build(): React.JSX.Element {
               results.errors.push({
                 schemaId: schema.id,
                 schemaName: schema.name,
-                errors: [{
-                  line: 1,
-                  column: 1,
-                  message: `JSON Parse Error: ${parseError instanceof Error ? parseError.message : 'Invalid JSON'}`,
-                  severity: 'error',
-                  startLineNumber: 1,
-                  startColumn: 1,
-                  endLineNumber: 1,
-                  endColumn: 1,
-                }],
+                errors: [
+                  {
+                    line: 1,
+                    column: 1,
+                    message: `JSON Parse Error: ${parseError instanceof Error ? parseError.message : 'Invalid JSON'}`,
+                    severity: 'error',
+                    startLineNumber: 1,
+                    startColumn: 1,
+                    endLineNumber: 1,
+                    endColumn: 1,
+                  },
+                ],
               });
             }
           } catch (error) {
@@ -498,28 +505,32 @@ export function Build(): React.JSX.Element {
             results.errors.push({
               schemaId: schema.id,
               schemaName: schema.name,
-              errors: [{
-                line: 1,
-                column: 1,
-                message: `Validation Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                severity: 'error',
-                startLineNumber: 1,
-                startColumn: 1,
-                endLineNumber: 1,
-                endColumn: 1,
-              }],
+              errors: [
+                {
+                  line: 1,
+                  column: 1,
+                  message: `Validation Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                  severity: 'error',
+                  startLineNumber: 1,
+                  startColumn: 1,
+                  endLineNumber: 1,
+                  endColumn: 1,
+                },
+              ],
             });
           }
         }
 
         setBatchValidationResults(results);
-        
+
         if (results.invalid === 0) {
           toast.success(`Batch validation complete: All ${results.total} schemas are valid!`);
         } else {
-          toast.warning(`Batch validation complete: ${results.valid} valid, ${results.invalid} invalid schemas`);
+          toast.warning(
+            `Batch validation complete: ${results.valid} valid, ${results.invalid} invalid schemas`,
+          );
         }
-        
+
         logger.info('Batch validation completed', results);
       } catch (error) {
         logger.error('Batch validation failed', { error });
@@ -528,7 +539,7 @@ export function Build(): React.JSX.Element {
         setIsBatchValidating(false);
       }
     }),
-    [currentProject.schemas]
+    [currentProject.schemas],
   );
 
   // Update scroll buttons when tabs change or component mounts
@@ -643,9 +654,9 @@ export function Build(): React.JSX.Element {
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={handleBatchValidation}
                 disabled={isBatchValidating || !currentProject.schemas?.length}
               >
@@ -656,9 +667,9 @@ export function Build(): React.JSX.Element {
                 )}
                 {isBatchValidating ? 'Validating...' : 'Batch Validate'}
               </Button>
-              <Button 
-                variant={showPreview ? "default" : "outline"} 
-                size="sm" 
+              <Button
+                variant={showPreview ? 'default' : 'outline'}
+                size="sm"
                 disabled={!activeTab}
                 onClick={() => setShowPreview(!showPreview)}
               >
@@ -666,11 +677,7 @@ export function Build(): React.JSX.Element {
                 {showPreview ? 'Hide Preview' : 'Show Preview'}
               </Button>
               {batchValidationResults && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setBatchValidationResults(null)}
-                >
+                <Button variant="outline" size="sm" onClick={() => setBatchValidationResults(null)}>
                   <BarChart3 className="w-4 h-4 mr-2" />
                   Results ({batchValidationResults.valid}/{batchValidationResults.total})
                 </Button>
@@ -811,7 +818,7 @@ export function Build(): React.JSX.Element {
                           errors={tabValidationErrors[tab.id] || []}
                         />
                       </div>
-                      
+
                       {/* Live Preview */}
                       {showPreview && (
                         <div className="flex flex-col">
@@ -819,10 +826,10 @@ export function Build(): React.JSX.Element {
                             schemaContent={tab.content}
                             schemaName={tab.schema.name}
                             isValid={tab.errors.length === 0}
-                            errors={tab.errors.map(error => ({
+                            errors={tab.errors.map((error) => ({
                               message: error.message,
                               line: error.line,
-                              column: error.column
+                              column: error.column,
                             }))}
                           />
                         </div>

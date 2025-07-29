@@ -100,8 +100,8 @@ export function SchemaList({
 
     // Sort schemas
     filtered.sort((a, b) => {
-      let aValue: any;
-      let bValue: any;
+      let aValue: string | number;
+      let bValue: string | number;
 
       switch (searchFilters.sortBy) {
         case 'name':

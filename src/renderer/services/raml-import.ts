@@ -141,7 +141,7 @@ export class RamlImportService {
 
       // Phase 3: Convert RAML files
       onStatusChange?.('converting');
-      const conversionResult = await this.convertRamlFiles(ramlFiles, config, onProgress);
+      const conversionResult = await this.convertRamlFilesBatch(ramlFiles, config, onProgress);
 
       // Phase 4: Validate output schemas
       if (config.transformationOptions.validateOutput) {
@@ -340,6 +340,72 @@ export class RamlImportService {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
       };
+    }
+  }
+
+  /**
+   * Convert RAML files using batch processing for better performance.
+   */
+  private async convertRamlFilesBatch(
+    ramlFiles: RamlFileInfo[],
+    config: RamlImportConfig,
+    onProgress?: (progress: ImportProgress) => void,
+  ): Promise<{ convertedCount: number }> {
+    if (!this.currentImport) {
+      throw new Error('No active import operation');
+    }
+
+    try {
+      logger.info('Starting batch RAML conversion', {
+        fileCount: ramlFiles.length,
+        sourceDirectory: config.sourcePath,
+        destinationDirectory: config.destinationPath,
+      });
+
+      // Use the batch conversion API for better performance
+      const result = await window.api.convertRamlBatch({
+        sourceDirectory: config.sourcePath,
+        destinationDirectory: config.destinationPath,
+        options: config.transformationOptions,
+      });
+
+      if (result.success) {
+        // Update progress to completion
+        onProgress?.({
+          phase: 'converting',
+          currentFile: '',
+          processedCount: result.summary.total,
+          totalCount: result.summary.total,
+          percentage: 100,
+        });
+
+        // Process any errors from the batch operation
+        for (const conversionResult of result.results) {
+          if (!conversionResult.success) {
+            this.currentImport.errors.push({
+              filePath: conversionResult.inputFile,
+              message: conversionResult.error || 'Conversion failed',
+              type: 'conversion',
+            });
+          }
+        }
+
+        this.currentImport.processedFiles = result.summary.total;
+        
+        logger.info('Batch RAML conversion completed', {
+          summary: result.summary,
+        });
+
+        return { convertedCount: result.summary.successful };
+      } else {
+        throw new Error(result.error || 'Batch conversion failed');
+      }
+    } catch (error) {
+      logger.error('Batch RAML conversion failed', { error });
+      
+      // Fall back to individual file conversion
+      logger.info('Falling back to individual file conversion');
+      return this.convertRamlFiles(ramlFiles, config, onProgress);
     }
   }
 

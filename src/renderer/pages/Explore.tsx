@@ -11,9 +11,10 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Search } from 'lucide-react';
-import { SchemaList } from '../components/SchemaList';
+import { VirtualSchemaList } from '../components/VirtualSchemaList';
 import { SchemaDetailModal } from '../components/schema/SchemaDetailModal';
 import { useAppStore } from '../stores/useAppStore';
+import type { Schema } from '../../types/schema-editor';
 
 /**
  * Explore page component for schema exploration.
@@ -43,14 +44,14 @@ export function Explore(): React.JSX.Element {
   /**
    * Handles opening schema detail modal.
    */
-  const handleSchemaView = (schema: any) => {
+  const handleSchemaView = (schema: Schema) => {
     openSchemaModal(schema, 'overview');
   };
 
   /**
    * Handles navigating to build page for editing.
    */
-  const handleSchemaEdit = (_schema: any) => {
+  const handleSchemaEdit = (_schema: Schema) => {
     setPage('build');
     // TODO: Set the schema to edit in the build page
   };
@@ -103,12 +104,15 @@ export function Explore(): React.JSX.Element {
             <CardDescription>Browse and manage schemas in your project</CardDescription>
           </CardHeader>
           <CardContent>
-            <SchemaList
-              schemas={currentProject.schemas || []}
+            <VirtualSchemaList
+              schemas={currentProject?.schemas || []}
               isLoading={false}
               onSchemaClick={handleSchemaView}
               onSchemaEdit={handleSchemaEdit}
               onSchemaView={handleSchemaView}
+              selectedSchemaId={modalStack.length > 0 ? modalStack[0].id : undefined}
+              containerHeight={600}
+              enablePerformanceMode={true}
             />
           </CardContent>
         </Card>

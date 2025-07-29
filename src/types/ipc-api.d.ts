@@ -16,6 +16,15 @@ import type { RamlFileInfo, TransformationOptions } from './raml-import';
 export {};
 
 /**
+ * RAML conversion result interface.
+ */
+interface RamlConversionResult {
+  success: boolean;
+  error?: string;
+  result?: unknown;
+}
+
+/**
  * Global window interface extension for the IPC API.
  *
  * This interface extends the global Window interface to include
@@ -284,6 +293,29 @@ declare global {
         options: TransformationOptions;
       }) => Promise<{
         success: boolean;
+        error?: string;
+        result?: RamlConversionResult;
+      }>;
+
+      /**
+       * Converts multiple RAML files to JSON Schema in batch.
+       *
+       * @param options - Batch conversion options
+       * @returns Promise resolving to batch conversion result or error
+       */
+      convertRamlBatch: (options: {
+        sourceDirectory: string;
+        destinationDirectory: string;
+        options: TransformationOptions;
+      }) => Promise<{
+        success: boolean;
+        results: RamlConversionResult[];
+        summary: {
+          total: number;
+          successful: number;
+          failed: number;
+          warnings: number;
+        };
         error?: string;
       }>;
 
