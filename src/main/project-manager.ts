@@ -202,6 +202,9 @@ class ProjectManager {
         schemas: [],
       };
 
+      // Store project in map BEFORE reading schemas so readSchemaFile can find it
+      this.projects.set(project.id, project);
+      
       // Load and validate schemas in parallel with progress tracking
       const schemaLoadStart = Date.now();
       logger.info('ProjectManager: Loading schemas', { totalFiles: jsonFiles.length });
@@ -253,8 +256,7 @@ class ProjectManager {
       const refResolutionDuration = Date.now() - refResolutionStart;
       logger.info(`ProjectManager: Reference resolution completed in ${refResolutionDuration}ms`);
 
-      // Store project
-      this.projects.set(project.id, project);
+      // Project already stored before schema loading
 
       // Set up file watching
       const watchSetupStart = Date.now();
@@ -559,6 +561,12 @@ class ProjectManager {
    * Reads and parses a schema file with optimized single-pass processing.
    */
   private async readSchemaFile(filePath: string, projectId: string): Promise<Schema | null> {
+    // Get project to access project root path
+    const project = this.projects.get(projectId);
+    const projectRootPath = project?.path || path.dirname(filePath);
+    const relativePath = path.relative(projectRootPath, filePath);
+    
+    // Path calculation should now work correctly with project in map
     try {
       // Single file read and stat operation
       const [content, stats] = await Promise.all([
@@ -594,7 +602,7 @@ class ProjectManager {
               severity: 'error',
             },
           ],
-          relativePath: path.relative(path.dirname(filePath), filePath),
+          relativePath,
           importSource: 'json',
           importDate: new Date(),
           references: [],
@@ -618,7 +626,7 @@ class ProjectManager {
         },
         validationStatus: validationResult.isValid ? 'valid' : 'invalid',
         validationErrors: validationResult.isValid ? undefined : validationResult.errors,
-        relativePath: path.relative(path.dirname(filePath), filePath),
+        relativePath,
         importSource: 'json',
         importDate: new Date(),
         references: this.extractReferences(data),
@@ -921,7 +929,7 @@ class ProjectManager {
   public async scanRamlFiles(directoryPath: string): Promise<any[]> {
     try {
       logger.info('ProjectManager: Scanning RAML files', { directoryPath });
-      
+
       const files = await glob('**/*.raml', {
         cwd: directoryPath,
         absolute: true,
@@ -932,16 +940,16 @@ class ProjectManager {
           try {
             const stats = await fs.stat(filePath);
             const content = await fs.readFile(filePath, 'utf-8');
-            
+
             // Basic RAML validation - check if it starts with #%RAML
             const isValid = content.trim().startsWith('#%RAML');
-            
+
             // Extract basic metadata
             const lines = content.split('\n');
             let title: string | undefined;
             let description: string | undefined;
             let version: string | undefined;
-            
+
             for (const line of lines) {
               if (line.startsWith('title:')) {
                 title = line.replace('title:', '').trim();
@@ -951,7 +959,7 @@ class ProjectManager {
                 version = line.replace('#%RAML', '').trim();
               }
             }
-            
+
             return {
               path: filePath,
               name: path.basename(filePath),
@@ -972,7 +980,7 @@ class ProjectManager {
               isValid: false,
             };
           }
-        })
+        }),
       );
 
       logger.info('ProjectManager: RAML files scanned', {
@@ -1004,20 +1012,19 @@ class ProjectManager {
 
       // PLACEHOLDER: This is where the actual RAML conversion script will be called
       // For now, we'll simulate a successful conversion
-      
+
       // In a real implementation, this would:
       // 1. Read the RAML file
       // 2. Parse it using a RAML parser
       // 3. Convert it to JSON Schema format
       // 4. Write the result to the destination path
-      
+
       // Simulate processing time
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       // For now, return success
       // The user will replace this with their actual conversion logic
       return { success: true };
-      
     } catch (error) {
       logger.error('ProjectManager: RAML conversion failed', {
         sourcePath: options.sourcePath,
@@ -1036,22 +1043,22 @@ class ProjectManager {
   public async clearDirectory(directoryPath: string): Promise<void> {
     try {
       logger.info('ProjectManager: Clearing directory', { directoryPath });
-      
+
       const files = await fs.readdir(directoryPath);
-      
+
       await Promise.all(
         files.map(async (file) => {
           const filePath = path.join(directoryPath, file);
           const stats = await fs.stat(filePath);
-          
+
           if (stats.isDirectory()) {
             await fs.rmdir(filePath, { recursive: true });
           } else {
             await fs.unlink(filePath);
           }
-        })
+        }),
       );
-      
+
       logger.info('ProjectManager: Directory cleared successfully', { directoryPath });
     } catch (error) {
       logger.error('ProjectManager: Failed to clear directory', { directoryPath, error });
@@ -1065,20 +1072,20 @@ class ProjectManager {
   public async validateSchemasInDirectory(directoryPath: string): Promise<boolean> {
     try {
       logger.info('ProjectManager: Validating schemas in directory', { directoryPath });
-      
+
       const files = await glob('**/*.json', {
         cwd: directoryPath,
         absolute: true,
       });
-      
+
       let allValid = true;
-      
+
       for (const filePath of files) {
         try {
           const content = await fs.readFile(filePath, 'utf-8');
           const data = JSON.parse(content);
           const result = this.validateSchemaData(data);
-          
+
           if (!result.isValid) {
             allValid = false;
             logger.warn('ProjectManager: Invalid schema found', {
@@ -1091,13 +1098,13 @@ class ProjectManager {
           logger.warn('ProjectManager: Failed to validate schema', { filePath, error });
         }
       }
-      
+
       logger.info('ProjectManager: Schema validation completed', {
         directoryPath,
         allValid,
         totalFiles: files.length,
       });
-      
+
       return allValid;
     } catch (error) {
       logger.error('ProjectManager: Failed to validate schemas', { directoryPath, error });

@@ -2,9 +2,5 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "OperationType",
   "type": "string",
-  "enum": [
-    "CREATE",
-    "UPDATE",
-    "DELETE"
-  ]
+  "enum": ["CREATE", "UPDATE", "DELETE"]
 }

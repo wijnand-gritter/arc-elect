@@ -2,8 +2,5 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "PriceType",
   "type": "string",
-  "enum": [
-    "DEFAULT",
-    "DISCOUNT"
-  ]
+  "enum": ["DEFAULT", "DISCOUNT"]
 }

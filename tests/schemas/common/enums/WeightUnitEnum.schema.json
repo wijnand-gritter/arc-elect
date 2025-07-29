@@ -2,9 +2,5 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "WeightUnit",
   "type": "string",
-  "enum": [
-    "GRAM",
-    "KILOGRAM",
-    "MILLIGRAM"
-  ]
+  "enum": ["GRAM", "KILOGRAM", "MILLIGRAM"]
 }

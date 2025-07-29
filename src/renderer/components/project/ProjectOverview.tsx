@@ -395,11 +395,8 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
       </div>
 
       {/* Create Project Modal */}
-      <CreateProjectModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-      />
-      
+      <CreateProjectModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+
       <RamlImportModal
         isOpen={isRamlImportOpen}
         onClose={() => setIsRamlImportOpen(false)}

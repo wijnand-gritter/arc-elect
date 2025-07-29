@@ -2,8 +2,5 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "CreditorStatus",
   "type": "string",
-  "enum": [
-    "ACTIVE",
-    "BLOCKED"
-  ]
+  "enum": ["ACTIVE", "BLOCKED"]
 }

@@ -87,7 +87,7 @@ export const RamlImportModal: React.FC<RamlImportModalProps> = ({
   // Update destination path when project changes
   useEffect(() => {
     if (currentProject?.path && !config.destinationPath) {
-      setConfig(prev => ({
+      setConfig((prev) => ({
         ...prev,
         destinationPath: currentProject.path,
       }));
@@ -104,10 +104,10 @@ export const RamlImportModal: React.FC<RamlImportModalProps> = ({
   const handleSelectSourceFolder = safeHandler(async () => {
     try {
       const result = await window.api.selectFolder('Select RAML Source Folder');
-      
+
       if (result.success && result.data) {
-        setConfig(prev => ({ ...prev, sourcePath: result.data }));
-        
+        setConfig((prev) => ({ ...prev, sourcePath: result.data }));
+
         // Automatically scan for RAML files
         await scanRamlFiles(result.data);
       }
@@ -121,9 +121,9 @@ export const RamlImportModal: React.FC<RamlImportModalProps> = ({
   const handleSelectDestinationFolder = safeHandler(async () => {
     try {
       const result = await window.api.selectFolder('Select Destination Folder');
-      
+
       if (result.success && result.data) {
-        setConfig(prev => ({ ...prev, destinationPath: result.data }));
+        setConfig((prev) => ({ ...prev, destinationPath: result.data }));
       }
     } catch (error) {
       logger.error('Failed to select destination folder', { error });
@@ -137,7 +137,7 @@ export const RamlImportModal: React.FC<RamlImportModalProps> = ({
     try {
       const files = await ramlImportService.scanRamlFiles(sourcePath);
       setRamlFiles(files);
-      
+
       if (files.length === 0) {
         toast.warning('No RAML files found in selected directory');
       } else {
@@ -173,7 +173,7 @@ export const RamlImportModal: React.FC<RamlImportModalProps> = ({
           if (status === 'complete') {
             setActiveTab('results');
           }
-        }
+        },
       );
 
       setImportResult(result);
@@ -183,7 +183,6 @@ export const RamlImportModal: React.FC<RamlImportModalProps> = ({
       if (result.success && currentProject) {
         await loadProject(currentProject.id);
       }
-
     } catch (error) {
       logger.error('Import failed', { error });
       setImportStatus('error');
@@ -216,7 +215,7 @@ export const RamlImportModal: React.FC<RamlImportModalProps> = ({
 
   // Update transformation options
   const updateTransformationOptions = (updates: Partial<TransformationOptions>) => {
-    setConfig(prev => ({
+    setConfig((prev) => ({
       ...prev,
       transformationOptions: {
         ...prev.transformationOptions,
@@ -225,7 +224,8 @@ export const RamlImportModal: React.FC<RamlImportModalProps> = ({
     }));
   };
 
-  const canStartImport = validationErrors.length === 0 && ramlFiles.length > 0 && importStatus === 'idle';
+  const canStartImport =
+    validationErrors.length === 0 && ramlFiles.length > 0 && importStatus === 'idle';
   const isImporting = ['scanning', 'converting', 'validating', 'saving'].includes(importStatus);
 
   return (
@@ -236,12 +236,14 @@ export const RamlImportModal: React.FC<RamlImportModalProps> = ({
             <Upload className="h-5 w-5" />
             RAML Import
           </DialogTitle>
-          <DialogDescription>
-            Import and convert RAML files to JSON Schema format
-          </DialogDescription>
+          <DialogDescription>Import and convert RAML files to JSON Schema format</DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'config' | 'progress' | 'results')} className="flex-1">
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as 'config' | 'progress' | 'results')}
+          className="flex-1"
+        >
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="config" disabled={isImporting}>
               <Settings className="h-4 w-4 mr-2" />
@@ -298,14 +300,17 @@ export const RamlImportModal: React.FC<RamlImportModalProps> = ({
                         <Label>RAML Files Found</Label>
                         {isScanning && <Loader2 className="h-4 w-4 animate-spin" />}
                       </div>
-                      
+
                       {ramlFiles.length > 0 ? (
                         <div className="border rounded-md p-3 space-y-2 max-h-32 overflow-y-auto">
                           {ramlFiles.map((file, index) => (
                             <div key={index} className="flex items-center justify-between text-sm">
                               <span className="truncate flex-1">{file.name}</span>
                               <div className="flex items-center gap-2">
-                                <Badge variant={file.isValid ? 'default' : 'destructive'} className="text-xs">
+                                <Badge
+                                  variant={file.isValid ? 'default' : 'destructive'}
+                                  className="text-xs"
+                                >
                                   {file.isValid ? 'Valid' : 'Invalid'}
                                 </Badge>
                                 <span className="text-muted-foreground">
@@ -364,7 +369,7 @@ export const RamlImportModal: React.FC<RamlImportModalProps> = ({
                       id="clearDestination"
                       checked={config.clearDestination}
                       onCheckedChange={(checked) =>
-                        setConfig(prev => ({ ...prev, clearDestination: checked }))
+                        setConfig((prev) => ({ ...prev, clearDestination: checked }))
                       }
                       disabled={isImporting}
                     />
@@ -376,7 +381,7 @@ export const RamlImportModal: React.FC<RamlImportModalProps> = ({
                       id="createBackup"
                       checked={config.createBackup}
                       onCheckedChange={(checked) =>
-                        setConfig(prev => ({ ...prev, createBackup: checked }))
+                        setConfig((prev) => ({ ...prev, createBackup: checked }))
                       }
                       disabled={isImporting}
                     />
@@ -478,7 +483,9 @@ export const RamlImportModal: React.FC<RamlImportModalProps> = ({
                       <div className="font-medium">Configuration errors:</div>
                       <ul className="list-disc list-inside space-y-1">
                         {validationErrors.map((error, index) => (
-                          <li key={index} className="text-sm">{error}</li>
+                          <li key={index} className="text-sm">
+                            {error}
+                          </li>
                         ))}
                       </ul>
                     </div>
@@ -516,7 +523,7 @@ export const RamlImportModal: React.FC<RamlImportModalProps> = ({
               {importProgress && (
                 <>
                   <Progress value={importProgress.percentage} className="w-full" />
-                  
+
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-muted-foreground">Progress:</span>{' '}
@@ -571,7 +578,7 @@ export const RamlImportModal: React.FC<RamlImportModalProps> = ({
                       <p className="text-xs text-muted-foreground">Files Converted</p>
                     </CardContent>
                   </Card>
-                  
+
                   <Card>
                     <CardContent className="pt-6">
                       <div className="text-2xl font-bold text-red-600">
@@ -580,7 +587,7 @@ export const RamlImportModal: React.FC<RamlImportModalProps> = ({
                       <p className="text-xs text-muted-foreground">Files Failed</p>
                     </CardContent>
                   </Card>
-                  
+
                   <Card>
                     <CardContent className="pt-6">
                       <div className="text-2xl font-bold text-blue-600">
@@ -643,9 +650,7 @@ export const RamlImportModal: React.FC<RamlImportModalProps> = ({
                 )}
 
                 <div className="flex justify-end pt-4 border-t">
-                  <Button onClick={handleClose}>
-                    Close
-                  </Button>
+                  <Button onClick={handleClose}>Close</Button>
                 </div>
               </div>
             )}

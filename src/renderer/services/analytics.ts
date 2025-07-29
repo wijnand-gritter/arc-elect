@@ -168,7 +168,11 @@ export class AnalyticsService {
       const circularReferences = this.detectCircularReferences(schemas);
       const complexityMetrics = this.calculateComplexityMetrics(schemas);
       const referenceGraph = this.buildReferenceGraph(schemas);
-      const projectMetrics = this.calculateProjectMetrics(schemas, complexityMetrics, circularReferences);
+      const projectMetrics = this.calculateProjectMetrics(
+        schemas,
+        complexityMetrics,
+        circularReferences,
+      );
 
       const duration = Date.now() - startTime;
       const result: AnalyticsResult = {
@@ -193,7 +197,6 @@ export class AnalyticsService {
       });
 
       return result;
-
     } finally {
       this.isAnalyzing = false;
     }
@@ -205,50 +208,58 @@ export class AnalyticsService {
    */
   private detectCircularReferences(schemas: Schema[]): CircularReference[] {
     const circularRefs: CircularReference[] = [];
-    const schemaMap = new Map(schemas.map(s => [s.id, s]));
+    const schemaMap = new Map(schemas.map((s) => [s.id, s]));
     const globalVisited = new Set<string>();
     const detectedCycles = new Set<string>(); // Track unique cycles
 
-    logger.debug('Starting circular reference detection', { 
+    logger.debug('Starting circular reference detection', {
       schemaCount: schemas.length,
-      schemaIds: schemas.map(s => s.id),
-      totalReferences: schemas.reduce((sum, s) => sum + s.references.length, 0)
+      schemaIds: schemas.map((s) => s.id),
+      totalReferences: schemas.reduce((sum, s) => sum + s.references.length, 0),
     });
 
-    const dfs = (schemaId: string, path: string[], visited: Set<string>, recursionStack: Set<string>): void => {
+    const dfs = (
+      schemaId: string,
+      path: string[],
+      visited: Set<string>,
+      recursionStack: Set<string>,
+    ): void => {
       if (recursionStack.has(schemaId)) {
         // Found circular reference
         const circularPath = [...path, schemaId];
         const startIndex = circularPath.indexOf(schemaId);
         const circularSegment = circularPath.slice(startIndex);
-        
+
         // Create a normalized cycle key for deduplication
         // Sort the cycle to ensure A->B->A is the same as B->A->B
         const normalizedCycle = [...circularSegment];
         normalizedCycle.pop(); // Remove the duplicate at the end
-        
+
         // Find the lexicographically smallest ID to use as the starting point
-        const minId = normalizedCycle.reduce((min, current) => current < min ? current : min);
+        const minId = normalizedCycle.reduce((min, current) => (current < min ? current : min));
         const minIndex = normalizedCycle.indexOf(minId);
-        const rotatedCycle = [...normalizedCycle.slice(minIndex), ...normalizedCycle.slice(0, minIndex)];
+        const rotatedCycle = [
+          ...normalizedCycle.slice(minIndex),
+          ...normalizedCycle.slice(0, minIndex),
+        ];
         const cycleKey = rotatedCycle.join('->');
-        
+
         if (!detectedCycles.has(cycleKey)) {
           detectedCycles.add(cycleKey);
-          
+
           // Convert schema IDs to user-friendly names for display
-          const schemaNames = circularSegment.map(id => {
+          const schemaNames = circularSegment.map((id) => {
             const schema = schemaMap.get(id);
             return schema ? schema.name : id;
           });
-          
+
           logger.debug('Found unique circular reference', {
             path: circularSegment,
             schemaNames,
             depth: circularSegment.length - 1,
-            cycleKey
+            cycleKey,
           });
-          
+
           circularRefs.push({
             path: schemaNames, // Use schema names instead of IDs
             depth: circularSegment.length - 1,
@@ -272,17 +283,17 @@ export class AnalyticsService {
           schemaId,
           schemaName: schema.name,
           referencesCount: schema.references.length,
-          references: schema.references.map(r => r.schemaName)
+          references: schema.references.map((r) => r.schemaName),
         });
-        
+
         for (const ref of schema.references) {
-          const referencedSchema = schemas.find(s => s.name === ref.schemaName);
+          const referencedSchema = schemas.find((s) => s.name === ref.schemaName);
           if (referencedSchema) {
             dfs(referencedSchema.id, [...path, schemaId], visited, recursionStack);
           } else {
             logger.debug('Referenced schema not found', {
               referenceName: ref.schemaName,
-              availableSchemas: schemas.map(s => s.name)
+              availableSchemas: schemas.map((s) => s.name),
             });
           }
         }
@@ -297,16 +308,16 @@ export class AnalyticsService {
         const visited = new Set<string>();
         const recursionStack = new Set<string>();
         dfs(schema.id, [], visited, recursionStack);
-        
+
         // Add all visited nodes to global visited to avoid redundant checks
-        visited.forEach(id => globalVisited.add(id));
+        visited.forEach((id) => globalVisited.add(id));
       }
     }
 
     logger.info('Circular reference detection completed', {
       foundReferences: circularRefs.length,
       uniqueCycles: detectedCycles.size,
-      detectedCycleKeys: Array.from(detectedCycles)
+      detectedCycleKeys: Array.from(detectedCycles),
     });
 
     return circularRefs;
@@ -332,7 +343,7 @@ export class AnalyticsService {
   private analyzeSchemaComplexity(schema: Schema): ComplexityMetrics {
     const content = schema.content;
     const contentStr = JSON.stringify(content);
-    
+
     const propertyCount = this.countProperties(content);
     const maxDepth = this.calculateMaxDepth(content);
     const requiredProperties = this.countRequiredProperties(content);
@@ -341,12 +352,12 @@ export class AnalyticsService {
     const sizeBytes = new Blob([contentStr]).size;
 
     // Calculate complexity score (0-100)
-    const complexityScore = Math.min(100, Math.round(
-      (propertyCount * 0.3) +
-      (maxDepth * 5) +
-      (referenceCount * 2) +
-      (sizeBytes / 1000 * 0.1)
-    ));
+    const complexityScore = Math.min(
+      100,
+      Math.round(
+        propertyCount * 0.3 + maxDepth * 5 + referenceCount * 2 + (sizeBytes / 1000) * 0.1,
+      ),
+    );
 
     return {
       propertyCount,
@@ -377,7 +388,7 @@ export class AnalyticsService {
     // Build edges and calculate in-degrees
     for (const schema of schemas) {
       for (const ref of schema.references) {
-        const targetSchema = schemas.find(s => s.name === ref.schemaName);
+        const targetSchema = schemas.find((s) => s.name === ref.schemaName);
         if (targetSchema) {
           edges.push({
             source: schema.id,
@@ -433,15 +444,16 @@ export class AnalyticsService {
   private calculateProjectMetrics(
     schemas: Schema[],
     complexityMetrics: Map<string, ComplexityMetrics>,
-    circularReferences: CircularReference[]
+    circularReferences: CircularReference[],
   ): AnalyticsResult['projectMetrics'] {
     const totalSchemas = schemas.length;
-    
+
     // Calculate average complexity
-    const complexityScores = Array.from(complexityMetrics.values()).map(m => m.complexityScore);
-    const averageComplexity = complexityScores.length > 0 
-      ? complexityScores.reduce((sum, score) => sum + score, 0) / complexityScores.length 
-      : 0;
+    const complexityScores = Array.from(complexityMetrics.values()).map((m) => m.complexityScore);
+    const averageComplexity =
+      complexityScores.length > 0
+        ? complexityScores.reduce((sum, score) => sum + score, 0) / complexityScores.length
+        : 0;
 
     // Find most complex schema
     let mostComplexSchema = '';
@@ -449,7 +461,7 @@ export class AnalyticsService {
     for (const [schemaId, metrics] of complexityMetrics) {
       if (metrics.complexityScore > maxComplexity) {
         maxComplexity = metrics.complexityScore;
-        mostComplexSchema = schemas.find(s => s.id === schemaId)?.name || '';
+        mostComplexSchema = schemas.find((s) => s.id === schemaId)?.name || '';
       }
     }
 
@@ -457,7 +469,7 @@ export class AnalyticsService {
     const referenceCounts = new Map<string, number>();
     for (const schema of schemas) {
       for (const ref of schema.references) {
-        const targetSchema = schemas.find(s => s.name === ref.schemaName);
+        const targetSchema = schemas.find((s) => s.name === ref.schemaName);
         if (targetSchema) {
           referenceCounts.set(targetSchema.name, (referenceCounts.get(targetSchema.name) || 0) + 1);
         }
@@ -475,16 +487,17 @@ export class AnalyticsService {
 
     // Find orphaned schemas (no incoming or outgoing references)
     const orphanedSchemas = schemas
-      .filter(schema => 
-        schema.references.length === 0 && 
-        !schemas.some(s => s.references.some(ref => ref.schemaName === schema.name))
+      .filter(
+        (schema) =>
+          schema.references.length === 0 &&
+          !schemas.some((s) => s.references.some((ref) => ref.schemaName === schema.name)),
       )
-      .map(schema => schema.name);
+      .map((schema) => schema.name);
 
     // Find schemas involved in circular references
-    const circularSchemas = Array.from(new Set(
-      circularReferences.flatMap(cr => cr.path)
-    )).filter(Boolean); // Path now contains schema names directly
+    const circularSchemas = Array.from(new Set(circularReferences.flatMap((cr) => cr.path))).filter(
+      Boolean,
+    ); // Path now contains schema names directly
 
     return {
       totalSchemas,
@@ -499,8 +512,11 @@ export class AnalyticsService {
   // Helper methods
 
   private generateCacheKey(schemas: Schema[]): string {
-    const ids = schemas.map(s => s.id).sort().join(',');
-    const lastModified = Math.max(...schemas.map(s => s.metadata.lastModified?.getTime() || 0));
+    const ids = schemas
+      .map((s) => s.id)
+      .sort()
+      .join(',');
+    const lastModified = Math.max(...schemas.map((s) => s.metadata.lastModified?.getTime() || 0));
     return `${ids}-${lastModified}`;
   }
 
@@ -578,11 +594,11 @@ export class AnalyticsService {
 
   private calculateCentrality(nodeId: string, schemas: Schema[], edges: ReferenceEdge[]): number {
     // Simple degree centrality calculation
-    const inDegree = edges.filter(e => e.target === nodeId).length;
-    const outDegree = edges.filter(e => e.source === nodeId).length;
+    const inDegree = edges.filter((e) => e.target === nodeId).length;
+    const outDegree = edges.filter((e) => e.source === nodeId).length;
     const totalDegree = inDegree + outDegree;
     const maxPossibleDegree = (schemas.length - 1) * 2;
-    
+
     return maxPossibleDegree > 0 ? totalDegree / maxPossibleDegree : 0;
   }
 
@@ -595,7 +611,7 @@ export class AnalyticsService {
       visited.add(nodeId);
 
       // Find connected nodes
-      const connectedEdges = edges.filter(e => e.source === nodeId || e.target === nodeId);
+      const connectedEdges = edges.filter((e) => e.source === nodeId || e.target === nodeId);
       for (const edge of connectedEdges) {
         const nextNode = edge.source === nodeId ? edge.target : edge.source;
         dfs(nextNode);

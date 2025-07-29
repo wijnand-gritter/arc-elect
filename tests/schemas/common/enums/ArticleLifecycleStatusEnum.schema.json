@@ -2,12 +2,5 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ArticleLifecycleStatus",
   "type": "string",
-  "enum": [
-    "ARCHIVED",
-    "BLOCKED",
-    "CONCEPT",
-    "ENDED",
-    "ENDING",
-    "EXISTS"
-  ]
+  "enum": ["ARCHIVED", "BLOCKED", "CONCEPT", "ENDED", "ENDING", "EXISTS"]
 }

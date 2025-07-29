@@ -22,7 +22,6 @@ import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 import {
   BarChart3,
   CheckCircle,
-  AlertCircle,
   Clock,
   FileText,
   Activity,
@@ -46,8 +45,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  LineChart,
-  Line,
   Area,
   AreaChart,
   ScatterChart,
@@ -120,7 +117,7 @@ export function Analytics(): React.JSX.Element {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(errorMessage);
       logger.error('Schema analysis failed', { error: errorMessage });
-      
+
       // Always show error toasts
       toast.error('Analytics failed', { description: errorMessage });
     } finally {
@@ -133,7 +130,7 @@ export function Analytics(): React.JSX.Element {
     safeHandler(() => {
       analyzeSchemas(true);
     }),
-    [analyzeSchemas]
+    [analyzeSchemas],
   );
 
   // Chart colors
@@ -167,7 +164,9 @@ export function Analytics(): React.JSX.Element {
                 <BarChart3 className="w-16 h-16 mx-auto text-muted-foreground opacity-50" />
                 <div>
                   <h3 className="text-lg font-medium">No Project Loaded</h3>
-                  <p className="text-sm text-muted-foreground">Load a project to view comprehensive analytics</p>
+                  <p className="text-sm text-muted-foreground">
+                    Load a project to view comprehensive analytics
+                  </p>
                 </div>
               </div>
             </div>
@@ -264,7 +263,9 @@ export function Analytics(): React.JSX.Element {
               <RefreshCw className="w-8 h-8 mx-auto animate-spin text-primary" />
               <div>
                 <h3 className="text-lg font-medium">Analyzing Schemas</h3>
-                <p className="text-sm text-muted-foreground">This may take a moment for large projects...</p>
+                <p className="text-sm text-muted-foreground">
+                  This may take a moment for large projects...
+                </p>
               </div>
             </div>
           </CardContent>
@@ -281,7 +282,9 @@ export function Analytics(): React.JSX.Element {
           <CardContent>
             <div className="text-2xl font-bold">{totalSchemas}</div>
             <p className="text-xs text-muted-foreground">
-              {analytics ? `Analyzed ${analytics.performance.duration}ms ago` : 'Click refresh to analyze'}
+              {analytics
+                ? `Analyzed ${analytics.performance.duration}ms ago`
+                : 'Click refresh to analyze'}
             </p>
           </CardContent>
         </Card>
@@ -304,9 +307,7 @@ export function Analytics(): React.JSX.Element {
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {analytics?.circularReferences.length || 0}
-            </div>
+            <div className="text-2xl font-bold">{analytics?.circularReferences.length || 0}</div>
             <p className="text-xs text-muted-foreground">
               {analytics?.projectMetrics.circularSchemas.length || 0} schemas affected
             </p>
@@ -348,9 +349,7 @@ export function Analytics(): React.JSX.Element {
                     <CheckCircle className="w-5 h-5" />
                     Validation Status
                   </CardTitle>
-                  <CardDescription>
-                    Distribution of schema validation results
-                  </CardDescription>
+                  <CardDescription>Distribution of schema validation results</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="h-[300px]">
@@ -361,7 +360,9 @@ export function Analytics(): React.JSX.Element {
                           cx="50%"
                           cy="50%"
                           labelLine={false}
-                          label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
+                          label={({ name, value, percent }) =>
+                            `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
+                          }
                           outerRadius={80}
                           fill="#8884d8"
                           dataKey="value"
@@ -384,9 +385,7 @@ export function Analytics(): React.JSX.Element {
                     <BarChart3 className="w-5 h-5" />
                     Complexity Distribution
                   </CardTitle>
-                  <CardDescription>
-                    Schema complexity score ranges
-                  </CardDescription>
+                  <CardDescription>Schema complexity score ranges</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="h-[300px]">
@@ -411,17 +410,27 @@ export function Analytics(): React.JSX.Element {
                   <Activity className="w-5 h-5" />
                   Project Health
                 </CardTitle>
-                <CardDescription>
-                  Key metrics and indicators for project quality
-                </CardDescription>
+                <CardDescription>Key metrics and indicators for project quality</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Validation Health</span>
-                      <Badge variant={validationPercentage > 80 ? 'default' : validationPercentage > 60 ? 'secondary' : 'destructive'}>
-                        {validationPercentage > 80 ? 'Excellent' : validationPercentage > 60 ? 'Good' : 'Needs Work'}
+                      <Badge
+                        variant={
+                          validationPercentage > 80
+                            ? 'default'
+                            : validationPercentage > 60
+                              ? 'secondary'
+                              : 'destructive'
+                        }
+                      >
+                        {validationPercentage > 80
+                          ? 'Excellent'
+                          : validationPercentage > 60
+                            ? 'Good'
+                            : 'Needs Work'}
                       </Badge>
                     </div>
                     <Progress value={validationPercentage} className="h-2" />
@@ -433,12 +442,17 @@ export function Analytics(): React.JSX.Element {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Reference Health</span>
-                      <Badge variant={analytics.circularReferences.length === 0 ? 'default' : 'destructive'}>
+                      <Badge
+                        variant={
+                          analytics.circularReferences.length === 0 ? 'default' : 'destructive'
+                        }
+                      >
                         {analytics.circularReferences.length === 0 ? 'Clean' : 'Issues Found'}
                       </Badge>
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {analytics.referenceGraph.metrics.nodeCount} nodes, {analytics.referenceGraph.metrics.edgeCount} edges
+                      {analytics.referenceGraph.metrics.nodeCount} nodes,{' '}
+                      {analytics.referenceGraph.metrics.edgeCount} edges
                     </div>
                     <p className="text-xs text-muted-foreground">
                       Density: {(analytics.referenceGraph.metrics.density * 100).toFixed(1)}%
@@ -448,8 +462,20 @@ export function Analytics(): React.JSX.Element {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Complexity Health</span>
-                      <Badge variant={analytics.projectMetrics.averageComplexity < 50 ? 'default' : analytics.projectMetrics.averageComplexity < 75 ? 'secondary' : 'destructive'}>
-                        {analytics.projectMetrics.averageComplexity < 50 ? 'Simple' : analytics.projectMetrics.averageComplexity < 75 ? 'Moderate' : 'Complex'}
+                      <Badge
+                        variant={
+                          analytics.projectMetrics.averageComplexity < 50
+                            ? 'default'
+                            : analytics.projectMetrics.averageComplexity < 75
+                              ? 'secondary'
+                              : 'destructive'
+                        }
+                      >
+                        {analytics.projectMetrics.averageComplexity < 50
+                          ? 'Simple'
+                          : analytics.projectMetrics.averageComplexity < 75
+                            ? 'Moderate'
+                            : 'Complex'}
                       </Badge>
                     </div>
                     <div className="text-sm text-muted-foreground">
@@ -474,20 +500,20 @@ export function Analytics(): React.JSX.Element {
                     <Target className="w-5 h-5" />
                     Complexity vs Size
                   </CardTitle>
-                  <CardDescription>
-                    Schema complexity plotted against file size
-                  </CardDescription>
+                  <CardDescription>Schema complexity plotted against file size</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <ScatterChart
-                        data={Array.from(analytics.complexityMetrics.entries()).map(([id, metrics]) => ({
-                          name: id,
-                          complexity: metrics.complexityScore,
-                          size: metrics.sizeBytes / 1024, // Convert to KB
-                          properties: metrics.propertyCount,
-                        }))}
+                        data={Array.from(analytics.complexityMetrics.entries()).map(
+                          ([id, metrics]) => ({
+                            name: id,
+                            complexity: metrics.complexityScore,
+                            size: metrics.sizeBytes / 1024, // Convert to KB
+                            properties: metrics.propertyCount,
+                          }),
+                        )}
                       >
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="size" name="Size (KB)" />
@@ -523,9 +549,7 @@ export function Analytics(): React.JSX.Element {
                     <Zap className="w-5 h-5" />
                     Most Complex Schemas
                   </CardTitle>
-                  <CardDescription>
-                    Schemas with highest complexity scores
-                  </CardDescription>
+                  <CardDescription>Schemas with highest complexity scores</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ScrollArea className="h-[300px]">
@@ -534,9 +558,12 @@ export function Analytics(): React.JSX.Element {
                         .sort(([, a], [, b]) => b.complexityScore - a.complexityScore)
                         .slice(0, 10)
                         .map(([id, metrics]) => {
-                          const schema = schemas.find(s => s.id === id);
+                          const schema = schemas.find((s) => s.id === id);
                           return (
-                            <div key={id} className="flex items-center justify-between p-3 border rounded">
+                            <div
+                              key={id}
+                              className="flex items-center justify-between p-3 border rounded"
+                            >
                               <div className="flex-1 min-w-0">
                                 <p className="font-medium truncate">
                                   {schema?.metadata.title || schema?.name || id}
@@ -548,7 +575,15 @@ export function Analytics(): React.JSX.Element {
                                 </div>
                               </div>
                               <div className="flex items-center gap-2">
-                                <Badge variant={metrics.complexityScore > 75 ? 'destructive' : metrics.complexityScore > 50 ? 'secondary' : 'default'}>
+                                <Badge
+                                  variant={
+                                    metrics.complexityScore > 75
+                                      ? 'destructive'
+                                      : metrics.complexityScore > 50
+                                        ? 'secondary'
+                                        : 'default'
+                                  }
+                                >
                                   {metrics.complexityScore.toFixed(0)}
                                 </Badge>
                               </div>
@@ -580,11 +615,22 @@ export function Analytics(): React.JSX.Element {
                   <ScrollArea className="h-[200px]">
                     <div className="space-y-3">
                       {analytics.circularReferences.map((ref, index) => (
-                        <Alert key={index} variant={ref.severity === 'high' ? 'destructive' : 'default'}>
+                        <Alert
+                          key={index}
+                          variant={ref.severity === 'high' ? 'destructive' : 'default'}
+                        >
                           <AlertTriangle className="h-4 w-4" />
                           <AlertTitle className="flex items-center gap-2">
                             {ref.type === 'direct' ? 'Direct' : 'Indirect'} Circular Reference
-                            <Badge variant={ref.severity === 'high' ? 'destructive' : ref.severity === 'medium' ? 'secondary' : 'default'}>
+                            <Badge
+                              variant={
+                                ref.severity === 'high'
+                                  ? 'destructive'
+                                  : ref.severity === 'medium'
+                                    ? 'secondary'
+                                    : 'default'
+                              }
+                            >
                               {ref.severity}
                             </Badge>
                           </AlertTitle>
@@ -610,19 +656,21 @@ export function Analytics(): React.JSX.Element {
                     <Network className="w-5 h-5" />
                     Reference Graph
                   </CardTitle>
-                  <CardDescription>
-                    Network analysis of schema references
-                  </CardDescription>
+                  <CardDescription>Network analysis of schema references</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="text-center p-3 border rounded">
-                        <div className="text-2xl font-bold">{analytics.referenceGraph.metrics.nodeCount}</div>
+                        <div className="text-2xl font-bold">
+                          {analytics.referenceGraph.metrics.nodeCount}
+                        </div>
                         <div className="text-sm text-muted-foreground">Nodes</div>
                       </div>
                       <div className="text-center p-3 border rounded">
-                        <div className="text-2xl font-bold">{analytics.referenceGraph.metrics.edgeCount}</div>
+                        <div className="text-2xl font-bold">
+                          {analytics.referenceGraph.metrics.edgeCount}
+                        </div>
                         <div className="text-sm text-muted-foreground">Edges</div>
                       </div>
                     </div>
@@ -630,15 +678,21 @@ export function Analytics(): React.JSX.Element {
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm">Graph Density</span>
-                        <span className="text-sm font-medium">{(analytics.referenceGraph.metrics.density * 100).toFixed(1)}%</span>
+                        <span className="text-sm font-medium">
+                          {(analytics.referenceGraph.metrics.density * 100).toFixed(1)}%
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">Average Degree</span>
-                        <span className="text-sm font-medium">{analytics.referenceGraph.metrics.averageDegree.toFixed(1)}</span>
+                        <span className="text-sm font-medium">
+                          {analytics.referenceGraph.metrics.averageDegree.toFixed(1)}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">Connected Components</span>
-                        <span className="text-sm font-medium">{analytics.referenceGraph.metrics.connectedComponents}</span>
+                        <span className="text-sm font-medium">
+                          {analytics.referenceGraph.metrics.connectedComponents}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -652,9 +706,7 @@ export function Analytics(): React.JSX.Element {
                     <GitBranch className="w-5 h-5" />
                     Most Referenced
                   </CardTitle>
-                  <CardDescription>
-                    Schemas with highest reference counts
-                  </CardDescription>
+                  <CardDescription>Schemas with highest reference counts</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ScrollArea className="h-[250px]">
@@ -663,9 +715,12 @@ export function Analytics(): React.JSX.Element {
                         .sort((a, b) => b.inDegree - a.inDegree)
                         .slice(0, 10)
                         .map((node) => {
-                          const schema = schemas.find(s => s.id === node.id);
+                          const schema = schemas.find((s) => s.id === node.id);
                           return (
-                            <div key={node.id} className="flex items-center justify-between p-3 border rounded">
+                            <div
+                              key={node.id}
+                              className="flex items-center justify-between p-3 border rounded"
+                            >
                               <div className="flex-1 min-w-0">
                                 <p className="font-medium truncate">
                                   {schema?.metadata.title || schema?.name || node.name}
@@ -675,9 +730,7 @@ export function Analytics(): React.JSX.Element {
                                 </p>
                               </div>
                               <div className="flex items-center gap-2">
-                                <Badge variant="outline">
-                                  {node.inDegree} refs
-                                </Badge>
+                                <Badge variant="outline">{node.inDegree} refs</Badge>
                               </div>
                             </div>
                           );
@@ -699,9 +752,7 @@ export function Analytics(): React.JSX.Element {
                     <Clock className="w-5 h-5" />
                     Analysis Performance
                   </CardTitle>
-                  <CardDescription>
-                    Performance metrics from the last analysis run
-                  </CardDescription>
+                  <CardDescription>Performance metrics from the last analysis run</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -711,7 +762,9 @@ export function Analytics(): React.JSX.Element {
                         <div className="text-sm text-muted-foreground">ms</div>
                       </div>
                       <div className="text-center p-3 border rounded">
-                        <div className="text-2xl font-bold">{(analytics.performance.memoryUsage / 1024 / 1024).toFixed(1)}</div>
+                        <div className="text-2xl font-bold">
+                          {(analytics.performance.memoryUsage / 1024 / 1024).toFixed(1)}
+                        </div>
                         <div className="text-sm text-muted-foreground">MB</div>
                       </div>
                     </div>
@@ -719,15 +772,21 @@ export function Analytics(): React.JSX.Element {
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm">Analysis Time</span>
-                        <span className="text-sm font-medium">{new Date(analytics.performance.timestamp).toLocaleString()}</span>
+                        <span className="text-sm font-medium">
+                          {new Date(analytics.performance.timestamp).toLocaleString()}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">Schemas/sec</span>
-                        <span className="text-sm font-medium">{(totalSchemas / (analytics.performance.duration / 1000)).toFixed(1)}</span>
+                        <span className="text-sm font-medium">
+                          {(totalSchemas / (analytics.performance.duration / 1000)).toFixed(1)}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">Avg File Size</span>
-                        <span className="text-sm font-medium">{(averageFileSize / 1024).toFixed(1)} KB</span>
+                        <span className="text-sm font-medium">
+                          {(averageFileSize / 1024).toFixed(1)} KB
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -741,16 +800,14 @@ export function Analytics(): React.JSX.Element {
                     <FileText className="w-5 h-5" />
                     File Size Distribution
                   </CardTitle>
-                  <CardDescription>
-                    Distribution of schema file sizes
-                  </CardDescription>
+                  <CardDescription>Distribution of schema file sizes</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="h-[250px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart
                         data={schemas
-                          .map(s => ({ size: s.metadata.fileSize / 1024, name: s.name }))
+                          .map((s) => ({ size: s.metadata.fileSize / 1024, name: s.name }))
                           .sort((a, b) => a.size - b.size)
                           .map((item, index) => ({ ...item, index }))}
                       >
@@ -759,9 +816,18 @@ export function Analytics(): React.JSX.Element {
                         <YAxis />
                         <Tooltip
                           labelFormatter={(value) => `Schema ${value + 1}`}
-                          formatter={(value: number, name) => [`${value.toFixed(1)} KB`, 'File Size']}
+                          formatter={(value: number, _name) => [
+                            `${value.toFixed(1)} KB`,
+                            'File Size',
+                          ]}
                         />
-                        <Area type="monotone" dataKey="size" stroke={COLORS.primary} fill={COLORS.primary} fillOpacity={0.6} />
+                        <Area
+                          type="monotone"
+                          dataKey="size"
+                          stroke={COLORS.primary}
+                          fill={COLORS.primary}
+                          fillOpacity={0.6}
+                        />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
@@ -776,9 +842,7 @@ export function Analytics(): React.JSX.Element {
                   <Eye className="w-5 h-5" />
                   Cache Statistics
                 </CardTitle>
-                <CardDescription>
-                  Analytics service cache performance
-                </CardDescription>
+                <CardDescription>Analytics service cache performance</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -787,7 +851,9 @@ export function Analytics(): React.JSX.Element {
                     <div className="text-sm text-muted-foreground">Cached Results</div>
                   </div>
                   <div className="text-center p-3 border rounded">
-                    <div className="text-lg font-bold">{(analytics.performance.memoryUsage / 1024 / 1024).toFixed(1)}</div>
+                    <div className="text-lg font-bold">
+                      {(analytics.performance.memoryUsage / 1024 / 1024).toFixed(1)}
+                    </div>
                     <div className="text-sm text-muted-foreground">Memory (MB)</div>
                   </div>
                   <div className="text-center p-3 border rounded">

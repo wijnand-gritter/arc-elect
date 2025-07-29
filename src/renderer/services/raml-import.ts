@@ -43,7 +43,7 @@ export class RamlImportService {
       logger.info('Scanning RAML files', { directoryPath });
 
       const result = await window.api.scanRamlFiles(directoryPath);
-      
+
       if (!result.success) {
         throw new Error(result.error || 'Failed to scan RAML files');
       }
@@ -94,7 +94,7 @@ export class RamlImportService {
   async startImport(
     config: RamlImportConfig,
     onProgress?: (progress: ImportProgress) => void,
-    onStatusChange?: (status: ImportStatus) => void
+    onStatusChange?: (status: ImportStatus) => void,
   ): Promise<ImportResult> {
     try {
       // Validate configuration
@@ -141,11 +141,7 @@ export class RamlImportService {
 
       // Phase 3: Convert RAML files
       onStatusChange?.('converting');
-      const conversionResult = await this.convertRamlFiles(
-        ramlFiles,
-        config,
-        onProgress
-      );
+      const conversionResult = await this.convertRamlFiles(ramlFiles, config, onProgress);
 
       // Phase 4: Validate output schemas
       if (config.transformationOptions.validateOutput) {
@@ -183,21 +179,22 @@ export class RamlImportService {
 
       this.currentImport = null;
       return result;
-
     } catch (error) {
       logger.error('RAML import failed', { error, config });
-      
+
       const duration = this.currentImport ? Date.now() - this.currentImport.startTime : 0;
       const result: ImportResult = {
         success: false,
         processedFiles: this.currentImport?.processedFiles || 0,
         convertedFiles: 0,
         failedFiles: this.currentImport?.totalFiles || 0,
-        errors: [{
-          filePath: '',
-          message: error instanceof Error ? error.message : 'Unknown error',
-          type: 'conversion',
-        }],
+        errors: [
+          {
+            filePath: '',
+            message: error instanceof Error ? error.message : 'Unknown error',
+            type: 'conversion',
+          },
+        ],
         warnings: this.currentImport?.warnings || [],
         duration,
         timestamp: new Date(),
@@ -205,7 +202,7 @@ export class RamlImportService {
 
       onStatusChange?.('error');
       this.currentImport = null;
-      
+
       toast.error('RAML import failed', {
         description: error instanceof Error ? error.message : 'Unknown error',
       });
@@ -241,9 +238,9 @@ export class RamlImportService {
   private async clearDestination(destinationPath: string): Promise<void> {
     try {
       logger.info('Clearing destination directory', { destinationPath });
-      
+
       const result = await window.api.clearDirectory(destinationPath);
-      
+
       if (!result.success) {
         throw new Error(result.error || 'Failed to clear destination directory');
       }
@@ -262,7 +259,7 @@ export class RamlImportService {
   private async convertRamlFiles(
     ramlFiles: RamlFileInfo[],
     config: RamlImportConfig,
-    onProgress?: (progress: ImportProgress) => void
+    onProgress?: (progress: ImportProgress) => void,
   ): Promise<{ convertedCount: number }> {
     if (!this.currentImport) {
       throw new Error('No active import operation');
@@ -276,7 +273,7 @@ export class RamlImportService {
       }
 
       const file = ramlFiles[i];
-      
+
       try {
         // Update progress
         onProgress?.({
@@ -291,7 +288,7 @@ export class RamlImportService {
         // PLACEHOLDER: Call the actual RAML conversion script
         // This will be replaced with the user's conversion script
         const conversionResult = await this.convertSingleRamlFile(file, config);
-        
+
         if (conversionResult.success) {
           convertedCount++;
         } else {
@@ -303,10 +300,9 @@ export class RamlImportService {
         }
 
         this.currentImport.processedFiles++;
-
       } catch (error) {
         logger.error('Failed to convert RAML file', { file: file.path, error });
-        
+
         this.currentImport.errors.push({
           filePath: file.path,
           message: error instanceof Error ? error.message : 'Unknown conversion error',
@@ -324,7 +320,7 @@ export class RamlImportService {
    */
   private async convertSingleRamlFile(
     file: RamlFileInfo,
-    config: RamlImportConfig
+    config: RamlImportConfig,
   ): Promise<{ success: boolean; error?: string }> {
     try {
       logger.debug('Converting RAML file (placeholder)', { file: file.path });
@@ -338,7 +334,6 @@ export class RamlImportService {
       });
 
       return result;
-
     } catch (error) {
       logger.error('RAML conversion failed', { file: file.path, error });
       return {
@@ -353,7 +348,7 @@ export class RamlImportService {
    */
   private async validateOutputSchemas(
     destinationPath: string,
-    onProgress?: (progress: ImportProgress) => void
+    onProgress?: (progress: ImportProgress) => void,
   ): Promise<void> {
     try {
       logger.info('Validating output schemas', { destinationPath });
@@ -367,7 +362,7 @@ export class RamlImportService {
       });
 
       const result = await window.api.validateSchemas(destinationPath);
-      
+
       if (!result.success) {
         this.currentImport?.warnings.push({
           filePath: destinationPath,
@@ -384,10 +379,9 @@ export class RamlImportService {
         totalCount: 1,
         percentage: 100,
       });
-
     } catch (error) {
       logger.warn('Schema validation failed', { destinationPath, error });
-      
+
       this.currentImport?.warnings.push({
         filePath: destinationPath,
         message: 'Failed to validate output schemas',
@@ -408,7 +402,7 @@ export class RamlImportService {
     const elapsed = Date.now() - this.currentImport.startTime;
     const avgTimePerFile = elapsed / processed;
     const remaining = total - processed;
-    
+
     return Math.round(avgTimePerFile * remaining);
   }
 

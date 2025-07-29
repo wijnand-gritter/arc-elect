@@ -2,9 +2,5 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "PlanningMethod",
   "type": "string",
-  "enum": [
-    "EXTERNAL_PLANNING_SYSTEM",
-    "MOBILE_PLANNING",
-    "MOBILE_TASK"
-  ]
+  "enum": ["EXTERNAL_PLANNING_SYSTEM", "MOBILE_PLANNING", "MOBILE_TASK"]
 }

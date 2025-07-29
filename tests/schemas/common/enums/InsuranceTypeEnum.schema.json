@@ -2,12 +2,5 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "InsuranceType",
   "type": "string",
-  "enum": [
-    "AANVULLEND",
-    "AANVULLEND_PLUS_TAND",
-    "AWBZ",
-    "BASIS",
-    "HOOFDVERZEKERING",
-    "TAND"
-  ]
+  "enum": ["AANVULLEND", "AANVULLEND_PLUS_TAND", "AWBZ", "BASIS", "HOOFDVERZEKERING", "TAND"]
 }

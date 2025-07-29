@@ -138,7 +138,15 @@ export interface RamlFileInfo {
 /**
  * Import operation status.
  */
-export type ImportStatus = 'idle' | 'scanning' | 'converting' | 'validating' | 'saving' | 'complete' | 'error' | 'cancelled';
+export type ImportStatus =
+  | 'idle'
+  | 'scanning'
+  | 'converting'
+  | 'validating'
+  | 'saving'
+  | 'complete'
+  | 'error'
+  | 'cancelled';
 
 /**
  * Import operation state.

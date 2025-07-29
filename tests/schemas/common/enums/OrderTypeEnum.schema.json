@@ -2,9 +2,5 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "OrderType",
   "type": "string",
-  "enum": [
-    "LOANORDER",
-    "RENTALORDER",
-    "UNSPECIFIED"
-  ]
+  "enum": ["LOANORDER", "RENTALORDER", "UNSPECIFIED"]
 }

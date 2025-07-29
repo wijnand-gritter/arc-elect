@@ -2,8 +2,5 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "FinancialStatus",
   "type": "string",
-  "enum": [
-    "NOK",
-    "OK"
-  ]
+  "enum": ["NOK", "OK"]
 }

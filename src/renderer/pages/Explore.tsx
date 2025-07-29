@@ -10,7 +10,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Search, BarChart3 } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { SchemaList } from '../components/SchemaList';
 import { SchemaDetailModal } from '../components/schema/SchemaDetailModal';
 import { useAppStore } from '../stores/useAppStore';

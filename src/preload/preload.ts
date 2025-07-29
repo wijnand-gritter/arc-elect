@@ -188,8 +188,7 @@ contextBridge.exposeInMainWorld('api', {
    * @param directoryPath - Path to directory to scan
    * @returns Promise resolving to RAML file information or error
    */
-  scanRamlFiles: (directoryPath: string) =>
-    ipcRenderer.invoke('raml:scan', directoryPath),
+  scanRamlFiles: (directoryPath: string) => ipcRenderer.invoke('raml:scan', directoryPath),
 
   /**
    * Converts a single RAML file to JSON Schema.
@@ -197,8 +196,7 @@ contextBridge.exposeInMainWorld('api', {
    * @param options - Conversion options
    * @returns Promise resolving to conversion result or error
    */
-  convertRamlFile: (options: any) =>
-    ipcRenderer.invoke('raml:convert', options),
+  convertRamlFile: (options: any) => ipcRenderer.invoke('raml:convert', options),
 
   /**
    * Clears a directory of all files.
@@ -223,8 +221,7 @@ contextBridge.exposeInMainWorld('api', {
    *
    * @returns Promise resolving to success status or error
    */
-  cancelRamlImport: () =>
-    ipcRenderer.invoke('raml:cancel'),
+  cancelRamlImport: () => ipcRenderer.invoke('raml:cancel'),
 
   /**
    * Selects a folder using the system dialog.
@@ -232,6 +229,5 @@ contextBridge.exposeInMainWorld('api', {
    * @param title - Dialog title
    * @returns Promise resolving to selected folder path or error
    */
-  selectFolder: (title: string) =>
-    ipcRenderer.invoke('dialog:selectFolder', title),
+  selectFolder: (title: string) => ipcRenderer.invoke('dialog:selectFolder', title),
 });

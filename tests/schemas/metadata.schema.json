@@ -18,10 +18,6 @@
       "type": "string"
     }
   },
-  "required": [
-    "berichtId",
-    "tijdstip",
-    "bronsysteem"
-  ],
+  "required": ["berichtId", "tijdstip", "bronsysteem"],
   "additionalProperties": false
 }

@@ -21,9 +21,6 @@
       ]
     }
   },
-  "required": [
-    "metadata",
-    "payload"
-  ],
+  "required": ["metadata", "payload"],
   "additionalProperties": false
 }

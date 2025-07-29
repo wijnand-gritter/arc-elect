@@ -2,10 +2,5 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Currency",
   "type": "string",
-  "enum": [
-    "BRITISH_POUNDS",
-    "DOLLAR",
-    "EURO",
-    "OTHER"
-  ]
+  "enum": ["BRITISH_POUNDS", "DOLLAR", "EURO", "OTHER"]
 }
