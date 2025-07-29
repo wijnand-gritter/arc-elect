@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CostCentre",
+  "type": "object",
+  "properties": {
+    "cluster": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string"
+    },
+    "sector": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

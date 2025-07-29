@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CaregiverAction",
+  "type": "string",
+  "enum": [
+    "AWAITING_REQUEST_CARE_OFFICE",
+    "AWAITING_SIGNATURE",
+    "NO_ACTION_REQUIRED",
+    "WAIT_ON_CLIENT"
+  ]
+}

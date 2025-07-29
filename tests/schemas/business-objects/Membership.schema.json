@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Membership",
+  "type": "object",
+  "properties": {
+    "address": {
+      "$ref": "./Address.schema.json"
+    },
+    "approvalContact": {
+      "type": "boolean"
+    },
+    "approvalNewsletter": {
+      "type": "boolean"
+    },
+    "approvalTerms": {
+      "type": "boolean"
+    },
+    "birthdate": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "firstname": {
+      "type": "string"
+    },
+    "lastname": {
+      "type": "string"
+    },
+    "memberAssociation": {
+      "type": "string"
+    },
+    "middlename": {
+      "type": "string"
+    },
+    "telephonenumber": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

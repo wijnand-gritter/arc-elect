@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientInsurance",
+  "type": "object",
+  "properties": {
+    "endDate": {
+      "type": "string"
+    },
+    "insuranceCompany": {
+      "$ref": "./InsuranceCompany.schema.json"
+    },
+    "insurancePackageName": {
+      "type": "string"
+    },
+    "insurancenumber": {
+      "type": "string"
+    },
+    "insurancetype": {
+      "$ref": "../common/enums/InsuranceTypeEnum.schema.json"
+    },
+    "labelCode": {
+      "type": "string"
+    },
+    "labelName": {
+      "type": "string"
+    },
+    "result": {
+      "type": "string"
+    },
+    "startDate": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Person",
+  "type": "object",
+  "properties": {
+    "address": {
+      "$ref": "./Address.schema.json"
+    },
+    "contact": {
+      "$ref": "./Contact.schema.json"
+    },
+    "firstName": {
+      "type": "string"
+    },
+    "primarySurname": {
+      "type": "string"
+    },
+    "primarySurnamePrefix": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

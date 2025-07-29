@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VatType",
+  "type": "string",
+  "enum": [
+    "HIGH",
+    "INSIDE_EU",
+    "LOW",
+    "NONE",
+    "OUTSIDE_EU",
+    "SHIFTED"
+  ]
+}

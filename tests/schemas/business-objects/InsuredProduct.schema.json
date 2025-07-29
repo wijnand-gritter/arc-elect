@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "InsuredProduct",
+  "type": "object",
+  "properties": {
+    "currency": {
+      "$ref": "../common/enums/CurrencyEnum.schema.json"
+    },
+    "id": {
+      "type": "string"
+    },
+    "indications": {
+      "type": "array",
+      "items": {
+        "$ref": "./Indication.schema.json"
+      }
+    },
+    "name": {
+      "type": "string"
+    },
+    "price": {
+      "type": "number"
+    }
+  },
+  "additionalProperties": false
+}

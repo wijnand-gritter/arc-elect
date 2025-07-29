@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OrderLoan",
+  "type": "object",
+  "properties": {
+    "alladinCode": {
+      "type": "integer"
+    },
+    "alladinOrderId": {
+      "type": "string"
+    },
+    "alladinOrderNumbers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "alladinSupplyNumbers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "caregiver": {
+      "$ref": "./Caregiver.schema.json"
+    },
+    "category": {
+      "$ref": "../common/enums/OrderCategoryEnum.schema.json"
+    },
+    "client": {
+      "$ref": "./Client.schema.json"
+    },
+    "debtor": {
+      "$ref": "./Debtor.schema.json"
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "$ref": "./Document.schema.json"
+      }
+    },
+    "establishment": {
+      "$ref": "./Establishment.schema.json"
+    },
+    "id": {
+      "type": "string"
+    },
+    "isChangeable": {
+      "type": "boolean"
+    },
+    "notChangeableReason": {
+      "$ref": "../common/enums/OrderNotChangeableEnum.schema.json"
+    },
+    "orderDelivery": {
+      "$ref": "./OrderDelivery.schema.json"
+    },
+    "orderIssues": {
+      "type": "array",
+      "items": {
+        "$ref": "./OrderIssue.schema.json"
+      }
+    },
+    "orderLines": {
+      "type": "array",
+      "items": {
+        "$ref": "./OrderLine.schema.json"
+      }
+    },
+    "origin": {
+      "$ref": "../common/enums/OriginEnum.schema.json"
+    },
+    "planningState": {
+      "$ref": "../common/enums/PlanningStateEnum.schema.json"
+    },
+    "referralDocuments": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "role": {
+      "$ref": "../common/enums/RoleEnum.schema.json"
+    },
+    "validations": {
+      "type": "array",
+      "items": {
+        "$ref": "./validation.schema.json"
+      }
+    },
+    "source": {
+      "$ref": "../common/enums/SourceEnum.schema.json"
+    },
+    "state": {
+      "$ref": "../common/enums/OrderStateEnum.schema.json"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AddressType",
+  "type": "string",
+  "enum": [
+    "CONTACT",
+    "CORRESPONDENCE",
+    "GBA_ADDRESS",
+    "HOME",
+    "ORDER",
+    "OTHER",
+    "POSTAL",
+    "RESIDENCE",
+    "TEMPORARY_RESIDENCE",
+    "WORK"
+  ]
+}

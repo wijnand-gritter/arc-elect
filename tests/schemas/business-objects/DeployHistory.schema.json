@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DeployHistory",
+  "type": "object",
+  "properties": {
+    "action": {
+      "$ref": "../common/enums/ActionEnum.schema.json"
+    },
+    "careInstitution": {
+      "$ref": "./Organisation.schema.json"
+    },
+    "client": {
+      "$ref": "./Client.schema.json"
+    },
+    "county": {
+      "$ref": "./County.schema.json"
+    },
+    "dateDelivered": {
+      "type": "string"
+    },
+    "dateInput": {
+      "type": "string"
+    },
+    "dateRetrieved": {
+      "type": "string"
+    },
+    "orderNumber": {
+      "type": "integer"
+    },
+    "orderType": {
+      "$ref": "../common/enums/OrderTypeEnum.schema.json"
+    },
+    "substate": {
+      "$ref": "../common/enums/OrderSubstateEnum.schema.json"
+    }
+  },
+  "additionalProperties": false
+}

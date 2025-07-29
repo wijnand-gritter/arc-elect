@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Measurement",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "uom": {
+      "$ref": "../common/enums/LengthUnitEnum.schema.json"
+    },
+    "value": {
+      "type": "number"
+    }
+  },
+  "additionalProperties": false
+}

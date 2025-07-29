@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PurchaseObligation",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "sourceId": {
+      "type": "string"
+    },
+    "orderedDate": {
+      "type": "string"
+    },
+    "endDate": {
+      "type": "string"
+    },
+    "subject": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "contractor": {
+      "type": "string"
+    },
+    "requestor": {
+      "type": "string"
+    },
+    "costCentre": {
+      "$ref": "./CostCentre.schema.json"
+    },
+    "projectId": {
+      "type": "string"
+    },
+    "generalLedgerAccount": {
+      "type": "string"
+    },
+    "price": {
+      "type": "number"
+    },
+    "source": {
+      "type": "string"
+    },
+    "creditor": {
+      "$ref": "./Creditor.schema.json"
+    },
+    "costType": {
+      "$ref": "./CostType.schema.json"
+    }
+  },
+  "additionalProperties": false
+}

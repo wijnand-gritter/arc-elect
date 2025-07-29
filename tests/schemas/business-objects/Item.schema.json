@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Item",
+  "type": "object",
+  "properties": {
+    "assetStatus": {
+      "$ref": "../common/enums/AssetStatusEnum.schema.json"
+    },
+    "configuration": {
+      "type": "array",
+      "items": {
+        "$ref": "./ConfigurationLine.schema.json"
+      }
+    },
+    "contract": {
+      "$ref": "./Contract.schema.json"
+    },
+    "customerRelationId": {
+      "type": "string"
+    },
+    "deployCount": {
+      "type": "integer"
+    },
+    "deployHistory": {
+      "type": "array",
+      "items": {
+        "$ref": "./DeployHistory.schema.json"
+      }
+    },
+    "establishment": {
+      "$ref": "./Establishment.schema.json"
+    },
+    "id": {
+      "type": "string"
+    },
+    "isCentralStoragePossible": {
+      "type": "boolean"
+    },
+    "itemStates": {
+      "type": "array",
+      "items": {
+        "$ref": "./ItemState.schema.json"
+      }
+    },
+    "lastUpdate": {
+      "type": "string"
+    },
+    "maintenanceCount": {
+      "type": "integer"
+    },
+    "name": {
+      "type": "string"
+    },
+    "photo": {
+      "type": "string"
+    },
+    "product": {
+      "$ref": "./Product.schema.json"
+    },
+    "purchaseDate": {
+      "type": "string"
+    },
+    "referenceId": {
+      "type": "string"
+    },
+    "serialnumber": {
+      "type": "string"
+    },
+    "serviceRequests": {
+      "type": "array",
+      "items": {
+        "$ref": "./ServiceRequest.schema.json"
+      }
+    },
+    "source": {
+      "$ref": "../common/enums/SourceEnum.schema.json"
+    },
+    "status": {
+      "$ref": "../common/enums/ItemStatusEnum.schema.json"
+    },
+    "statusRemark": {
+      "type": "string"
+    },
+    "subCat": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

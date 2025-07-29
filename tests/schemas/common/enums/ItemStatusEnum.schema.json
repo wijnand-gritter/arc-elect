@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ItemStatus",
+  "type": "string",
+  "enum": [
+    "AVAILABLE",
+    "BUYBACK",
+    "DEFECT",
+    "INCOMPLETE",
+    "INCORRECT_INDICATION",
+    "INCORRECT_PICK",
+    "IN_CLEANING",
+    "IN_USE",
+    "IN_WORKSHOP",
+    "POLLUTED",
+    "REMOVED",
+    "RESERVED",
+    "RETURNED",
+    "TO_BE_ADJUSTED",
+    "TO_BE_EVALUATED",
+    "TO_BE_INSPECTED",
+    "TO_BE_REPAIRED",
+    "UNDELIVERABLE_CAUSE_CLIENT_DECEASED",
+    "UNTRACEABLE"
+  ]
+}

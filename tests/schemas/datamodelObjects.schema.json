@@ -1,0 +1,333 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Datamodel Objecten",
+  "type": "object",
+  "properties": {
+    "address": {
+      "$ref": "./business-objects/Address.schema.json"
+    },
+    "article": {
+      "$ref": "./business-objects/Article.schema.json"
+    },
+    "articleRelation": {
+      "$ref": "./business-objects/ArticleRelation.schema.json"
+    },
+    "articleLine": {
+      "$ref": "./business-objects/ArticleLine.schema.json"
+    },
+    "articleNames": {
+      "$ref": "./business-objects/ArticleNames.schema.json"
+    },
+    "articleRule": {
+      "$ref": "./business-objects/ArticleRule.schema.json"
+    },
+    "booking": {
+      "$ref": "./business-objects/Booking.schema.json"
+    },
+    "bookingLine": {
+      "$ref": "./business-objects/BookingLine.schema.json"
+    },
+    "bundle": {
+      "$ref": "./business-objects/Bundle.schema.json"
+    },
+    "caregiver": {
+      "$ref": "./business-objects/Caregiver.schema.json"
+    },
+    "classificationDetails": {
+      "$ref": "./business-objects/ClassificationDetails.schema.json"
+    },
+    "clientAddress": {
+      "$ref": "./business-objects/ClientAddress.schema.json"
+    },
+    "clientInsurance": {
+      "$ref": "./business-objects/ClientInsurance.schema.json"
+    },
+    "client": {
+      "$ref": "./business-objects/Client.schema.json"
+    },
+    "clientMembership": {
+      "$ref": "./business-objects/ClientMembership.schema.json"
+    },
+    "company": {
+      "$ref": "./business-objects/Company.schema.json"
+    },
+    "configurationForm": {
+      "$ref": "./business-objects/ConfigurationForm.schema.json"
+    },
+    "configurationLine": {
+      "$ref": "./business-objects/ConfigurationLine.schema.json"
+    },
+    "configurationModelCategory": {
+      "$ref": "./business-objects/ConfigurationModelCategory.schema.json"
+    },
+    "configurationModel": {
+      "$ref": "./business-objects/ConfigurationModel.schema.json"
+    },
+    "contact": {
+      "$ref": "./business-objects/Contact.schema.json"
+    },
+    "contract": {
+      "$ref": "./business-objects/Contract.schema.json"
+    },
+    "costCentre": {
+      "$ref": "./business-objects/CostCentre.schema.json"
+    },
+    "costType": {
+      "$ref": "./business-objects/CostType.schema.json"
+    },
+    "county": {
+      "$ref": "./business-objects/County.schema.json"
+    },
+    "creditorAddress": {
+      "$ref": "./business-objects/CreditorAddress.schema.json"
+    },
+    "creditorContact": {
+      "$ref": "./business-objects/CreditorContact.schema.json"
+    },
+    "creditor": {
+      "$ref": "./business-objects/Creditor.schema.json"
+    },
+    "debtorAddress": {
+      "$ref": "./business-objects/DebtorAddress.schema.json"
+    },
+    "debtorCollectionInformation": {
+      "$ref": "./business-objects/DebtorCollectionInformation.schema.json"
+    },
+    "debtorContact": {
+      "$ref": "./business-objects/DebtorContact.schema.json"
+    },
+    "debtorIdentification": {
+      "$ref": "./business-objects/DebtorIdentification.schema.json"
+    },
+    "debtor": {
+      "$ref": "./business-objects/Debtor.schema.json"
+    },
+    "delivery": {
+      "$ref": "./business-objects/Delivery.schema.json"
+    },
+    "deployHistory": {
+      "$ref": "./business-objects/DeployHistory.schema.json"
+    },
+    "detail": {
+      "$ref": "./business-objects/Detail.schema.json"
+    },
+    "document": {
+      "$ref": "./business-objects/Document.schema.json"
+    },
+    "documentOptions": {
+      "$ref": "./business-objects/DocumentOptions.schema.json"
+    },
+    "edossier": {
+      "$ref": "./business-objects/Edossier.schema.json"
+    },
+    "email": {
+      "$ref": "./business-objects/Email.schema.json"
+    },
+    "employee": {
+      "$ref": "./business-objects/Employee.schema.json"
+    },
+    "errorResponse": {
+      "$ref": "./business-objects/ErrorResponse.schema.json"
+    },
+    "establishment": {
+      "$ref": "./business-objects/Establishment.schema.json"
+    },
+    "fittingForm": {
+      "$ref": "./business-objects/FittingForm.schema.json"
+    },
+    "geolocation": {
+      "$ref": "./business-objects/Geolocation.schema.json"
+    },
+    "indication": {
+      "$ref": "./business-objects/Indication.schema.json"
+    },
+    "indicationProduct": {
+      "$ref": "./business-objects/IndicationProduct.schema.json"
+    },
+    "indicationQuestionAnswer": {
+      "$ref": "./business-objects/IndicationQuestionAnswer.schema.json"
+    },
+    "indicationQuestionQuestion": {
+      "$ref": "./business-objects/IndicationQuestionQuestion.schema.json"
+    },
+    "insuranceCompany": {
+      "$ref": "./business-objects/InsuranceCompany.schema.json"
+    },
+    "insuredProduct": {
+      "$ref": "./business-objects/InsuredProduct.schema.json"
+    },
+    "invoiceCounty": {
+      "$ref": "./business-objects/InvoiceCounty.schema.json"
+    },
+    "invoiceProduct": {
+      "$ref": "./business-objects/InvoiceProduct.schema.json"
+    },
+    "item": {
+      "$ref": "./business-objects/Item.schema.json"
+    },
+    "serviceRequest": {
+      "$ref": "./business-objects/ServiceRequest.schema.json"
+    },
+    "itemState": {
+      "$ref": "./business-objects/ItemState.schema.json"
+    },
+    "label": {
+      "$ref": "./business-objects/Label.schema.json"
+    },
+    "location": {
+      "$ref": "./business-objects/Location.schema.json"
+    },
+    "measurement": {
+      "$ref": "./business-objects/Measurement.schema.json"
+    },
+    "membersAssociation": {
+      "$ref": "./business-objects/MembersAssociation.schema.json"
+    },
+    "membershipAssociation": {
+      "$ref": "./business-objects/MembershipAssociation.schema.json"
+    },
+    "membership": {
+      "$ref": "./business-objects/Membership.schema.json"
+    },
+    "messageHistory": {
+      "$ref": "./business-objects/MessageHistory.schema.json"
+    },
+    "nameValuePair": {
+      "$ref": "./business-objects/NameValuePair.schema.json"
+    },
+    "openingTime": {
+      "$ref": "./business-objects/OpeningTime.schema.json"
+    },
+    "orderDeliveryAddress": {
+      "$ref": "./business-objects/OrderDeliveryAddress.schema.json"
+    },
+    "orderDelivery": {
+      "$ref": "./business-objects/OrderDelivery.schema.json"
+    },
+    "orderIssue": {
+      "$ref": "./business-objects/OrderIssue.schema.json"
+    },
+    "order": {
+      "$ref": "./business-objects/Order.schema.json"
+    },
+    "orderLine": {
+      "$ref": "./business-objects/OrderLine.schema.json"
+    },
+    "orderLoan": {
+      "$ref": "./business-objects/OrderLoan.schema.json"
+    },
+    "orderRental": {
+      "$ref": "./business-objects/OrderRental.schema.json"
+    },
+    "orderValidation": {
+      "$ref": "./business-objects/orderValidation.schema.json"
+    },
+    "validation": {
+      "$ref": "./business-objects/validation.schema.json"
+    },
+    "orderWmoDecision": {
+      "$ref": "./business-objects/OrderWmoDecision.schema.json"
+    },
+    "orderWmo": {
+      "$ref": "./business-objects/OrderWmo.schema.json"
+    },
+    "orderWmoLine": {
+      "$ref": "./business-objects/OrderWmoLine.schema.json"
+    },
+    "organisation": {
+      "$ref": "./business-objects/Organisation.schema.json"
+    },
+    "package": {
+      "$ref": "./business-objects/Package.schema.json"
+    },
+    "person": {
+      "$ref": "./business-objects/Person.schema.json"
+    },
+    "planItem": {
+      "$ref": "./business-objects/PlanItem.schema.json"
+    },
+    "planTask": {
+      "$ref": "./business-objects/PlanTask.schema.json"
+    },
+    "planning": {
+      "$ref": "./business-objects/Planning.schema.json"
+    },
+    "productAttributes": {
+      "$ref": "./business-objects/ProductAttributes.schema.json"
+    },
+    "productCategoryIds": {
+      "$ref": "./business-objects/ProductCategoryIds.schema.json"
+    },
+    "productCategory": {
+      "$ref": "./business-objects/ProductCategory.schema.json"
+    },
+    "product": {
+      "$ref": "./business-objects/Product.schema.json"
+    },
+    "productMedium": {
+      "$ref": "./business-objects/ProductMedium.schema.json"
+    },
+    "productOptions": {
+      "$ref": "./business-objects/ProductOptions.schema.json"
+    },
+    "purchaseInfo": {
+      "$ref": "./business-objects/PurchaseInfo.schema.json"
+    },
+    "purchaseInvoice": {
+      "$ref": "./business-objects/PurchaseInvoice.schema.json"
+    },
+    "purchaseObligation": {
+      "$ref": "./business-objects/PurchaseObligation.schema.json"
+    },
+    "purchaseRequest": {
+      "$ref": "./business-objects/PurchaseRequest.schema.json"
+    },
+    "reference": {
+      "$ref": "./business-objects/Reference.schema.json"
+    },
+    "requiredIndication": {
+      "$ref": "./business-objects/RequiredIndication.schema.json"
+    },
+    "resource": {
+      "$ref": "./business-objects/Resource.schema.json"
+    },
+    "retourCode": {
+      "$ref": "./business-objects/RetourCode.schema.json"
+    },
+    "salesOrder": {
+      "$ref": "./business-objects/SalesOrder.schema.json"
+    },
+    "shipment": {
+      "$ref": "./business-objects/Shipment.schema.json"
+    },
+    "shipmentOptions": {
+      "$ref": "./business-objects/ShipmentOptions.schema.json"
+    },
+    "signer": {
+      "$ref": "./business-objects/Signer.schema.json"
+    },
+    "signingRequest": {
+      "$ref": "./business-objects/SigningRequest.schema.json"
+    },
+    "sku": {
+      "$ref": "./business-objects/Sku.schema.json"
+    },
+    "stakeholder": {
+      "$ref": "./business-objects/Stakeholder.schema.json"
+    },
+    "stock": {
+      "$ref": "./business-objects/Stock.schema.json"
+    },
+    "store": {
+      "$ref": "./business-objects/Store.schema.json"
+    },
+    "template": {
+      "$ref": "./business-objects/Template.schema.json"
+    },
+    "trackAndTraceRequest": {
+      "$ref": "./business-objects/TrackAndTraceRequest.schema.json"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

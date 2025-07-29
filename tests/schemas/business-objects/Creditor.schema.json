@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Creditor",
+  "type": "object",
+  "properties": {
+    "bic": {
+      "type": "string"
+    },
+    "chamberOfCommerce": {
+      "type": "string"
+    },
+    "classification": {
+      "type": "string"
+    },
+    "contraAccount": {
+      "type": "string"
+    },
+    "createdAt": {
+      "type": "string"
+    },
+    "creditorAddresses": {
+      "type": "array",
+      "items": {
+        "$ref": "./CreditorAddress.schema.json"
+      }
+    },
+    "creditorContacts": {
+      "type": "array",
+      "items": {
+        "$ref": "./CreditorContact.schema.json"
+      }
+    },
+    "creditorHG": {
+      "type": "boolean"
+    },
+    "creditorNHG": {
+      "type": "boolean"
+    },
+    "currency": {
+      "$ref": "../common/enums/CurrencyEnum.schema.json"
+    },
+    "iban": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string"
+    },
+    "language": {
+      "$ref": "../common/enums/LanguageEnum.schema.json"
+    },
+    "legacyRelationId": {
+      "type": "integer"
+    },
+    "name": {
+      "type": "string"
+    },
+    "organisation": {
+      "type": "string"
+    },
+    "paymentAutomatic": {
+      "type": "boolean"
+    },
+    "paymentCondition": {
+      "type": "string"
+    },
+    "paymentDiscount": {
+      "type": "number"
+    },
+    "preferedAccount": {
+      "type": "string"
+    },
+    "status": {
+      "$ref": "../common/enums/CreditorStatusEnum.schema.json"
+    },
+    "updatedAt": {
+      "type": "string"
+    },
+    "vatnumber": {
+      "type": "string"
+    },
+    "website": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ArticleLine",
+  "type": "object",
+  "properties": {
+    "quantity": {
+      "type": "number"
+    },
+    "article": {
+      "$ref": "./Article.schema.json"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Source",
+  "type": "string",
+  "enum": [
+    "BBT_PORTAL",
+    "GMAIL",
+    "IWMO",
+    "MEDIPOINT_NL",
+    "MEDIPORTAL",
+    "POINT",
+    "SUP",
+    "WMO_PORTAL",
+    "WMONED",
+    "ZORGPRO"
+  ]
+}

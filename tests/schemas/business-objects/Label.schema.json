@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Label",
+  "type": "object",
+  "properties": {
+    "document": {
+      "$ref": "./Document.schema.json"
+    },
+    "id": {
+      "type": "string"
+    },
+    "trackAndTraceCode": {
+      "type": "string"
+    },
+    "trackAndTraceUrl": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

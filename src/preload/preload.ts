@@ -179,4 +179,59 @@ contextBridge.exposeInMainWorld('api', {
    */
   showFolderDialog: (options?: { title?: string; defaultPath?: string }) =>
     ipcRenderer.invoke('dialog:folder', options),
+
+  // RAML Import Operations API
+
+  /**
+   * Scans a directory for RAML files.
+   *
+   * @param directoryPath - Path to directory to scan
+   * @returns Promise resolving to RAML file information or error
+   */
+  scanRamlFiles: (directoryPath: string) =>
+    ipcRenderer.invoke('raml:scan', directoryPath),
+
+  /**
+   * Converts a single RAML file to JSON Schema.
+   *
+   * @param options - Conversion options
+   * @returns Promise resolving to conversion result or error
+   */
+  convertRamlFile: (options: any) =>
+    ipcRenderer.invoke('raml:convert', options),
+
+  /**
+   * Clears a directory of all files.
+   *
+   * @param directoryPath - Path to directory to clear
+   * @returns Promise resolving to success status or error
+   */
+  clearDirectory: (directoryPath: string) =>
+    ipcRenderer.invoke('raml:clearDirectory', directoryPath),
+
+  /**
+   * Validates JSON schemas in a directory.
+   *
+   * @param directoryPath - Path to directory containing schemas
+   * @returns Promise resolving to validation result or error
+   */
+  validateSchemas: (directoryPath: string) =>
+    ipcRenderer.invoke('raml:validateSchemas', directoryPath),
+
+  /**
+   * Cancels the current RAML import operation.
+   *
+   * @returns Promise resolving to success status or error
+   */
+  cancelRamlImport: () =>
+    ipcRenderer.invoke('raml:cancel'),
+
+  /**
+   * Selects a folder using the system dialog.
+   *
+   * @param title - Dialog title
+   * @returns Promise resolving to selected folder path or error
+   */
+  selectFolder: (title: string) =>
+    ipcRenderer.invoke('dialog:selectFolder', title),
 });

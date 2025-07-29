@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClientMembership",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "number": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

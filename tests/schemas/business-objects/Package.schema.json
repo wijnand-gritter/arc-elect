@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Package",
+  "type": "object",
+  "properties": {
+    "deliveryLabel": {
+      "$ref": "./Label.schema.json"
+    },
+    "depth": {
+      "type": "number"
+    },
+    "depthUnit": {
+      "$ref": "../common/enums/LengthUnitEnum.schema.json"
+    },
+    "height": {
+      "type": "number"
+    },
+    "heightUnit": {
+      "$ref": "../common/enums/LengthUnitEnum.schema.json"
+    },
+    "length": {
+      "type": "number"
+    },
+    "lengthUnit": {
+      "$ref": "../common/enums/LengthUnitEnum.schema.json"
+    },
+    "packageType": {
+      "type": "string"
+    },
+    "returnLabel": {
+      "$ref": "./Label.schema.json"
+    },
+    "weight": {
+      "type": "number"
+    },
+    "weightUnit": {
+      "$ref": "../common/enums/WeightUnitEnum.schema.json"
+    }
+  },
+  "additionalProperties": false
+}

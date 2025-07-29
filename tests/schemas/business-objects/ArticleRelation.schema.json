@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ArticleRelation",
+  "type": "object",
+  "properties": {
+    "default": {
+      "type": "boolean"
+    },
+    "family": {
+      "type": "string"
+    },
+    "group": {
+      "type": "string"
+    },
+    "mandatory": {
+      "type": "boolean"
+    },
+    "statusId": {
+      "$ref": "../common/enums/ArticleStatusEnum.schema.json"
+    },
+    "targetArticle": {
+      "$ref": "./Article.schema.json"
+    },
+    "typeId": {
+      "$ref": "../common/enums/ArticleRelationTypeEnum.schema.json"
+    }
+  },
+  "additionalProperties": false
+}

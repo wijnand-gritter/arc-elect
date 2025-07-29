@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RetourCode",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string"
+    },
+    "value": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

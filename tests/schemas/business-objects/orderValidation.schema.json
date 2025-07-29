@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "orderValidation",
+  "type": "object",
+  "properties": {
+    "objectType": {
+      "$ref": "../common/enums/OrderValidationObjectTypeEnum.schema.json"
+    },
+    "object": {
+      "type": "string"
+    },
+    "validations": {
+      "type": "array",
+      "items": {
+        "$ref": "./validation.schema.json"
+      }
+    }
+  },
+  "additionalProperties": false
+}

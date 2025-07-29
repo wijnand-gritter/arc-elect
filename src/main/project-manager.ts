@@ -97,6 +97,56 @@ class ProjectManager {
         return this.showFolderDialog(options);
       },
     );
+
+    // RAML import handlers
+    ipcMain.handle('raml:scan', async (_event, directoryPath: string) => {
+      try {
+        const files = await this.scanRamlFiles(directoryPath);
+        return { success: true, data: files };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to scan RAML files',
+        };
+      }
+    });
+
+    ipcMain.handle('raml:convert', async (_event, options: any) => {
+      return this.convertRamlFile(options);
+    });
+
+    ipcMain.handle('raml:clearDirectory', async (_event, directoryPath: string) => {
+      try {
+        await this.clearDirectory(directoryPath);
+        return { success: true };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to clear directory',
+        };
+      }
+    });
+
+    ipcMain.handle('raml:validateSchemas', async (_event, directoryPath: string) => {
+      try {
+        const isValid = await this.validateSchemasInDirectory(directoryPath);
+        return { success: isValid };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to validate schemas',
+        };
+      }
+    });
+
+    ipcMain.handle('raml:cancel', async () => {
+      // Placeholder for cancellation logic
+      return { success: true };
+    });
+
+    ipcMain.handle('dialog:selectFolder', async (_event, title: string) => {
+      return this.showFolderDialog({ title });
+    });
   }
 
   /**
@@ -681,23 +731,23 @@ class ProjectManager {
    */
   private resolveSchemaReferences(schemas: Schema[]): void {
     const startTime = Date.now();
-    
+
     // Pre-allocate referencedBy arrays and create lookup map in single pass
     const schemaMap = new Map<string, Schema>();
     const referencedByMap = new Map<string, Set<string>>();
-    
+
     schemas.forEach((schema) => {
       // Initialize referencedBy tracking
       referencedByMap.set(schema.id, new Set());
-      
+
       // Build lookup map with all possible name variations
       schemaMap.set(schema.name, schema);
       schemaMap.set(schema.relativePath, schema);
-      
+
       // Filename without extension
       const filename = path.basename(schema.relativePath, path.extname(schema.relativePath));
       schemaMap.set(filename, schema);
-      
+
       // Schema name without .schema suffix (backward compatibility)
       if (schema.name.endsWith('.schema')) {
         schemaMap.set(schema.name.replace('.schema', ''), schema);
@@ -708,10 +758,10 @@ class ProjectManager {
     let totalReferences = 0;
     let resolvedReferences = 0;
     let unresolvedReferences = 0;
-    
+
     schemas.forEach((schema) => {
       totalReferences += schema.references.length;
-      
+
       schema.references.forEach((ref) => {
         const referencedSchema = schemaMap.get(ref.schemaName);
         if (referencedSchema && referencedSchema.id !== schema.id) {
@@ -860,6 +910,198 @@ class ProjectManager {
       this.watchers.set(project.id, watcher);
     } catch (error) {
       logger.error('ProjectManager: Failed to setup file watching', { error });
+    }
+  }
+
+  // RAML Import Methods
+
+  /**
+   * Scans a directory for RAML files.
+   */
+  public async scanRamlFiles(directoryPath: string): Promise<any[]> {
+    try {
+      logger.info('ProjectManager: Scanning RAML files', { directoryPath });
+      
+      const files = await glob('**/*.raml', {
+        cwd: directoryPath,
+        absolute: true,
+      });
+
+      const ramlFiles = await Promise.all(
+        files.map(async (filePath) => {
+          try {
+            const stats = await fs.stat(filePath);
+            const content = await fs.readFile(filePath, 'utf-8');
+            
+            // Basic RAML validation - check if it starts with #%RAML
+            const isValid = content.trim().startsWith('#%RAML');
+            
+            // Extract basic metadata
+            const lines = content.split('\n');
+            let title: string | undefined;
+            let description: string | undefined;
+            let version: string | undefined;
+            
+            for (const line of lines) {
+              if (line.startsWith('title:')) {
+                title = line.replace('title:', '').trim();
+              } else if (line.startsWith('description:')) {
+                description = line.replace('description:', '').trim();
+              } else if (line.startsWith('#%RAML')) {
+                version = line.replace('#%RAML', '').trim();
+              }
+            }
+            
+            return {
+              path: filePath,
+              name: path.basename(filePath),
+              size: stats.size,
+              lastModified: stats.mtime,
+              isValid,
+              version,
+              title,
+              description,
+            };
+          } catch (error) {
+            logger.warn('ProjectManager: Failed to process RAML file', { filePath, error });
+            return {
+              path: filePath,
+              name: path.basename(filePath),
+              size: 0,
+              lastModified: new Date(),
+              isValid: false,
+            };
+          }
+        })
+      );
+
+      logger.info('ProjectManager: RAML files scanned', {
+        directoryPath,
+        count: ramlFiles.length,
+      });
+
+      return ramlFiles;
+    } catch (error) {
+      logger.error('ProjectManager: Failed to scan RAML files', { directoryPath, error });
+      throw error;
+    }
+  }
+
+  /**
+   * Converts a single RAML file to JSON Schema.
+   * This is a placeholder that will be replaced with the user's conversion script.
+   */
+  public async convertRamlFile(options: {
+    sourcePath: string;
+    destinationPath: string;
+    options: any;
+  }): Promise<{ success: boolean; error?: string }> {
+    try {
+      logger.info('ProjectManager: Converting RAML file (placeholder)', {
+        sourcePath: options.sourcePath,
+        destinationPath: options.destinationPath,
+      });
+
+      // PLACEHOLDER: This is where the actual RAML conversion script will be called
+      // For now, we'll simulate a successful conversion
+      
+      // In a real implementation, this would:
+      // 1. Read the RAML file
+      // 2. Parse it using a RAML parser
+      // 3. Convert it to JSON Schema format
+      // 4. Write the result to the destination path
+      
+      // Simulate processing time
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // For now, return success
+      // The user will replace this with their actual conversion logic
+      return { success: true };
+      
+    } catch (error) {
+      logger.error('ProjectManager: RAML conversion failed', {
+        sourcePath: options.sourcePath,
+        error,
+      });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Clears all files from a directory.
+   */
+  public async clearDirectory(directoryPath: string): Promise<void> {
+    try {
+      logger.info('ProjectManager: Clearing directory', { directoryPath });
+      
+      const files = await fs.readdir(directoryPath);
+      
+      await Promise.all(
+        files.map(async (file) => {
+          const filePath = path.join(directoryPath, file);
+          const stats = await fs.stat(filePath);
+          
+          if (stats.isDirectory()) {
+            await fs.rmdir(filePath, { recursive: true });
+          } else {
+            await fs.unlink(filePath);
+          }
+        })
+      );
+      
+      logger.info('ProjectManager: Directory cleared successfully', { directoryPath });
+    } catch (error) {
+      logger.error('ProjectManager: Failed to clear directory', { directoryPath, error });
+      throw error;
+    }
+  }
+
+  /**
+   * Validates all JSON schemas in a directory.
+   */
+  public async validateSchemasInDirectory(directoryPath: string): Promise<boolean> {
+    try {
+      logger.info('ProjectManager: Validating schemas in directory', { directoryPath });
+      
+      const files = await glob('**/*.json', {
+        cwd: directoryPath,
+        absolute: true,
+      });
+      
+      let allValid = true;
+      
+      for (const filePath of files) {
+        try {
+          const content = await fs.readFile(filePath, 'utf-8');
+          const data = JSON.parse(content);
+          const result = this.validateSchemaData(data);
+          
+          if (!result.isValid) {
+            allValid = false;
+            logger.warn('ProjectManager: Invalid schema found', {
+              filePath,
+              errors: result.errors,
+            });
+          }
+        } catch (error) {
+          allValid = false;
+          logger.warn('ProjectManager: Failed to validate schema', { filePath, error });
+        }
+      }
+      
+      logger.info('ProjectManager: Schema validation completed', {
+        directoryPath,
+        allValid,
+        totalFiles: files.length,
+      });
+      
+      return allValid;
+    } catch (error) {
+      logger.error('ProjectManager: Failed to validate schemas', { directoryPath, error });
+      return false;
     }
   }
 

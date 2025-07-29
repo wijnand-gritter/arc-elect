@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Document",
+  "type": "object",
+  "properties": {
+    "alladinInvoiceId": {
+      "type": "string"
+    },
+    "alladinOrderId": {
+      "type": "string"
+    },
+    "alladinUser": {
+      "type": "string"
+    },
+    "content": {
+      "type": "string"
+    },
+    "creationDate": {
+      "type": "string"
+    },
+    "documentOptions": {
+      "$ref": "./DocumentOptions.schema.json"
+    },
+    "documentTemplate": {
+      "$ref": "./Template.schema.json"
+    },
+    "documentType": {
+      "$ref": "../common/enums/DocumentTypeEnum.schema.json"
+    },
+    "downloadLink": {
+      "type": "string"
+    },
+    "dragDropInput": {
+      "type": "string"
+    },
+    "fileFormat": {
+      "$ref": "../common/enums/FileFormatEnum.schema.json"
+    },
+    "fileSize": {
+      "type": "integer"
+    },
+    "id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "orderType": {
+      "type": "string"
+    },
+    "source": {
+      "$ref": "../common/enums/SourceEnum.schema.json"
+    },
+    "success": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false
+}

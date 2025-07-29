@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OrderIssueType",
+  "type": "string",
+  "enum": [
+    "CONTAINS_REMARKS",
+    "HIGH_RISK_PRODUCTS",
+    "INCOMPLETE_CLIENTDATA",
+    "INCOMPLETE_INDICATIONS",
+    "REPEAT_ORDER"
+  ]
+}

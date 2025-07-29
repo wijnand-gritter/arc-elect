@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OrderCategory",
+  "type": "string",
+  "enum": [
+    "BACKORDER",
+    "ORDER",
+    "QUOTATION",
+    "REPAIR",
+    "RENTAL_ADJUSTMENTS",
+    "RETRIEVAL",
+    "TEMPORARY_LOAN",
+    "TO_BE_APPROVED_DELIVERY",
+    "TO_BE_APPROVED_NO_DELIVERY",
+    "TRYOUT"
+  ]
+}

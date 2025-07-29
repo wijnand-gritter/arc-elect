@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "validation",
+  "type": "object",
+  "properties": {
+    "name": {
+      "$ref": "../common/enums/ValidationNameEnum.schema.json"
+    },
+    "remark": {
+      "type": "string"
+    },
+    "result": {
+      "$ref": "../common/enums/ValidationResultEnum.schema.json"
+    }
+  },
+  "additionalProperties": false
+}

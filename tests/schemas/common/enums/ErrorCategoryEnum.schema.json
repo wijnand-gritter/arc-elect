@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ErrorCategory",
+  "type": "string",
+  "enum": [
+    "EXTERNAL",
+    "INTERNAL"
+  ]
+}

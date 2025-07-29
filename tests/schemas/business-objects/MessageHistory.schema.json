@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MessageHistory",
+  "type": "object",
+  "properties": {
+    "endReason": {
+      "$ref": "../common/enums/EndReasonEnum.schema.json"
+    },
+    "messageIdentificationNumber": {
+      "type": "string"
+    },
+    "messageType": {
+      "type": "string"
+    },
+    "productCategory": {
+      "type": "string"
+    },
+    "productCode": {
+      "type": "string"
+    },
+    "productEndDate": {
+      "type": "string"
+    },
+    "productStartDate": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

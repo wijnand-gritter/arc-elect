@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "InsuranceCompany",
+  "type": "object",
+  "properties": {
+    "alladinVerzekeraarRelatieNummer": {
+      "type": "integer"
+    },
+    "id": {
+      "type": "string"
+    },
+    "insuredProducts": {
+      "type": "array",
+      "items": {
+        "$ref": "./InsuredProduct.schema.json"
+      }
+    },
+    "name": {
+      "type": "string"
+    },
+    "packageCode": {
+      "type": "string"
+    },
+    "uzoviCode": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

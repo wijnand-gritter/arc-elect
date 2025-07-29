@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OrderIssue",
+  "type": "object",
+  "properties": {
+    "issueReason": {
+      "type": "string"
+    },
+    "issueType": {
+      "$ref": "../common/enums/OrderIssueTypeEnum.schema.json"
+    }
+  },
+  "additionalProperties": false
+}

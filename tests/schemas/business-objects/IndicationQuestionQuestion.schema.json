@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "IndicationQuestionQuestion",
+  "type": "object",
+  "properties": {
+    "freeText": {
+      "type": "string"
+    },
+    "indicationQuestion": {
+      "$ref": "../common/enums/IndicationQuestionEnum.schema.json"
+    },
+    "indicationQuestionAnswers": {
+      "type": "array",
+      "items": {
+        "$ref": "./IndicationQuestionAnswer.schema.json"
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ProductAttributes",
+  "type": "object",
+  "properties": {
+    "attributeCode": {
+      "type": "string"
+    },
+    "value": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

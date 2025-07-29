@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ArticleRelationType",
+  "type": "string",
+  "enum": [
+    "ALTERNATE",
+    "ALTERNATE_OTHER_SUPPLIER",
+    "HAS_CONFIGURATION",
+    "IS_CONFIGURATION_OF",
+    "HAS_DEFAULT_OPTION",
+    "IS_DEFAULT_OPTION_OF",
+    "HAS_ACCESSORY",
+    "IS_ACCESSORY_OF",
+    "HAS_OPTION",
+    "IS_OPTION_OF",
+    "HAS_PART",
+    "IS_PART_FOR",
+    "IS_PREDECESSOR_OF",
+    "IS_SUCCESSOR_OF"
+  ]
+}

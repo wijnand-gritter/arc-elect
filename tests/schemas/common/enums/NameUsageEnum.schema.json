@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NameUsage",
+  "type": "string",
+  "enum": [
+    "FAMILY_NAME_FOLLOWED_BY_PARTNER_NAME",
+    "FAMILY_NAME_ONLY",
+    "PARTNER_NAME_FOLLOWED_BY_FAMILY_NAME",
+    "PARTNER_NAME_ONLY"
+  ]
+}

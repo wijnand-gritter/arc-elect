@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DebtorType",
+  "type": "string",
+  "enum": [
+    "CARE_OFFICE",
+    "CLIENT",
+    "COUNTY",
+    "HARTING_BANK",
+    "HOSPITAL",
+    "INSURER",
+    "INTERESTED_PARTY",
+    "NURSING_HOME",
+    "OTHER"
+  ]
+}

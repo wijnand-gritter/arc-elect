@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DocumentOptions",
+  "type": "object",
+  "properties": {
+    "confidential": {
+      "type": "boolean"
+    },
+    "flagged": {
+      "type": "boolean"
+    },
+    "hidden": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CreditorContact",
+  "type": "object",
+  "properties": {
+    "contacttype": {
+      "$ref": "../common/enums/ContactTypeEnum.schema.json"
+    },
+    "emailaddress": {
+      "type": "string"
+    },
+    "fax": {
+      "type": "string"
+    },
+    "mobile": {
+      "type": "string"
+    },
+    "phonenumber": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Booking",
+  "type": "object",
+  "properties": {
+    "bookingDate": {
+      "type": "string"
+    },
+    "bookingLines": {
+      "type": "array",
+      "items": {
+        "$ref": "./BookingLine.schema.json"
+      }
+    },
+    "bookingNr": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "invoiceId": {
+      "type": "string"
+    },
+    "reference": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

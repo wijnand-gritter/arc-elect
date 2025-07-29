@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Debtor",
+  "type": "object",
+  "properties": {
+    "birthdate": {
+      "type": "string"
+    },
+    "debtorAddresses": {
+      "type": "array",
+      "items": {
+        "$ref": "./DebtorAddress.schema.json"
+      }
+    },
+    "debtorCollectionInformation": {
+      "$ref": "./DebtorCollectionInformation.schema.json"
+    },
+    "debtorContact": {
+      "$ref": "./DebtorContact.schema.json"
+    },
+    "debtorIdentification": {
+      "$ref": "./DebtorIdentification.schema.json"
+    },
+    "debtorType": {
+      "$ref": "../common/enums/DebtorTypeEnum.schema.json"
+    },
+    "deceasedDate": {
+      "type": "string"
+    },
+    "firstName": {
+      "type": "string"
+    },
+    "gender": {
+      "$ref": "../common/enums/GenderEnum.schema.json"
+    },
+    "id": {
+      "type": "string"
+    },
+    "initials": {
+      "type": "string"
+    },
+    "lastName": {
+      "type": "string"
+    },
+    "middleName": {
+      "type": "string"
+    },
+    "namePrimary": {
+      "type": "string"
+    },
+    "nameSecondary": {
+      "type": "string"
+    },
+    "nickName": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "website": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

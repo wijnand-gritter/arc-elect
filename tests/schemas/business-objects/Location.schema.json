@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Location",
+  "type": "object",
+  "properties": {
+    "branch": {
+      "type": "integer"
+    },
+    "centre": {
+      "type": "string"
+    },
+    "contractType": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "officeAllocationNumber": {
+      "type": "integer"
+    },
+    "officeName": {
+      "type": "string"
+    },
+    "payerNr": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

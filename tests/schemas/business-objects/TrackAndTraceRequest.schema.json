@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TrackAndTraceRequest",
+  "type": "object",
+  "properties": {
+    "orderIncrementId": {
+      "type": "string"
+    },
+    "salesOrder": {
+      "$ref": "./SalesOrder.schema.json"
+    },
+    "shipmentId": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

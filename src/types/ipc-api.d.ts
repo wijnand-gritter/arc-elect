@@ -11,6 +11,7 @@
  */
 
 import type { Project, ProjectConfig, Schema, ValidationResult } from './schema-editor';
+import type { RamlFileInfo, TransformationOptions } from './raml-import';
 
 export {};
 
@@ -255,6 +256,78 @@ declare global {
       }) => Promise<{
         success: boolean;
         paths?: string[];
+        error?: string;
+      }>;
+
+      // RAML import operations
+      /**
+       * Scans a directory for RAML files.
+       *
+       * @param directoryPath - Path to directory to scan
+       * @returns Promise resolving to RAML file information or error
+       */
+      scanRamlFiles: (directoryPath: string) => Promise<{
+        success: boolean;
+        data?: RamlFileInfo[];
+        error?: string;
+      }>;
+
+      /**
+       * Converts a single RAML file to JSON Schema.
+       *
+       * @param options - Conversion options
+       * @returns Promise resolving to conversion result or error
+       */
+      convertRamlFile: (options: {
+        sourcePath: string;
+        destinationPath: string;
+        options: TransformationOptions;
+      }) => Promise<{
+        success: boolean;
+        error?: string;
+      }>;
+
+      /**
+       * Clears a directory of all files.
+       *
+       * @param directoryPath - Path to directory to clear
+       * @returns Promise resolving to success status or error
+       */
+      clearDirectory: (directoryPath: string) => Promise<{
+        success: boolean;
+        error?: string;
+      }>;
+
+      /**
+       * Validates JSON schemas in a directory.
+       *
+       * @param directoryPath - Path to directory containing schemas
+       * @returns Promise resolving to validation result or error
+       */
+      validateSchemas: (directoryPath: string) => Promise<{
+        success: boolean;
+        error?: string;
+      }>;
+
+      /**
+       * Cancels the current RAML import operation.
+       *
+       * @returns Promise resolving to success status or error
+       */
+      cancelRamlImport: () => Promise<{
+        success: boolean;
+        error?: string;
+      }>;
+
+      /**
+       * Selects a folder using the system dialog.
+       *
+       * @param title - Dialog title
+       * @returns Promise resolving to selected folder path or error
+       */
+      selectFolder: (title: string) => Promise<{
+        success: boolean;
+        data?: string;
         error?: string;
       }>;
     };

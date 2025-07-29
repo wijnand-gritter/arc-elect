@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PlanTaskStatus",
+  "type": "string",
+  "enum": [
+    "ABORTED",
+    "NOCLIENT",
+    "DELETE",
+    "NONE",
+    "RETRIEVE_SIGNATURE",
+    "IGNORE",
+    "READY",
+    "NEW",
+    "RAW",
+    "TEST",
+    "UPDATE",
+    "PROCESSED",
+    "ERROR"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PlanTaskType",
+  "type": "string",
+  "enum": [
+    "DELIVERY",
+    "DELIVERY_SCAN",
+    "PICKUP",
+    "PICKUP_SCAN",
+    "WORKFLOW_STANDARD"
+  ]
+}

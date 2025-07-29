@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PlanningState",
+  "type": "string",
+  "enum": [
+    "UNPLANNED",
+    "PLANNING_IN_PROGRESS",
+    "TENTATIVELY_PLANNED",
+    "PLANNED",
+    "IRRELEVANT",
+    "UNKNOWN"
+  ]
+}

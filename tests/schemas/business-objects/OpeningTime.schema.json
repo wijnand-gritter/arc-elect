@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OpeningTime",
+  "type": "object",
+  "properties": {
+    "friday": {
+      "type": "string"
+    },
+    "monday": {
+      "type": "string"
+    },
+    "saturday": {
+      "type": "string"
+    },
+    "sunday": {
+      "type": "string"
+    },
+    "thursday": {
+      "type": "string"
+    },
+    "tuesday": {
+      "type": "string"
+    },
+    "wednesday": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

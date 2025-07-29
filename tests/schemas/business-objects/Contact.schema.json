@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Contact",
+  "type": "object",
+  "properties": {
+    "birthdate": {
+      "type": "string"
+    },
+    "emailaddress": {
+      "type": "string"
+    },
+    "firstName": {
+      "type": "string"
+    },
+    "fullName": {
+      "type": "string"
+    },
+    "gender": {
+      "$ref": "../common/enums/GenderEnum.schema.json"
+    },
+    "id": {
+      "type": "string"
+    },
+    "initials": {
+      "type": "string"
+    },
+    "phonenumber": {
+      "type": "string"
+    },
+    "primarySurname": {
+      "type": "string"
+    },
+    "primarySurnamePrefix": {
+      "type": "string"
+    },
+    "type": {
+      "$ref": "../common/enums/ContactTypeEnum.schema.json"
+    }
+  },
+  "additionalProperties": false
+}

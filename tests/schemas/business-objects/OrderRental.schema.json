@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OrderRental",
+  "type": "object",
+  "properties": {
+    "alladinCode": {
+      "type": "integer"
+    },
+    "alladinOrderId": {
+      "type": "string"
+    },
+    "alladinOrderNumbers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "alladinSupplyNumbers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "authorisationId": {
+      "type": "string"
+    },
+    "careInstitution": {
+      "$ref": "./Organisation.schema.json"
+    },
+    "caregiver": {
+      "$ref": "./Caregiver.schema.json"
+    },
+    "caregiverAction": {
+      "$ref": "../common/enums/CaregiverActionEnum.schema.json"
+    },
+    "category": {
+      "$ref": "../common/enums/OrderCategoryEnum.schema.json"
+    },
+    "client": {
+      "$ref": "./Client.schema.json"
+    },
+    "debtor": {
+      "$ref": "./Debtor.schema.json"
+    },
+    "details": {
+      "type": "array",
+      "items": {
+        "$ref": "./Detail.schema.json"
+      }
+    },
+    "endDate": {
+      "type": "string"
+    },
+    "establishment": {
+      "$ref": "./Establishment.schema.json"
+    },
+    "id": {
+      "type": "string"
+    },
+    "inputDate": {
+      "type": "string"
+    },
+    "isChangeable": {
+      "type": "boolean"
+    },
+    "notChangeableReason": {
+      "$ref": "../common/enums/OrderNotChangeableEnum.schema.json"
+    },
+    "orderDelivery": {
+      "$ref": "./OrderDelivery.schema.json"
+    },
+    "orderLines": {
+      "type": "array",
+      "items": {
+        "$ref": "./OrderLine.schema.json"
+      }
+    },
+    "origin": {
+      "$ref": "../common/enums/OriginEnum.schema.json"
+    },
+    "planningState": {
+      "$ref": "../common/enums/PlanningStateEnum.schema.json"
+    },
+    "requestDateTime": {
+      "type": "string"
+    },
+    "signer": {
+      "type": "string"
+    },
+    "source": {
+      "$ref": "../common/enums/SourceEnum.schema.json"
+    },
+    "state": {
+      "$ref": "../common/enums/OrderStateEnum.schema.json"
+    },
+    "type": {
+      "$ref": "../common/enums/ActionEnum.schema.json"
+    },
+    "validation": {
+      "$ref": "./validation.schema.json"
+    }
+  },
+  "additionalProperties": false
+}

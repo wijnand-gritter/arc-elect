@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PurchaseInfo",
+  "type": "object",
+  "properties": {
+    "discountPercentage": {
+      "type": "number"
+    },
+    "deliveryTimeDays": {
+      "type": "integer"
+    },
+    "lastChangeDateTime": {
+      "type": "string"
+    },
+    "price": {
+      "type": "number"
+    },
+    "priceNet": {
+      "type": "number"
+    },
+    "priceType": {
+      "$ref": "../common/enums/PriceTypeEnum.schema.json"
+    },
+    "supplier": {
+      "type": "string"
+    },
+    "supplierProductId": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

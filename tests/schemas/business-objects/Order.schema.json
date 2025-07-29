@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Order",
+  "type": "object",
+  "properties": {
+    "orderLoan": {
+      "$ref": "./OrderLoan.schema.json"
+    },
+    "orderRental": {
+      "$ref": "./OrderRental.schema.json"
+    },
+    "salesOrder": {
+      "$ref": "./SalesOrder.schema.json"
+    }
+  },
+  "additionalProperties": false
+}

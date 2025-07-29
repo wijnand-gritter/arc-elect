@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ProductMedium",
+  "type": "object",
+  "properties": {
+    "disabled": {
+      "type": "boolean"
+    },
+    "id": {
+      "type": "string"
+    },
+    "label": {
+      "type": "string"
+    },
+    "mediaType": {
+      "type": "string"
+    },
+    "position": {
+      "type": "string"
+    },
+    "url": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

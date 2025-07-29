@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TimeConstraint",
+  "type": "string",
+  "enum": [
+    "APARTMENT_WITH_ELEVATOR",
+    "CHECK_IN_AT_RECEPTION_CARE",
+    "CLIENT_CANNOT_OPEN",
+    "CLIENT_IMPAIRED_HEARING",
+    "CLIENT_PASSED_AWAY",
+    "DELIVERY_AT_REAR_ENTRANCE",
+    "GRAVEL_PATH",
+    "HOTEL_CAMPING_PARK",
+    "NONE",
+    "NURSING_HOME",
+    "PARKING_PROBLEM",
+    "PATIENCE_AT_DOOR",
+    "PHONE_BEFORE_ARRIVAL",
+    "PHONE_CLIENT_BEFORE_ARRIVAL",
+    "RING_NEIGHBOURS",
+    "RING_REPEATEDLY",
+    "RISK_OF_INFECTION",
+    "STAIRWAY"
+  ]
+}

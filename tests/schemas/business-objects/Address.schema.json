@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Address",
+  "type": "object",
+  "properties": {
+    "city": {
+      "type": "string"
+    },
+    "country": {
+      "$ref": "../common/enums/CountryEnum.schema.json"
+    },
+    "housenumber": {
+      "type": "string"
+    },
+    "housenumberAddition": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "postalCode": {
+      "type": "string"
+    },
+    "street": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

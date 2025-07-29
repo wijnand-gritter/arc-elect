@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ItemState",
+  "type": "object",
+  "properties": {
+    "changeAllowed": {
+      "type": "boolean"
+    },
+    "changeDate": {
+      "type": "string"
+    },
+    "changeEmployee": {
+      "type": "string"
+    },
+    "changeId": {
+      "type": "string"
+    },
+    "changeProcess": {
+      "type": "string"
+    },
+    "changeType": {
+      "$ref": "../common/enums/ActionEnum.schema.json"
+    },
+    "detailsUrl": {
+      "type": "string"
+    },
+    "itemId": {
+      "type": "string"
+    },
+    "locationNew": {
+      "type": "string"
+    },
+    "locationOld": {
+      "type": "string"
+    },
+    "mainLocation": {
+      "type": "string"
+    },
+    "stateNew": {
+      "type": "string"
+    },
+    "stateOld": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

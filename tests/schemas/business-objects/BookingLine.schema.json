@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BookingLine",
+  "type": "object",
+  "properties": {
+    "description": {
+      "type": "string"
+    },
+    "price": {
+      "type": "number"
+    },
+    "vat": {
+      "type": "number"
+    },
+    "vatPercentage": {
+      "type": "number"
+    },
+    "vatType": {
+      "$ref": "../common/enums/VatTypeEnum.schema.json"
+    }
+  },
+  "additionalProperties": false
+}

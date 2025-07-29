@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OrderDelivery",
+  "type": "object",
+  "properties": {
+    "agreedDeliveryDate": {
+      "type": "string"
+    },
+    "agreedReturnDate": {
+      "type": "string"
+    },
+    "executedDeliveryDate": {
+      "type": "string"
+    },
+    "executedReturnDate": {
+      "type": "string"
+    },
+    "orderDeliveryAddress": {
+      "$ref": "./OrderDeliveryAddress.schema.json"
+    },
+    "plannedDeliveryDate": {
+      "type": "string"
+    },
+    "plannedReturnDate": {
+      "type": "string"
+    },
+    "remarks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "requestedDeliveryDate": {
+      "type": "string"
+    },
+    "requestedReturnDate": {
+      "type": "string"
+    },
+    "timeConstraints": {
+      "type": "array",
+      "items": {
+        "$ref": "../common/enums/TimeConstraintEnum.schema.json"
+      }
+    },
+    "timeRequestedAfter": {
+      "type": "integer"
+    },
+    "timeRequestedBefore": {
+      "type": "integer"
+    },
+    "isUrgentOrder": {
+      "type": "boolean"
+    },
+    "reasonUrgentOrder": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

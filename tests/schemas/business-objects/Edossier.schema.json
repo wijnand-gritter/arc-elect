@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Edossier",
+  "type": "object",
+  "properties": {
+    "documents": {
+      "type": "array",
+      "items": {
+        "$ref": "./Document.schema.json"
+      }
+    },
+    "edossierType": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string"
+    },
+    "provider": {
+      "type": "string"
+    },
+    "referenceId": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Template",
+  "type": "object",
+  "properties": {
+    "templateContent": {
+      "type": "string"
+    },
+    "serviceid": {
+      "type": "string"
+    },
+    "source": {
+      "$ref": "../common/enums/SourceEnum.schema.json"
+    },
+    "templateid": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

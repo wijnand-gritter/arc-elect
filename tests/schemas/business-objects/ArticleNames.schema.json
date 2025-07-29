@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ArticleNames",
+  "type": "object",
+  "properties": {
+    "brand": {
+      "type": "string"
+    },
+    "long": {
+      "type": "string"
+    },
+    "purchase": {
+      "type": "string"
+    },
+    "search": {
+      "type": "string"
+    },
+    "short": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

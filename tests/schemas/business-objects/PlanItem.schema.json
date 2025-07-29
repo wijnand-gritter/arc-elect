@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PlanItem",
+  "type": "object",
+  "properties": {
+    "action": {
+      "$ref": "../common/enums/ActionEnum.schema.json"
+    },
+    "id": {
+      "type": "string"
+    },
+    "product": {
+      "$ref": "./Product.schema.json"
+    },
+    "quantity": {
+      "type": "integer"
+    },
+    "referenceId": {
+      "type": "string"
+    },
+    "remark": {
+      "type": "string"
+    },
+    "serialNumber": {
+      "type": "string"
+    },
+    "status": {
+      "$ref": "../common/enums/ItemStatusEnum.schema.json"
+    },
+    "wasPlanned": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false
+}

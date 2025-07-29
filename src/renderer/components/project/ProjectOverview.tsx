@@ -15,10 +15,12 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { useAppStore } from '../../stores/useAppStore';
 import { CreateProjectModal } from '../CreateProjectModal';
-import { FolderOpen, Plus, XCircle } from 'lucide-react';
+import { RamlImportModal } from '../RamlImportModal';
+import { FolderOpen, Plus, XCircle, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
 import type { Project } from '../../../types/schema-editor';
+import type { ImportResult } from '../../../types/raml-import';
 
 /**
  * Project overview component props.
@@ -47,6 +49,7 @@ interface ProjectOverviewProps {
  */
 export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.Element {
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
+  const [isRamlImportOpen, setIsRamlImportOpen] = React.useState(false);
   const [projectToDelete, setProjectToDelete] = React.useState<{ id: string; name: string } | null>(
     null,
   );
@@ -67,13 +70,6 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
    */
   const handleCreateProject = () => {
     setIsCreateModalOpen(true);
-  };
-
-  /**
-   * Handles closing the create project modal.
-   */
-  const handleCloseModal = () => {
-    setIsCreateModalOpen(false);
   };
 
   /**
@@ -108,6 +104,24 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
    */
   const handleCancelDelete = () => {
     setProjectToDelete(null);
+  };
+
+  /**
+   * Handles opening the RAML import modal.
+   */
+  const handleRamlImport = () => {
+    setIsRamlImportOpen(true);
+  };
+
+  /**
+   * Handles RAML import completion.
+   */
+  const handleRamlImportComplete = (result: ImportResult) => {
+    if (result.success) {
+      toast.success('RAML import completed successfully', {
+        description: `Converted ${result.convertedFiles} files`,
+      });
+    }
   };
 
   // If no project is provided, show setup view
@@ -213,7 +227,16 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
         </div>
 
         {/* Create Project Modal */}
-        <CreateProjectModal isOpen={isCreateModalOpen} onClose={handleCloseModal} />
+        <CreateProjectModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+        />
+
+        <RamlImportModal
+          isOpen={isRamlImportOpen}
+          onClose={() => setIsRamlImportOpen(false)}
+          onImportComplete={handleRamlImportComplete}
+        />
 
         {/* Delete Confirmation Dialog */}
         {projectToDelete && (
@@ -245,9 +268,28 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
       <div className="px-4 lg:px-6 space-y-6">
         {/* Project Status */}
         <Card className="glass-blue border-0">
-          <CardHeader>
-            <CardTitle>{project.name}</CardTitle>
-            <CardDescription>Current status and validation information</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>{project.name}</CardTitle>
+              <CardDescription>Current status and validation information</CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleRamlImport}
+                variant="outline"
+                className="border-gradient hover-lift hover:gradient-accent transition-all duration-200"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Import RAML
+              </Button>
+              <Button
+                onClick={handleCreateProject}
+                className="border-gradient hover-lift hover:gradient-accent transition-all duration-200 text-foreground"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                New Project
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -353,7 +395,16 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
       </div>
 
       {/* Create Project Modal */}
-      <CreateProjectModal isOpen={isCreateModalOpen} onClose={handleCloseModal} />
+      <CreateProjectModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+      />
+      
+      <RamlImportModal
+        isOpen={isRamlImportOpen}
+        onClose={() => setIsRamlImportOpen(false)}
+        onImportComplete={handleRamlImportComplete}
+      />
 
       {/* Delete Confirmation Dialog */}
       {projectToDelete && (

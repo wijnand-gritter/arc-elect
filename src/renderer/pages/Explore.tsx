@@ -96,40 +96,6 @@ export function Explore(): React.JSX.Element {
   return (
     <>
       <div className="px-4 lg:px-6 space-y-6">
-        {/* Schema Exploration Header */}
-        <Card className="glass-blue border-0">
-          <CardHeader className="gradient-accent rounded-t-lg border-b border-primary/20">
-            <CardTitle className="text-foreground flex items-center gap-2">
-              <Search className="w-5 h-5" />
-              Explore Schemas
-            </CardTitle>
-            <CardDescription className="text-muted-foreground">
-              Browse, search, and analyze schemas in {currentProject.name}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-              <div className="p-4 rounded-lg border border-border/50">
-                <Search className="w-8 h-8 mx-auto mb-2 text-primary" />
-                <h4 className="font-medium">Schema Grid</h4>
-                <p className="text-xs text-muted-foreground">Browse schemas in grid or list view</p>
-              </div>
-              <div className="p-4 rounded-lg border border-border/50">
-                <Search className="w-8 h-8 mx-auto mb-2 text-primary" />
-                <h4 className="font-medium">Search & Filter</h4>
-                <p className="text-xs text-muted-foreground">
-                  Find schemas by name, content, or status
-                </p>
-              </div>
-              <div className="p-4 rounded-lg border border-border/50">
-                <BarChart3 className="w-8 h-8 mx-auto mb-2 text-primary" />
-                <h4 className="font-medium">Analytics</h4>
-                <p className="text-xs text-muted-foreground">View schema statistics and insights</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Schema List */}
         <Card className="glass-blue border-0">
           <CardHeader>

@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Client",
+  "type": "object",
+  "properties": {
+    "birthdate": {
+      "type": "string"
+    },
+    "bodyLength": {
+      "type": "string"
+    },
+    "bodyWeight": {
+      "type": "string"
+    },
+    "bu": {
+      "$ref": "../common/enums/ClientBuEnum.schema.json"
+    },
+    "clientAddresses": {
+      "type": "array",
+      "items": {
+        "$ref": "./ClientAddress.schema.json"
+      }
+    },
+    "clientInsurances": {
+      "type": "array",
+      "items": {
+        "$ref": "./ClientInsurance.schema.json"
+      }
+    },
+    "clientMemberships": {
+      "type": "array",
+      "items": {
+        "$ref": "./ClientMembership.schema.json"
+      }
+    },
+    "contacts": {
+      "type": "array",
+      "items": {
+        "$ref": "./Contact.schema.json"
+      }
+    },
+    "debtorId": {
+      "type": "string"
+    },
+    "deceased": {
+      "type": "boolean"
+    },
+    "department": {
+      "type": "string"
+    },
+    "diseaseType": {
+      "type": "string"
+    },
+    "edossiers": {
+      "type": "array",
+      "items": {
+        "$ref": "./Edossier.schema.json"
+      }
+    },
+    "emailaddress": {
+      "type": "string"
+    },
+    "firstName": {
+      "type": "string"
+    },
+    "fullName": {
+      "type": "string"
+    },
+    "gender": {
+      "$ref": "../common/enums/GenderEnum.schema.json"
+    },
+    "hipWidth": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string"
+    },
+    "initials": {
+      "type": "string"
+    },
+    "language": {
+      "$ref": "../common/enums/LanguageEnum.schema.json"
+    },
+    "lowerlegLength": {
+      "type": "string"
+    },
+    "mobilenumber": {
+      "type": "string"
+    },
+    "nameUsage": {
+      "$ref": "../common/enums/NameUsageEnum.schema.json"
+    },
+    "orders": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "origin": {
+      "$ref": "../common/enums/OriginEnum.schema.json"
+    },
+    "phonenumber": {
+      "type": "string"
+    },
+    "primarySurname": {
+      "type": "string"
+    },
+    "primarySurnamePrefix": {
+      "type": "string"
+    },
+    "remarks": {
+      "type": "string"
+    },
+    "secondarySurname": {
+      "type": "string"
+    },
+    "secondarySurnamePrefix": {
+      "type": "string"
+    },
+    "shoulderHeight": {
+      "type": "string"
+    },
+    "socialsecuritynumber": {
+      "type": "integer"
+    },
+    "source": {
+      "$ref": "../common/enums/SourceEnum.schema.json"
+    },
+    "upperlegLength": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

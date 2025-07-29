@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Stock",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "modifiedAt": {
+      "type": "string"
+    },
+    "stockAvailable": {
+      "type": "number"
+    },
+    "stockMinimum": {
+      "type": "number"
+    }
+  },
+  "additionalProperties": false
+}

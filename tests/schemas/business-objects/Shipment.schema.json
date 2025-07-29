@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Shipment",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "order": {
+      "$ref": "./OrderRental.schema.json"
+    },
+    "packages": {
+      "type": "array",
+      "items": {
+        "$ref": "./Package.schema.json"
+      }
+    },
+    "referenceId": {
+      "type": "string"
+    },
+    "receiver": {
+      "$ref": "./Stakeholder.schema.json"
+    },
+    "returnId": {
+      "type": "string"
+    },
+    "sender": {
+      "$ref": "./Stakeholder.schema.json"
+    },
+    "shipmentOptions": {
+      "$ref": "./ShipmentOptions.schema.json"
+    },
+    "shippingCompany": {
+      "type": "string"
+    },
+    "shippingDate": {
+      "type": "string"
+    },
+    "trackAndTraceCode": {
+      "type": "string"
+    },
+    "trackAndTraceUrl": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ArticleRule",
+  "type": "object",
+  "properties": {
+    "purchaseInfos": {
+      "type": "array",
+      "items": {
+        "$ref": "./PurchaseInfo.schema.json"
+      }
+    },
+    "typeId": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

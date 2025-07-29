@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OrderLine",
+  "type": "object",
+  "properties": {
+    "alladinOrderNumbers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "delivery": {
+      "$ref": "./Delivery.schema.json"
+    },
+    "estimatedUsage": {
+      "$ref": "../common/enums/OrderEstimatedUsageEnum.schema.json"
+    },
+    "indications": {
+      "type": "array",
+      "items": {
+        "$ref": "./Indication.schema.json"
+      }
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "$ref": "./Item.schema.json"
+      }
+    },
+    "orderLineNumber": {
+      "type": "integer"
+    },
+    "ortecOrderNumbers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "product": {
+      "$ref": "./Product.schema.json"
+    },
+    "quantity": {
+      "type": "integer"
+    },
+    "requiredIndications": {
+      "type": "array",
+      "items": {
+        "$ref": "./RequiredIndication.schema.json"
+      }
+    },
+    "state": {
+      "$ref": "../common/enums/OrderStateEnum.schema.json"
+    }
+  },
+  "additionalProperties": false
+}

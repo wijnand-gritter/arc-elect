@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LengthUnit",
+  "type": "string",
+  "enum": [
+    "CENTIMETER",
+    "DECAMETER",
+    "DECIMETER",
+    "HECTOMETER",
+    "KILOMETER",
+    "METER",
+    "MILLIMETER"
+  ]
+}

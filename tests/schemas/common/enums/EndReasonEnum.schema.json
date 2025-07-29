@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EndReason",
+  "type": "string",
+  "enum": [
+    "CLIENT_DECEASED",
+    "CONSENSUAL_PREMATURE_END",
+    "INITIATED_BY_COUNTY",
+    "LEAVING_COUNTY",
+    "PLANNED_END",
+    "SINGLE_SIDED_END_CLIENT",
+    "SINGLE_SIDED_END_SUPPLIER",
+    "TEMPORARY_END",
+    "TRANSFERRED_TO_ANOTHER_DOMAIN",
+    "TRANSFERRED_TO_ANOTHER_PROVIDER"
+  ]
+}
