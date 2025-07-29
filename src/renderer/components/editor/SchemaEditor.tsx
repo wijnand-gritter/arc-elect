@@ -18,14 +18,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { ScrollArea } from '../ui/scroll-area';
-import {
-  Save,
-  RotateCcw,
-  Code,
-  AlertTriangle,
-  FileText,
-  Zap,
-} from 'lucide-react';
+import { Save, RotateCcw, Code, AlertTriangle, FileText, Zap } from 'lucide-react';
 import { MonacoEditor, ValidationError } from './MonacoEditor';
 
 import type { Schema } from '../../../types/schema-editor';
@@ -72,7 +65,6 @@ export function SchemaEditor({
     goToPosition: (line: number, column: number) => void;
   } | null>(null);
 
-
   const [isValidating, setIsValidating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSavedContent, setLastSavedContent] = useState(content);
@@ -92,7 +84,7 @@ export function SchemaEditor({
         contentLength: newContent.length,
       });
     }),
-    [schema.name, lastSavedContent, onContentChange, onDirtyChange]
+    [schema.name, lastSavedContent, onContentChange, onDirtyChange],
   );
 
   /**
@@ -101,18 +93,18 @@ export function SchemaEditor({
   const handleValidationChange = useCallback(
     safeHandler((validationErrors: ValidationError[]) => {
       onValidationChange(validationErrors);
-      
+
       logger.debug('Validation errors updated', {
         schemaName: schema.name,
         errorCount: validationErrors.length,
-        errors: validationErrors.map(e => ({
+        errors: validationErrors.map((e) => ({
           line: e.line,
           message: e.message,
           severity: e.severity,
         })),
       });
     }),
-    [schema.name, onValidationChange]
+    [schema.name, onValidationChange],
   );
 
   /**
@@ -125,11 +117,11 @@ export function SchemaEditor({
         toast.success('Document formatted', {
           description: 'JSON has been formatted with proper indentation',
         });
-        
+
         logger.info('Document formatted', { schemaName: schema.name });
       }
     }),
-    [schema.name]
+    [schema.name],
   );
 
   /**
@@ -140,10 +132,10 @@ export function SchemaEditor({
       if (!editorRef.current) return;
 
       setIsValidating(true);
-      
+
       try {
         const result = editorRef.current.validateJson();
-        
+
         if (result.valid) {
           toast.success('Validation successful', {
             description: 'JSON schema is valid',
@@ -163,7 +155,7 @@ export function SchemaEditor({
         toast.error('Validation error', {
           description: 'An error occurred during validation',
         });
-        
+
         logger.error('Validation error', {
           schemaName: schema.name,
           error: error instanceof Error ? error.message : error,
@@ -172,7 +164,7 @@ export function SchemaEditor({
         setIsValidating(false);
       }
     }),
-    [schema.name]
+    [schema.name],
   );
 
   /**
@@ -204,11 +196,11 @@ export function SchemaEditor({
 
         // Save to file system
         const result = await window.api.writeFile(schema.path, content);
-        
+
         if (result.success) {
           setLastSavedContent(content);
           onDirtyChange(false);
-          
+
           toast.success('Schema saved', {
             description: `${schema.name} has been saved successfully`,
           });
@@ -222,7 +214,7 @@ export function SchemaEditor({
           toast.error('Save failed', {
             description: result.error || 'Failed to save schema',
           });
-          
+
           logger.error('Schema save failed', {
             schemaName: schema.name,
             filePath: schema.path,
@@ -233,7 +225,7 @@ export function SchemaEditor({
         toast.error('Save error', {
           description: 'An unexpected error occurred while saving',
         });
-        
+
         logger.error('Schema save error', {
           schemaName: schema.name,
           filePath: schema.path,
@@ -243,7 +235,7 @@ export function SchemaEditor({
         setIsSaving(false);
       }
     }),
-    [schema.name, schema.filePath, content, onDirtyChange]
+    [schema.name, schema.filePath, content, onDirtyChange],
   );
 
   /**
@@ -255,7 +247,7 @@ export function SchemaEditor({
 
       onContentChange(lastSavedContent);
       onDirtyChange(false);
-      
+
       toast.success('Changes reverted', {
         description: 'Content has been restored to last saved version',
       });
@@ -264,7 +256,7 @@ export function SchemaEditor({
         schemaName: schema.name,
       });
     }),
-    [schema.name, lastSavedContent, isDirty, onContentChange, onDirtyChange]
+    [schema.name, lastSavedContent, isDirty, onContentChange, onDirtyChange],
   );
 
   /**
@@ -274,7 +266,7 @@ export function SchemaEditor({
     safeHandler((error: ValidationError) => {
       if (editorRef.current) {
         editorRef.current.goToPosition(error.line, error.column);
-        
+
         logger.debug('Navigated to error location', {
           schemaName: schema.name,
           line: error.line,
@@ -283,7 +275,7 @@ export function SchemaEditor({
         });
       }
     }),
-    [schema.name]
+    [schema.name],
   );
 
   // Create JSON Schema for validation (basic JSON Schema meta-schema)
@@ -295,11 +287,8 @@ export function SchemaEditor({
       $id: { type: 'string' },
       title: { type: 'string' },
       description: { type: 'string' },
-      type: { 
-        oneOf: [
-          { type: 'string' },
-          { type: 'array', items: { type: 'string' } }
-        ]
+      type: {
+        oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }],
       },
       properties: { type: 'object' },
       required: { type: 'array', items: { type: 'string' } },
@@ -318,7 +307,10 @@ export function SchemaEditor({
             {schema.validationStatus}
           </Badge>
           {isDirty && (
-            <Badge variant="secondary" className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+            <Badge
+              variant="secondary"
+              className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+            >
               Modified
             </Badge>
           )}
@@ -366,7 +358,7 @@ export function SchemaEditor({
             variant="default"
             size="sm"
             onClick={handleSave}
-            disabled={!isDirty || isSaving || errors.some(e => e.severity === 'error')}
+            disabled={!isDirty || isSaving || errors.some((e) => e.severity === 'error')}
           >
             {isSaving ? (
               <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
@@ -417,9 +409,7 @@ export function SchemaEditor({
                   <AlertTitle className="text-sm">
                     Line {error.line}, Column {error.column}
                   </AlertTitle>
-                  <AlertDescription className="text-sm">
-                    {error.message}
-                  </AlertDescription>
+                  <AlertDescription className="text-sm">{error.message}</AlertDescription>
                 </Alert>
               ))}
             </div>

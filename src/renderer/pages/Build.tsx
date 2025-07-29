@@ -34,11 +34,15 @@ import {
   ChevronDown,
   ChevronLeft,
   Settings,
+  CheckCircle,
+  PlayCircle,
+  BarChart3,
 } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
 import type { Schema } from '../../types/schema-editor';
 import { SchemaEditor } from '../components/editor/SchemaEditor';
 import { ValidationError } from '../components/editor/MonacoEditor';
+import { LivePreview } from '../components/preview/LivePreview';
 import logger from '../lib/renderer-logger';
 import { safeHandler } from '../lib/error-handling';
 import { toast } from 'sonner';
@@ -58,8 +62,6 @@ interface EditorTab {
   /** Validation errors for this tab */
   errors: ValidationError[];
 }
-
-
 
 /**
  * Interface for tree view items.
@@ -101,7 +103,9 @@ export function Build(): React.JSX.Element {
   const [editorTabs, setEditorTabs] = useState<EditorTab[]>([]);
   const [treeItems, setTreeItems] = useState<TreeItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [tabValidationErrors, setTabValidationErrors] = useState<Record<string, ValidationError[]>>({});
+  const [tabValidationErrors, setTabValidationErrors] = useState<Record<string, ValidationError[]>>(
+    {},
+  );
 
   // Build tree structure from schemas - file system approach
   const buildTreeStructure = useCallback((schemas: Schema[]): TreeItem[] => {
@@ -109,7 +113,7 @@ export function Build(): React.JSX.Element {
     const rootItems: TreeItem[] = [];
 
     // Simple check for debugging
-    const schemasWithFolders = schemas.filter(s => s.relativePath.includes('/'));
+    const schemasWithFolders = schemas.filter((s) => s.relativePath.includes('/'));
     if (schemasWithFolders.length === 0) {
       logger.error('No folder paths found - all schemas appear to be at root level');
     }
@@ -117,8 +121,8 @@ export function Build(): React.JSX.Element {
     // First pass: Create all folders
     const allPaths = new Set<string>();
     schemas.forEach((schema) => {
-      const pathParts = schema.relativePath.split('/').filter(part => part.length > 0);
-      
+      const pathParts = schema.relativePath.split('/').filter((part) => part.length > 0);
+
       // Add all parent folder paths
       for (let i = 0; i < pathParts.length - 1; i++) {
         const folderPath = pathParts.slice(0, i + 1).join('/');
@@ -131,39 +135,41 @@ export function Build(): React.JSX.Element {
     }
 
     // Create folder items
-    Array.from(allPaths).sort().forEach((folderPath) => {
-      const pathParts = folderPath.split('/');
-      const folderName = pathParts[pathParts.length - 1];
-      const parentPath = pathParts.slice(0, -1).join('/');
-      
-      const folderItem: TreeItem = {
-        id: folderPath,
-        name: folderName,
-        type: 'folder',
-        path: folderPath,
-        children: [],
-        expanded: false, // Keep all folders collapsed initially
-        schema: undefined,
-      };
+    Array.from(allPaths)
+      .sort()
+      .forEach((folderPath) => {
+        const pathParts = folderPath.split('/');
+        const folderName = pathParts[pathParts.length - 1];
+        const parentPath = pathParts.slice(0, -1).join('/');
 
-      folderMap.set(folderPath, folderItem);
+        const folderItem: TreeItem = {
+          id: folderPath,
+          name: folderName,
+          type: 'folder',
+          path: folderPath,
+          children: [],
+          expanded: false, // Keep all folders collapsed initially
+          schema: undefined,
+        };
 
-      // Add to parent or root
-      if (parentPath && folderMap.has(parentPath)) {
-        const parent = folderMap.get(parentPath)!;
-        parent.children.push(folderItem);
-        folderItem.parentId = parent.id;
-      } else if (pathParts.length === 1) {
-        rootItems.push(folderItem);
-      }
-    });
+        folderMap.set(folderPath, folderItem);
+
+        // Add to parent or root
+        if (parentPath && folderMap.has(parentPath)) {
+          const parent = folderMap.get(parentPath)!;
+          parent.children.push(folderItem);
+          folderItem.parentId = parent.id;
+        } else if (pathParts.length === 1) {
+          rootItems.push(folderItem);
+        }
+      });
 
     // Second pass: Add schema files
     schemas.forEach((schema) => {
-      const pathParts = schema.relativePath.split('/').filter(part => part.length > 0);
+      const pathParts = schema.relativePath.split('/').filter((part) => part.length > 0);
       const fileName = pathParts[pathParts.length - 1];
       const parentPath = pathParts.slice(0, -1).join('/');
-      
+
       const schemaItem: TreeItem = {
         id: schema.relativePath,
         name: fileName.replace('.schema.json', ''), // Clean display name
@@ -187,17 +193,19 @@ export function Build(): React.JSX.Element {
 
     // Sort function: folders first, then files, both alphabetically
     const sortItems = (items: TreeItem[]): TreeItem[] => {
-      return items.sort((a, b) => {
-        // Folders come before files
-        if (a.type !== b.type) {
-          return a.type === 'folder' ? -1 : 1;
-        }
-        // Alphabetical within same type
-        return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
-      }).map(item => ({
-        ...item,
-        children: sortItems(item.children)
-      }));
+      return items
+        .sort((a, b) => {
+          // Folders come before files
+          if (a.type !== b.type) {
+            return a.type === 'folder' ? -1 : 1;
+          }
+          // Alphabetical within same type
+          return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+        })
+        .map((item) => ({
+          ...item,
+          children: sortItems(item.children),
+        }));
     };
 
     const sortedRootItems = sortItems(rootItems);
@@ -206,12 +214,12 @@ export function Build(): React.JSX.Element {
       rootItemCount: sortedRootItems.length,
       totalFolders: folderMap.size,
       totalSchemas: schemas.length,
-      structure: sortedRootItems.map(item => ({
+      structure: sortedRootItems.map((item) => ({
         name: item.name,
         type: item.type,
         childCount: item.children.length,
-        expanded: item.expanded
-      }))
+        expanded: item.expanded,
+      })),
     });
 
     return sortedRootItems;
@@ -261,7 +269,7 @@ export function Build(): React.JSX.Element {
         description: `${schema.name} is now open for editing`,
       });
     }),
-    [editorTabs]
+    [editorTabs],
   );
 
   // Close editor tab
@@ -282,7 +290,7 @@ export function Build(): React.JSX.Element {
         delete newErrors[tabId];
         return newErrors;
       });
-      
+
       if (activeTabId === tabId) {
         const remainingTabs = editorTabs.filter((t) => t.id !== tabId);
         setActiveTabId(remainingTabs.length > 0 ? remainingTabs[0].id : null);
@@ -290,7 +298,7 @@ export function Build(): React.JSX.Element {
 
       logger.info('Closed editor tab', { tabId });
     }),
-    [editorTabs, activeTabId]
+    [editorTabs, activeTabId],
   );
 
   // Toggle tree item expansion
@@ -339,35 +347,25 @@ export function Build(): React.JSX.Element {
   const handleTabContentChange = useCallback(
     safeHandler((tabId: string, newContent: string) => {
       setEditorTabs((prev) =>
-        prev.map((tab) =>
-          tab.id === tabId ? { ...tab, content: newContent } : tab
-        )
+        prev.map((tab) => (tab.id === tabId ? { ...tab, content: newContent } : tab)),
       );
     }),
-    []
+    [],
   );
 
   // Handle tab dirty state changes
   const handleTabDirtyChange = useCallback(
     safeHandler((tabId: string, isDirty: boolean) => {
-      setEditorTabs((prev) =>
-        prev.map((tab) =>
-          tab.id === tabId ? { ...tab, isDirty } : tab
-        )
-      );
+      setEditorTabs((prev) => prev.map((tab) => (tab.id === tabId ? { ...tab, isDirty } : tab)));
     }),
-    []
+    [],
   );
 
   // Handle tab validation changes
   const handleTabValidationChange = useCallback(
     safeHandler((tabId: string, errors: ValidationError[]) => {
       setTabValidationErrors((prev) => ({ ...prev, [tabId]: errors }));
-      setEditorTabs((prev) =>
-        prev.map((tab) =>
-          tab.id === tabId ? { ...tab, errors } : tab
-        )
-      );
+      setEditorTabs((prev) => prev.map((tab) => (tab.id === tabId ? { ...tab, errors } : tab)));
     }),
     []
   );
@@ -375,22 +373,17 @@ export function Build(): React.JSX.Element {
   // Get active tab
   const activeTab = editorTabs.find((tab) => tab.id === activeTabId);
 
-  // Tab scrolling functions
-  const scrollTabs = useCallback((direction: 'left' | 'right') => {
-    const tabContainer = document.getElementById('tab-container');
-    if (!tabContainer) return;
-
-    const scrollAmount = 200;
-    const currentScroll = tabContainer.scrollLeft;
-    const newScroll = direction === 'left' 
-      ? Math.max(0, currentScroll - scrollAmount)
-      : currentScroll + scrollAmount;
-
-    tabContainer.scrollTo({ left: newScroll, behavior: 'smooth' });
-  }, []);
-
+  // Tab scrolling state
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [isBatchValidating, setIsBatchValidating] = useState(false);
+  const [batchValidationResults, setBatchValidationResults] = useState<{
+    total: number;
+    valid: number;
+    invalid: number;
+    errors: { schemaId: string; schemaName: string; errors: ValidationError[] }[];
+  } | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   // Update scroll button visibility
   const updateScrollButtons = useCallback(() => {
@@ -422,6 +415,131 @@ export function Build(): React.JSX.Element {
 
     return () => resizeObserver.disconnect();
   }, [updateScrollButtons]);
+
+  // Scroll tabs left or right
+  const scrollTabs = useCallback((direction: 'left' | 'right') => {
+    const container = document.getElementById('tab-container');
+    if (container) {
+      const scrollAmount = 200;
+      container.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth',
+      });
+      setTimeout(updateScrollButtons, 300);
+    }
+  }, [updateScrollButtons]);
+
+  // Batch validation functionality
+  const handleBatchValidation = useCallback(
+    safeHandler(async () => {
+      if (!currentProject.schemas || currentProject.schemas.length === 0) {
+        toast.error('No schemas to validate');
+        return;
+      }
+
+      setIsBatchValidating(true);
+      toast.info('Starting batch validation...');
+
+      try {
+        const results = {
+          total: currentProject.schemas.length,
+          valid: 0,
+          invalid: 0,
+          errors: [] as { schemaId: string; schemaName: string; errors: ValidationError[] }[],
+        };
+
+        // Validate each schema
+        for (const schema of currentProject.schemas) {
+          try {
+            // Read schema content
+            const fileResult = await window.api.readFile(schema.path);
+            if (!fileResult.success) {
+              results.invalid++;
+              results.errors.push({
+                schemaId: schema.id,
+                schemaName: schema.name,
+                errors: [{
+                  line: 1,
+                  column: 1,
+                  message: `Failed to read file: ${fileResult.error}`,
+                  severity: 'error',
+                  startLineNumber: 1,
+                  startColumn: 1,
+                  endLineNumber: 1,
+                  endColumn: 1,
+                }],
+              });
+              continue;
+            }
+
+            // Validate JSON syntax
+            try {
+              JSON.parse(fileResult.data);
+              results.valid++;
+            } catch (parseError) {
+              results.invalid++;
+              results.errors.push({
+                schemaId: schema.id,
+                schemaName: schema.name,
+                errors: [{
+                  line: 1,
+                  column: 1,
+                  message: `JSON Parse Error: ${parseError instanceof Error ? parseError.message : 'Invalid JSON'}`,
+                  severity: 'error',
+                  startLineNumber: 1,
+                  startColumn: 1,
+                  endLineNumber: 1,
+                  endColumn: 1,
+                }],
+              });
+            }
+          } catch (error) {
+            results.invalid++;
+            results.errors.push({
+              schemaId: schema.id,
+              schemaName: schema.name,
+              errors: [{
+                line: 1,
+                column: 1,
+                message: `Validation Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                severity: 'error',
+                startLineNumber: 1,
+                startColumn: 1,
+                endLineNumber: 1,
+                endColumn: 1,
+              }],
+            });
+          }
+        }
+
+        setBatchValidationResults(results);
+        
+        if (results.invalid === 0) {
+          toast.success(`Batch validation complete: All ${results.total} schemas are valid!`);
+        } else {
+          toast.warning(`Batch validation complete: ${results.valid} valid, ${results.invalid} invalid schemas`);
+        }
+        
+        logger.info('Batch validation completed', results);
+      } catch (error) {
+        logger.error('Batch validation failed', { error });
+        toast.error('Batch validation failed');
+      } finally {
+        setIsBatchValidating(false);
+      }
+    }),
+    [currentProject.schemas]
+  );
+
+  // Update scroll buttons when tabs change or component mounts
+  useEffect(() => {
+    updateScrollButtons();
+    const tabContainer = document.getElementById('tab-container');
+    if (tabContainer) {
+      tabContainer.addEventListener('scroll', updateScrollButtons);
+      return () => tabContainer.removeEventListener('scroll', updateScrollButtons);
+    }
+  }, [editorTabs, updateScrollButtons]);
 
   // Render tree item
   const renderTreeItem = (item: TreeItem, depth = 0) => {
@@ -472,8 +590,7 @@ export function Build(): React.JSX.Element {
             </Badge>
           )}
         </div>
-        {item.expanded &&
-          item.children.map((child) => renderTreeItem(child, depth + 1))}
+        {item.expanded && item.children.map((child) => renderTreeItem(child, depth + 1))}
       </div>
     );
   };
@@ -526,10 +643,38 @@ export function Build(): React.JSX.Element {
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" disabled={!activeTab}>
-                <Eye className="w-4 h-4 mr-2" />
-                Preview
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleBatchValidation}
+                disabled={isBatchValidating || !currentProject.schemas?.length}
+              >
+                {isBatchValidating ? (
+                  <PlayCircle className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                )}
+                {isBatchValidating ? 'Validating...' : 'Batch Validate'}
               </Button>
+              <Button 
+                variant={showPreview ? "default" : "outline"} 
+                size="sm" 
+                disabled={!activeTab}
+                onClick={() => setShowPreview(!showPreview)}
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                {showPreview ? 'Hide Preview' : 'Show Preview'}
+              </Button>
+              {batchValidationResults && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setBatchValidationResults(null)}
+                >
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Results ({batchValidationResults.valid}/{batchValidationResults.total})
+                </Button>
+              )}
               <Badge variant="outline" className="text-xs">
                 {editorTabs.length} tab{editorTabs.length !== 1 ? 's' : ''} open
               </Badge>
@@ -599,9 +744,9 @@ export function Build(): React.JSX.Element {
                         <ChevronLeft className="h-4 w-4" />
                       </Button>
                     )}
-                    
+
                     {/* Scrollable tab container */}
-                    <div 
+                    <div
                       id="tab-container"
                       className="flex-1 overflow-x-auto scrollbar-hide"
                       style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
@@ -616,9 +761,7 @@ export function Build(): React.JSX.Element {
                           >
                             <FileText className="w-4 h-4" />
                             <span className="text-sm">{tab.schema.name}</span>
-                            {tab.isDirty && (
-                              <div className="w-2 h-2 bg-orange-500 rounded-full" />
-                            )}
+                            {tab.isDirty && <div className="w-2 h-2 bg-orange-500 rounded-full" />}
                             {tab.errors.length > 0 && (
                               <AlertTriangle className="w-3 h-3 text-destructive" />
                             )}
@@ -635,7 +778,7 @@ export function Build(): React.JSX.Element {
                         ))}
                       </div>
                     </div>
-                    
+
                     {/* Right scroll arrow */}
                     {canScrollRight && (
                       <Button
@@ -655,18 +798,35 @@ export function Build(): React.JSX.Element {
               {editorTabs.map((tab) => (
                 <TabsContent key={tab.id} value={tab.id} className="mt-0">
                   <div className="h-[600px] flex flex-col">
-
-                     {/* Monaco Editor */}
-                    <div className="flex-1">
-                      <SchemaEditor
-                        schema={tab.schema}
-                        content={tab.content}
-                        isDirty={tab.isDirty}
-                        onContentChange={(content) => handleTabContentChange(tab.id, content)}
-                        onDirtyChange={(isDirty) => handleTabDirtyChange(tab.id, isDirty)}
-                        onValidationChange={(errors) => handleTabValidationChange(tab.id, errors)}
-                        errors={tabValidationErrors[tab.id] || []}
-                      />
+                    <div className={`flex-1 ${showPreview ? 'grid grid-cols-2 gap-4' : ''}`}>
+                      {/* Monaco Editor */}
+                      <div className="flex flex-col">
+                        <SchemaEditor
+                          schema={tab.schema}
+                          content={tab.content}
+                          isDirty={tab.isDirty}
+                          onContentChange={(content) => handleTabContentChange(tab.id, content)}
+                          onDirtyChange={(isDirty) => handleTabDirtyChange(tab.id, isDirty)}
+                          onValidationChange={(errors) => handleTabValidationChange(tab.id, errors)}
+                          errors={tabValidationErrors[tab.id] || []}
+                        />
+                      </div>
+                      
+                      {/* Live Preview */}
+                      {showPreview && (
+                        <div className="flex flex-col">
+                          <LivePreview
+                            schemaContent={tab.content}
+                            schemaName={tab.schema.name}
+                            isValid={tab.errors.length === 0}
+                            errors={tab.errors.map(error => ({
+                              message: error.message,
+                              line: error.line,
+                              column: error.column
+                            }))}
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </TabsContent>

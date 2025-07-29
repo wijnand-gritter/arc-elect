@@ -204,7 +204,7 @@ class ProjectManager {
 
       // Store project in map BEFORE reading schemas so readSchemaFile can find it
       this.projects.set(project.id, project);
-      
+
       // Load and validate schemas in parallel with progress tracking
       const schemaLoadStart = Date.now();
       logger.info('ProjectManager: Loading schemas', { totalFiles: jsonFiles.length });
@@ -565,7 +565,7 @@ class ProjectManager {
     const project = this.projects.get(projectId);
     const projectRootPath = project?.path || path.dirname(filePath);
     const relativePath = path.relative(projectRootPath, filePath);
-    
+
     // Path calculation should now work correctly with project in map
     try {
       // Single file read and stat operation

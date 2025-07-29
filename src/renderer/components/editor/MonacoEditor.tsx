@@ -81,19 +81,22 @@ export const MonacoEditor = React.forwardRef<
     goToPosition: (line: number, column: number) => void;
   },
   MonacoEditorProps
->(function MonacoEditor({
-  value,
-  onChange,
-  onValidationChange,
-  readOnly = false,
-  height = '400px',
-  language = 'json',
-  jsonSchema,
-  minimap = true,
-  wordWrap = false,
-  fontSize = 14,
-  tabSize = 2,
-}, ref) {
+>(function MonacoEditor(
+  {
+    value,
+    onChange,
+    onValidationChange,
+    readOnly = false,
+    height = '400px',
+    language = 'json',
+    jsonSchema,
+    minimap = true,
+    wordWrap = false,
+    fontSize = 14,
+    tabSize = 2,
+  },
+  ref,
+) {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
   const onValidationChangeRef = useRef(onValidationChange);
@@ -145,25 +148,25 @@ export const MonacoEditor = React.forwardRef<
       // Set up debounced validation to prevent infinite loops
       const setupValidation = () => {
         if (!onValidationChangeRef.current) return;
-        
+
         const model = editor.getModel();
         if (!model) return;
 
         const checkValidation = () => {
           const currentContent = model.getValue();
-          
+
           // Only process if content actually changed
           if (currentContent === lastValidationRef.current) {
             return;
           }
-          
+
           lastValidationRef.current = currentContent;
-          
+
           // Clear existing timeout
           if (validationTimeoutRef.current) {
             clearTimeout(validationTimeoutRef.current);
           }
-          
+
           // Debounce validation check
           validationTimeoutRef.current = setTimeout(() => {
             try {
@@ -172,32 +175,36 @@ export const MonacoEditor = React.forwardRef<
                 line: marker.startLineNumber,
                 column: marker.startColumn,
                 message: marker.message,
-                severity: marker.severity === monacoInstance.MarkerSeverity.Error ? 'error' :
-                         marker.severity === monacoInstance.MarkerSeverity.Warning ? 'warning' : 'info',
+                severity:
+                  marker.severity === monacoInstance.MarkerSeverity.Error
+                    ? 'error'
+                    : marker.severity === monacoInstance.MarkerSeverity.Warning
+                      ? 'warning'
+                      : 'info',
                 startLineNumber: marker.startLineNumber,
                 startColumn: marker.startColumn,
                 endLineNumber: marker.endLineNumber,
                 endColumn: marker.endColumn,
               }));
-              
+
               onValidationChangeRef.current?.(errors);
             } catch (error) {
               logger.error('Validation check failed', { error });
             }
           }, 500); // 500ms debounce
         };
-        
+
         // Initial validation check
         setTimeout(checkValidation, 100);
-        
+
         // Listen for content changes only
         const disposable = model.onDidChangeContent(() => {
           checkValidation();
         });
-        
+
         return disposable;
       };
-      
+
       // Configure editor options
       editor.updateOptions({
         fontSize,
@@ -223,7 +230,9 @@ export const MonacoEditor = React.forwardRef<
       editor.addAction({
         id: 'format-document',
         label: 'Format Document',
-        keybindings: [monacoInstance.KeyMod.Shift | monacoInstance.KeyMod.Alt | monacoInstance.KeyCode.KeyF],
+        keybindings: [
+          monacoInstance.KeyMod.Shift | monacoInstance.KeyMod.Alt | monacoInstance.KeyCode.KeyF,
+        ],
         contextMenuGroupId: 'modification',
         run: () => {
           editor.getAction('editor.action.formatDocument')?.run();
@@ -233,7 +242,9 @@ export const MonacoEditor = React.forwardRef<
       editor.addAction({
         id: 'validate-json',
         label: 'Validate JSON',
-        keybindings: [monacoInstance.KeyMod.CtrlCmd | monacoInstance.KeyMod.Shift | monacoInstance.KeyCode.KeyV],
+        keybindings: [
+          monacoInstance.KeyMod.CtrlCmd | monacoInstance.KeyMod.Shift | monacoInstance.KeyCode.KeyV,
+        ],
         contextMenuGroupId: 'modification',
         run: () => {
           try {
@@ -241,7 +252,9 @@ export const MonacoEditor = React.forwardRef<
             JSON.parse(content);
             logger.info('JSON validation successful');
           } catch (error) {
-            logger.error('JSON validation failed', { error: error instanceof Error ? error.message : error });
+            logger.error('JSON validation failed', {
+              error: error instanceof Error ? error.message : error,
+            });
           }
         },
       });
@@ -251,9 +264,9 @@ export const MonacoEditor = React.forwardRef<
         readOnly,
         hasSchema: !!jsonSchema,
       });
-      
+
       const validationDisposable = setupValidation();
-      
+
       // Cleanup function
       const cleanup = () => {
         if (validationTimeoutRef.current) {
@@ -261,10 +274,10 @@ export const MonacoEditor = React.forwardRef<
         }
         validationDisposable?.dispose();
       };
-      
+
       return cleanup;
     }),
-    [language, jsonSchema, fontSize, tabSize, wordWrap, minimap]
+    [language, jsonSchema, fontSize, tabSize, wordWrap, minimap],
   );
 
   /**
@@ -276,7 +289,7 @@ export const MonacoEditor = React.forwardRef<
         onChangeRef.current(newValue);
       }
     }),
-    []
+    [],
   );
 
   /**
@@ -338,7 +351,7 @@ export const MonacoEditor = React.forwardRef<
       getCursorPosition,
       goToPosition,
     }),
-    [formatDocument, validateJson, getCursorPosition, goToPosition]
+    [formatDocument, validateJson, getCursorPosition, goToPosition],
   );
 
   // Update theme when it changes
