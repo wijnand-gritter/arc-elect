@@ -12,6 +12,7 @@
 
 import { ipcMain } from 'electron';
 import Store from 'electron-store';
+import { withErrorHandling, validateInput } from './error-handler';
 import logger from './main-logger';
 
 /**
@@ -42,23 +43,14 @@ const settingsStore = new Store<SettingsStore>({
  *
  * @returns Promise resolving to theme setting or error
  */
-ipcMain.handle('settings:getTheme', async () => {
-  const startTime = Date.now();
-  
-  try {
+ipcMain.handle(
+  'settings:getTheme',
+  withErrorHandling(async () => {
     const theme = settingsStore.get('theme', 'system');
-    const duration = Date.now() - startTime;
-    
-    logger.info('Theme setting read successfully', { theme, duration });
-    return { success: true, data: theme };
-  } catch (error) {
-    const duration = Date.now() - startTime;
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    
-    logger.error('Error reading theme setting', { error: errorMessage, duration });
-    return { success: false, error: errorMessage };
-  }
-});
+    logger.info('Theme setting read successfully', { theme });
+    return theme;
+  }, 'settings:getTheme'),
+);
 
 /**
  * IPC handler for setting the theme.
@@ -70,32 +62,24 @@ ipcMain.handle('settings:getTheme', async () => {
  * @param theme - The new theme to set
  * @returns Promise resolving to success status or error
  */
-ipcMain.handle('settings:setTheme', async (_event, theme: 'light' | 'dark' | 'system') => {
-  const startTime = Date.now();
-  
-  try {
-    // Enhanced validation
-    if (typeof theme !== 'string') {
-      throw new Error('Theme must be a string');
+ipcMain.handle(
+  'settings:setTheme',
+  withErrorHandling(async (_event, theme: 'light' | 'dark' | 'system') => {
+    // Validate theme value
+    const validation = validateInput(theme, 'string');
+    if (!validation.valid) {
+      throw new Error(validation.error);
     }
-    
+
     if (!['light', 'dark', 'system'].includes(theme)) {
       throw new Error('Invalid theme value. Must be "light", "dark", or "system"');
     }
 
     settingsStore.set('theme', theme);
-    const duration = Date.now() - startTime;
-    
-    logger.info('Theme setting updated successfully', { theme, duration });
+    logger.info('Theme setting updated successfully', { theme });
     return { success: true };
-  } catch (error) {
-    const duration = Date.now() - startTime;
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    
-    logger.error('Error updating theme setting', { theme, error: errorMessage, duration });
-    return { success: false, error: errorMessage };
-  }
-});
+  }, 'settings:setTheme'),
+);
 
 /**
  * IPC handler for clearing all settings and data.
@@ -105,23 +89,14 @@ ipcMain.handle('settings:setTheme', async (_event, theme: 'light' | 'dark' | 'sy
  *
  * @returns Promise resolving to success status or error
  */
-ipcMain.handle('settings:clear', async () => {
-  const startTime = Date.now();
-  
-  try {
+ipcMain.handle(
+  'settings:clear',
+  withErrorHandling(async () => {
     settingsStore.clear();
-    const duration = Date.now() - startTime;
-    
-    logger.info('All settings cleared successfully', { duration });
+    logger.info('All settings cleared successfully');
     return { success: true };
-  } catch (error) {
-    const duration = Date.now() - startTime;
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    
-    logger.error('Error clearing settings', { error: errorMessage, duration });
-    return { success: false, error: errorMessage };
-  }
-});
+  }, 'settings:clear'),
+);
 
 /**
  * IPC handler for exporting all settings and data.
@@ -131,23 +106,14 @@ ipcMain.handle('settings:clear', async () => {
  *
  * @returns Promise resolving to exported data or error
  */
-ipcMain.handle('settings:export', async () => {
-  const startTime = Date.now();
-  
-  try {
+ipcMain.handle(
+  'settings:export',
+  withErrorHandling(async () => {
     const data = settingsStore.store;
-    const duration = Date.now() - startTime;
-    
-    logger.info('Settings exported successfully', { duration });
-    return { success: true, data: JSON.stringify(data, null, 2) };
-  } catch (error) {
-    const duration = Date.now() - startTime;
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    
-    logger.error('Error exporting settings', { error: errorMessage, duration });
-    return { success: false, error: errorMessage };
-  }
-});
+    logger.info('Settings exported successfully');
+    return JSON.stringify(data, null, 2);
+  }, 'settings:export'),
+);
 
 /**
  * IPC handler for importing settings and data.
@@ -160,17 +126,13 @@ ipcMain.handle('settings:export', async () => {
  * @param json - JSON string containing settings data
  * @returns Promise resolving to success status or error
  */
-ipcMain.handle('settings:import', async (_event, json: string) => {
-  const startTime = Date.now();
-  
-  try {
-    // Enhanced validation
-    if (typeof json !== 'string') {
-      throw new Error('Input must be a string');
-    }
-    
-    if (json.length === 0) {
-      throw new Error('Input cannot be empty');
+ipcMain.handle(
+  'settings:import',
+  withErrorHandling(async (_event, json: string) => {
+    // Validate input
+    const validation = validateInput(json, 'string');
+    if (!validation.valid) {
+      throw new Error(validation.error);
     }
 
     const data = JSON.parse(json);
@@ -179,15 +141,7 @@ ipcMain.handle('settings:import', async (_event, json: string) => {
     }
 
     settingsStore.store = data;
-    const duration = Date.now() - startTime;
-    
-    logger.info('Settings imported successfully', { duration });
+    logger.info('Settings imported successfully');
     return { success: true };
-  } catch (error) {
-    const duration = Date.now() - startTime;
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    
-    logger.error('Error importing settings', { error: errorMessage, duration });
-    return { success: false, error: errorMessage };
-  }
-});
+  }, 'settings:import'),
+);

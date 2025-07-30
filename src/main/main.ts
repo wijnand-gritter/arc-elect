@@ -21,6 +21,7 @@ import fs from 'fs/promises';
 import logger from './main-logger';
 import './main-store';
 import { performanceMonitor } from './performance-monitor';
+import { withErrorHandling, validateInput } from './error-handler';
 // Import project manager to initialize IPC handlers
 import './project-manager';
 
@@ -107,21 +108,13 @@ app.on('before-quit', () => {
  * @param filePath - The path to the file to read
  * @returns Promise resolving to file content or error
  */
-ipcMain.handle('file:read', async (_event, filePath: string) => {
-  const startTime = Date.now();
-  
-  try {
-    // Enhanced validation
-    if (typeof filePath !== 'string') {
-      throw new Error('File path must be a string');
-    }
-    
-    if (filePath.length === 0) {
-      throw new Error('File path cannot be empty');
-    }
-    
-    if (filePath.length > 512) {
-      throw new Error('File path too long (max 512 characters)');
+ipcMain.handle(
+  'file:read',
+  withErrorHandling(async (_event, filePath: string) => {
+    // Validate input
+    const validation = validateInput(filePath, 'string', 512);
+    if (!validation.valid) {
+      throw new Error(validation.error);
     }
 
     // Basic security check - prevent directory traversal
@@ -130,31 +123,10 @@ ipcMain.handle('file:read', async (_event, filePath: string) => {
     }
 
     const data = await fs.readFile(filePath, 'utf-8');
-    const duration = Date.now() - startTime;
-    
-    logger.info('File read successfully', { 
-      filePath, 
-      duration, 
-      size: data.length 
-    });
-    
-    return { success: true, data };
-  } catch (error) {
-    const duration = Date.now() - startTime;
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    
-    logger.error('Error reading file', { 
-      filePath, 
-      error: errorMessage, 
-      duration 
-    });
-    
-    return { 
-      success: false, 
-      error: errorMessage 
-    };
-  }
-});
+    logger.info('File read successfully', { filePath, size: data.length });
+    return data;
+  }, 'file:read'),
+);
 
 /**
  * IPC handler for writing files from the renderer process.
@@ -164,25 +136,18 @@ ipcMain.handle('file:read', async (_event, filePath: string) => {
  * @param data - The data to write to the file
  * @returns Promise resolving to success status or error
  */
-ipcMain.handle('file:write', async (_event, filePath: string, data: string) => {
-  const startTime = Date.now();
-  
-  try {
-    // Enhanced validation
-    if (typeof filePath !== 'string') {
-      throw new Error('File path must be a string');
-    }
-    
-    if (filePath.length === 0) {
-      throw new Error('File path cannot be empty');
-    }
-    
-    if (filePath.length > 512) {
-      throw new Error('File path too long (max 512 characters)');
+ipcMain.handle(
+  'file:write',
+  withErrorHandling(async (_event, filePath: string, data: string) => {
+    // Validate inputs
+    const pathValidation = validateInput(filePath, 'string', 512);
+    if (!pathValidation.valid) {
+      throw new Error(pathValidation.error);
     }
 
-    if (typeof data !== 'string') {
-      throw new Error('File data must be a string');
+    const dataValidation = validateInput(data, 'string');
+    if (!dataValidation.valid) {
+      throw new Error(dataValidation.error);
     }
 
     // Basic security check - prevent directory traversal
@@ -191,31 +156,10 @@ ipcMain.handle('file:write', async (_event, filePath: string, data: string) => {
     }
 
     await fs.writeFile(filePath, data, 'utf-8');
-    const duration = Date.now() - startTime;
-    
-    logger.info('File written successfully', { 
-      filePath, 
-      duration, 
-      size: data.length 
-    });
-    
+    logger.info('File written successfully', { filePath, size: data.length });
     return { success: true };
-  } catch (error) {
-    const duration = Date.now() - startTime;
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    
-    logger.error('Error writing file', { 
-      filePath, 
-      error: errorMessage, 
-      duration 
-    });
-    
-    return { 
-      success: false, 
-      error: errorMessage 
-    };
-  }
-});
+  }, 'file:write'),
+);
 
 /**
  * Creates the main application window.
