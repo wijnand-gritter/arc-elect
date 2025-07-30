@@ -12,6 +12,7 @@
 
 import React from 'react';
 import { useAppStore } from '../stores/useAppStore';
+import { ErrorBoundary } from './ErrorBoundary';
 import { Settings } from '@/pages/Settings';
 import { Project } from '@/pages/Project';
 import { Explore } from '@/pages/Explore';
@@ -70,11 +71,31 @@ export function PageContent(): React.JSX.Element {
     <div className="flex flex-1 flex-col min-h-0">
       <div className="container mx-auto flex flex-1 flex-col gap-4 p-6 max-w-7xl">
         <div className="page-transition flex-1">
-          {currentPage === 'project' && <Project />}
-          {currentPage === 'explore' && <Explore />}
-          {currentPage === 'build' && <Build />}
-          {currentPage === 'analytics' && <Analytics />}
-          {currentPage === 'settings' && <Settings />}
+          {currentPage === 'project' && (
+            <ErrorBoundary>
+              <Project />
+            </ErrorBoundary>
+          )}
+          {currentPage === 'explore' && (
+            <ErrorBoundary>
+              <Explore />
+            </ErrorBoundary>
+          )}
+          {currentPage === 'build' && (
+            <ErrorBoundary>
+              <Build />
+            </ErrorBoundary>
+          )}
+          {currentPage === 'analytics' && (
+            <ErrorBoundary>
+              <Analytics />
+            </ErrorBoundary>
+          )}
+          {currentPage === 'settings' && (
+            <ErrorBoundary>
+              <Settings />
+            </ErrorBoundary>
+          )}
         </div>
       </div>
     </div>

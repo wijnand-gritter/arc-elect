@@ -129,10 +129,10 @@ export function useBackgroundAnalytics(
   clearResults: () => void;
 } {
   const {
-    autoAnalyze = true,
+    autoAnalyze = false,
     debounceDelay = 1000,
     enableCaching = true,
-    maxConcurrency = 2,
+    maxConcurrency = 3,
   } = options;
 
   const [state, setState] = useState<BackgroundAnalyticsState>({
@@ -148,99 +148,66 @@ export function useBackgroundAnalytics(
     },
   });
 
-  // Background processing hook
-  const {
-    addTask,
-    clearTasks,
-    isProcessing,
-    overallProgress,
-    getResult,
-    metrics: processingMetrics,
-  } = useBackgroundProcessing({
-    maxConcurrency,
-    enableQueue: true,
-    enableScheduling: true,
-    defaultTimeout: 60000, // 1 minute timeout
-    enableMonitoring: true,
-  });
+  // Store interval and timeout IDs for cleanup
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const { addTask, getResult, clearTasks, isProcessing, overallProgress, metrics } =
+    useBackgroundProcessing({
+      maxConcurrency,
+    });
 
   /**
-   * Create analytics processor function.
+   * Create analytics processor for specific task type.
    */
-  const createAnalyticsProcessor = useCallback(
-    (taskType: AnalyticsTaskType) =>
-      async (input: AnalyticsTaskInput, signal?: AbortSignal): Promise<unknown> => {
-        const { schemas } = input;
+  const createAnalyticsProcessor = useCallback((taskType: AnalyticsTaskType) => {
+    return async (input: AnalyticsTaskInput): Promise<unknown> => {
+      const startTime = Date.now();
+      logger.info('Starting analytics processing', { taskType, schemaCount: input.schemas.length });
+
+      try {
         const analyticsService = new AnalyticsService();
 
-        // Check for cancellation
-        if (signal?.aborted) {
-          throw new Error('Analysis cancelled');
-        }
-
-        const startTime = Date.now();
-        logger.info(`Starting ${taskType} analysis`, { taskType, schemaCount: schemas.length });
-
-        try {
-          let result: unknown;
-
-          switch (taskType) {
-            case 'circular-references':
-              result = analyticsService.detectCircularReferences(schemas);
-              break;
-
-            case 'complexity-metrics':
-              result = analyticsService.calculateComplexityMetrics(schemas);
-              break;
-
-            case 'reference-graph':
-              result = analyticsService.buildReferenceGraph(schemas);
-              break;
-
-            case 'full-analysis': {
-              // Perform a comprehensive analysis using the single public helper
-              result = await analyticsService.analyzeSchemas(schemas);
-              break;
-            }
-
-            default:
-              throw new Error(`Unknown analysis task type: ${taskType}`);
+        switch (taskType) {
+          case 'circular-references':
+            return analyticsService.detectCircularReferences(input.schemas);
+          case 'complexity-metrics':
+            return analyticsService.calculateComplexityMetrics(input.schemas);
+          case 'reference-graph':
+            return analyticsService.buildReferenceGraph(input.schemas);
+          case 'project-metrics': {
+            const complexityMetrics = analyticsService.calculateComplexityMetrics(input.schemas);
+            const circularReferences = analyticsService.detectCircularReferences(input.schemas);
+            return analyticsService.calculateProjectMetrics(
+              input.schemas,
+              complexityMetrics,
+              circularReferences,
+            );
           }
-
-          const duration = Date.now() - startTime;
-          logger.info(`Completed ${taskType} analysis`, {
-            duration,
-            resultSize: JSON.stringify(result).length,
-          });
-
-          return result;
-        } catch (error) {
-          const duration = Date.now() - startTime;
-          logger.error(`Failed ${taskType} analysis`, {
-            error: error instanceof Error ? error.message : 'Unknown error',
-            duration,
-          });
-          throw error;
+          case 'full-analysis':
+            return await analyticsService.analyzeSchemas(input.schemas);
+          default:
+            throw new Error(`Unknown task type: ${taskType}`);
         }
-      },
-    [],
-  );
+      } catch (error) {
+        logger.error('Analytics processing failed', { taskType, error });
+        throw error;
+      } finally {
+        const duration = Date.now() - startTime;
+        logger.info('Analytics processing completed', { taskType, duration });
+      }
+    };
+  }, []);
 
   /**
-   * Update state with analysis result.
+   * Update analysis result for specific task type.
    */
   const updateResult = useCallback((taskType: AnalyticsTaskType, result: unknown) => {
     setState((prev) => ({
       ...prev,
       results: {
         ...prev.results,
-        [taskType === 'full-analysis'
-          ? 'fullAnalysis'
-          : taskType === 'circular-references'
-            ? 'circularReferences'
-            : taskType === 'complexity-metrics'
-              ? 'complexityMetrics'
-              : 'referenceGraph']: result,
+        [taskType]: result,
       },
       lastAnalysis: new Date(),
       metrics: {
@@ -260,6 +227,16 @@ export function useBackgroundAnalytics(
         return;
       }
 
+      // Clear any existing intervals/timeouts
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+
       const taskId = `${taskType}-${Date.now()}`;
 
       setState((prev) => ({ ...prev, error: null }));
@@ -273,23 +250,37 @@ export function useBackgroundAnalytics(
       });
 
       // Poll for result
-      const pollInterval = setInterval(() => {
+      intervalRef.current = setInterval(() => {
         const result = getResult(taskId);
 
         if (result?.status === 'completed' && result.result) {
           updateResult(taskType, result.result);
-          clearInterval(pollInterval);
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
         } else if (result?.status === 'error') {
           setState((prev) => ({ ...prev, error: result.error || 'Analysis failed' }));
-          clearInterval(pollInterval);
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
         } else if (result?.status === 'cancelled') {
           setState((prev) => ({ ...prev, error: 'Analysis was cancelled' }));
-          clearInterval(pollInterval);
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
         }
       }, 100);
 
       // Cleanup after 5 minutes
-      setTimeout(() => clearInterval(pollInterval), 300000);
+      timeoutRef.current = setTimeout(() => {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+      }, 300000) as any;
     },
     [schemas, enableCaching, addTask, createAnalyticsProcessor, getResult, updateResult],
   );
@@ -320,6 +311,14 @@ export function useBackgroundAnalytics(
   const cancelAnalysis = useCallback(() => {
     clearTasks();
     setState((prev) => ({ ...prev, error: 'Analysis cancelled' }));
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
   }, [clearTasks]);
 
   /**
@@ -369,10 +368,10 @@ export function useBackgroundAnalytics(
       progress: overallProgress,
       metrics: {
         ...prev.metrics,
-        averageDuration: processingMetrics.averageDuration,
+        averageDuration: metrics.averageDuration,
       },
     }));
-  }, [isProcessing, overallProgress, processingMetrics]);
+  }, [isProcessing, overallProgress, metrics]);
 
   /**
    * Cleanup on unmount.
@@ -383,6 +382,14 @@ export function useBackgroundAnalytics(
         clearTimeout(debounceRef.current);
       }
       clearTasks();
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
     };
   }, [debounceRef, clearTasks]);
 

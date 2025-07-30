@@ -13,12 +13,13 @@
  * @version 1.0.0
  */
 
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useRef } from 'react';
 import MonacoEditorReact, { Monaco } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
 import { useTheme } from 'next-themes';
 import logger from '../../lib/renderer-logger';
 import { safeHandler } from '../../lib/error-handling';
+import { ErrorBoundary } from '../ErrorBoundary';
 
 /**
  * Interface for validation errors.
@@ -104,7 +105,7 @@ export const MonacoEditor = React.forwardRef<
   const validationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastValidationRef = useRef<string>('');
   const { theme } = useTheme();
-  const [isReady, setIsReady] = useState(false);
+  const [isReady, setIsReady] = React.useState(false);
 
   // Update refs when props change
   onValidationChangeRef.current = onValidationChange;
@@ -113,7 +114,7 @@ export const MonacoEditor = React.forwardRef<
   /**
    * Handle editor mount.
    */
-  const handleEditorDidMount = useCallback(
+  const handleEditorDidMount = React.useCallback(
     safeHandler((editor: monaco.editor.IStandaloneCodeEditor, monacoInstance: Monaco) => {
       editorRef.current = editor;
       monacoRef.current = monacoInstance;
@@ -283,7 +284,7 @@ export const MonacoEditor = React.forwardRef<
   /**
    * Handle content change.
    */
-  const handleChange = useCallback(
+  const handleChange = React.useCallback(
     safeHandler((newValue: string | undefined) => {
       if (newValue !== undefined) {
         onChangeRef.current(newValue);
@@ -295,7 +296,7 @@ export const MonacoEditor = React.forwardRef<
   /**
    * Format the document.
    */
-  const formatDocument = useCallback(() => {
+  const formatDocument = React.useCallback(() => {
     if (editorRef.current) {
       editorRef.current.getAction('editor.action.formatDocument')?.run();
     }
@@ -304,7 +305,7 @@ export const MonacoEditor = React.forwardRef<
   /**
    * Validate JSON content.
    */
-  const validateJson = useCallback(() => {
+  const validateJson = React.useCallback(() => {
     if (editorRef.current) {
       try {
         const content = editorRef.current.getValue();
@@ -323,7 +324,7 @@ export const MonacoEditor = React.forwardRef<
   /**
    * Get current cursor position.
    */
-  const getCursorPosition = useCallback(() => {
+  const getCursorPosition = React.useCallback(() => {
     if (editorRef.current) {
       const position = editorRef.current.getPosition();
       return position ? { line: position.lineNumber, column: position.column } : null;
@@ -334,7 +335,7 @@ export const MonacoEditor = React.forwardRef<
   /**
    * Go to specific line and column.
    */
-  const goToPosition = useCallback((line: number, column: number) => {
+  const goToPosition = React.useCallback((line: number, column: number) => {
     if (editorRef.current) {
       editorRef.current.setPosition({ lineNumber: line, column });
       editorRef.current.revealPositionInCenter({ lineNumber: line, column });
@@ -381,41 +382,43 @@ export const MonacoEditor = React.forwardRef<
 
   return (
     <div className="relative w-full" style={{ height }}>
-      <MonacoEditorReact
-        value={value}
-        language={language}
-        theme={theme === 'dark' ? 'vs-dark' : 'vs'}
-        onChange={handleChange}
-        onMount={handleEditorDidMount}
-        options={{
-          readOnly,
-          fontSize,
-          tabSize,
-          insertSpaces: true,
-          detectIndentation: false,
-          wordWrap: wordWrap ? 'on' : 'off',
-          minimap: { enabled: minimap },
-          scrollBeyondLastLine: false,
-          automaticLayout: true,
-          contextmenu: true,
-          folding: true,
-          lineNumbers: 'on',
-          renderWhitespace: 'boundary',
-          bracketPairColorization: { enabled: true },
-          guides: {
-            bracketPairs: true,
-            indentation: true,
-          },
-        }}
-        loading={
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center space-y-2">
-              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-              <p className="text-sm text-muted-foreground">Loading editor...</p>
+      <ErrorBoundary>
+        <MonacoEditorReact
+          value={value}
+          language={language}
+          theme={theme === 'dark' ? 'vs-dark' : 'vs'}
+          onChange={handleChange}
+          onMount={handleEditorDidMount}
+          options={{
+            readOnly,
+            fontSize,
+            tabSize,
+            insertSpaces: true,
+            detectIndentation: false,
+            wordWrap: wordWrap ? 'on' : 'off',
+            minimap: { enabled: minimap },
+            scrollBeyondLastLine: false,
+            automaticLayout: true,
+            contextmenu: true,
+            folding: true,
+            lineNumbers: 'on',
+            renderWhitespace: 'boundary',
+            bracketPairColorization: { enabled: true },
+            guides: {
+              bracketPairs: true,
+              indentation: true,
+            },
+          }}
+          loading={
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center space-y-2">
+                <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+                <p className="text-sm text-muted-foreground">Loading editor...</p>
+              </div>
             </div>
-          </div>
-        }
-      />
+          }
+        />
+      </ErrorBoundary>
     </div>
   );
 });

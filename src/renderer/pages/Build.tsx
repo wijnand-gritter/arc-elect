@@ -293,7 +293,7 @@ export function Build(): React.JSX.Element {
 
       if (activeTabId === tabId) {
         const remainingTabs = editorTabs.filter((t) => t.id !== tabId);
-        setActiveTabId(remainingTabs.length > 0 ? remainingTabs[0].id : null);
+        setActiveTabId(remainingTabs.length > 0 ? (remainingTabs[0]?.id ?? null) : null);
       }
 
       logger.info('Closed editor tab', { tabId });
@@ -432,31 +432,33 @@ export function Build(): React.JSX.Element {
     [updateScrollButtons],
   );
 
-  // Batch validation functionality
-  const handleBatchValidation = useCallback(
+  // Batch validation
+  const runBatchValidation = useCallback(
     safeHandler(async () => {
-      if (!currentProject.schemas || currentProject.schemas.length === 0) {
+      if (!currentProject?.schemas?.length) {
         toast.error('No schemas to validate');
         return;
       }
 
       setIsBatchValidating(true);
-      toast.info('Starting batch validation...');
+      setBatchValidationResults(null);
 
       try {
         const results = {
           total: currentProject.schemas.length,
           valid: 0,
           invalid: 0,
-          errors: [] as { schemaId: string; schemaName: string; errors: ValidationError[] }[],
+          errors: [] as Array<{
+            schemaId: string;
+            schemaName: string;
+            errors: ValidationError[];
+          }>,
         };
 
-        // Validate each schema
         for (const schema of currentProject.schemas) {
           try {
-            // Read schema content
             const fileResult = await window.api.readFile(schema.path);
-            if (!fileResult.success) {
+            if (!fileResult.success || !fileResult.data) {
               results.invalid++;
               results.errors.push({
                 schemaId: schema.id,
@@ -465,7 +467,7 @@ export function Build(): React.JSX.Element {
                   {
                     line: 1,
                     column: 1,
-                    message: `Failed to read file: ${fileResult.error}`,
+                    message: `Failed to read schema file: ${fileResult.error || 'Unknown error'}`,
                     severity: 'error',
                     startLineNumber: 1,
                     startColumn: 1,
@@ -539,7 +541,7 @@ export function Build(): React.JSX.Element {
         setIsBatchValidating(false);
       }
     }),
-    [currentProject.schemas],
+    [currentProject?.schemas],
   );
 
   // Update scroll buttons when tabs change or component mounts
@@ -657,7 +659,7 @@ export function Build(): React.JSX.Element {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleBatchValidation}
+                onClick={runBatchValidation}
                 disabled={isBatchValidating || !currentProject.schemas?.length}
               >
                 {isBatchValidating ? (
@@ -735,7 +737,7 @@ export function Build(): React.JSX.Element {
         {/* Editor Area */}
         <Card className="col-span-9 glass-blue border-0">
           {editorTabs.length > 0 ? (
-            <Tabs value={activeTabId || undefined} onValueChange={setActiveTabId}>
+            <Tabs value={activeTabId || ''} onValueChange={setActiveTabId}>
               {/* Tab Headers */}
               <div className="border-b border-border/50">
                 <TabsList className="h-auto p-0 bg-transparent">
