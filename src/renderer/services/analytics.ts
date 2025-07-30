@@ -568,7 +568,10 @@ export class AnalyticsService {
     }
 
     if (objRecord.items) {
-      maxDepth = Math.max(maxDepth, this.calculateMaxDepth(objRecord.items, currentDepth + 1, visited));
+      maxDepth = Math.max(
+        maxDepth,
+        this.calculateMaxDepth(objRecord.items, currentDepth + 1, visited),
+      );
     }
 
     return maxDepth;

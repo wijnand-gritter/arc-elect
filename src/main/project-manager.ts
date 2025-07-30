@@ -323,6 +323,9 @@ class ProjectManager {
 
       // Project already stored before schema loading
 
+      // Save project metadata to persist user-provided name
+      await this.saveProjectMetadata(project);
+
       // Set up file watching
       const watchSetupStart = Date.now();
       await this.setupProjectWatching(project);
@@ -368,12 +371,15 @@ class ProjectManager {
         return { success: true, project: existingProject };
       }
 
-      // Create project config from path
+      // Load project metadata if it exists
+      const savedMetadata = await this.loadProjectMetadata(projectPath);
+      
+      // Create project config from path and metadata
       const config: ProjectConfig = {
-        name: path.basename(projectPath),
+        name: savedMetadata?.name || path.basename(projectPath),
         path: projectPath,
-        schemaPattern: '*.json',
-        settings: {
+        schemaPattern: savedMetadata?.schemaPattern || '*.json',
+        settings: savedMetadata?.settings || {
           autoValidate: true,
           watchForChanges: true,
           maxFileSize: 10 * 1024 * 1024, // 10MB
@@ -469,6 +475,9 @@ class ProjectManager {
 
       // Remove project from the projects map
       this.projects.delete(projectId);
+      
+      // Delete project metadata file
+      await this.deleteProjectMetadata(project.path);
 
       logger.info(`ProjectManager: Project deleted in ${Date.now() - startTime}ms`, { projectId });
       return { success: true };
@@ -476,6 +485,86 @@ class ProjectManager {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('ProjectManager: Failed to delete project', { projectId, error });
       return { success: false, error: `Failed to delete project: ${errorMessage}` };
+    }
+  }
+
+  /**
+   * Saves project metadata to a .arc-elect.json file.
+   */
+  private async saveProjectMetadata(project: Project): Promise<void> {
+    try {
+      const metadataPath = path.join(project.path, '.arc-elect.json');
+      const metadata = {
+        name: project.name,
+        schemaPattern: project.schemaPattern,
+        createdAt: project.createdAt.toISOString(),
+        settings: project.settings,
+        version: '1.0.0',
+      };
+      
+      logger.info('ProjectManager: Saving project metadata', { 
+        projectPath: project.path,
+        projectName: project.name,
+        projectId: project.id,
+        metadata 
+      });
+      
+      await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2), 'utf8');
+      logger.info('ProjectManager: Project metadata saved successfully', { projectPath: project.path });
+    } catch (error) {
+      logger.error('ProjectManager: Failed to save project metadata', {
+        projectPath: project.path,
+        error,
+      });
+      // Don't throw error - metadata saving is not critical
+    }
+  }
+
+  /**
+   * Loads project metadata from a .arc-elect.json file.
+   */
+  private async loadProjectMetadata(projectPath: string): Promise<{
+    name?: string;
+    schemaPattern?: string;
+    createdAt?: Date;
+    settings?: Project['settings'];
+  } | null> {
+    try {
+      const metadataPath = path.join(projectPath, '.arc-elect.json');
+      const metadataContent = await fs.readFile(metadataPath, 'utf8');
+      const metadata = JSON.parse(metadataContent);
+      
+      const result: {
+        name?: string;
+        schemaPattern?: string;
+        createdAt?: Date;
+        settings?: Project['settings'];
+      } = {};
+      
+      if (metadata.name) result.name = metadata.name;
+      if (metadata.schemaPattern) result.schemaPattern = metadata.schemaPattern;
+      if (metadata.createdAt) result.createdAt = new Date(metadata.createdAt);
+      if (metadata.settings) result.settings = metadata.settings;
+      
+      return result;
+    } catch (_error) {
+      // Metadata file doesn't exist or is invalid - return null
+      logger.debug('ProjectManager: No project metadata found', { projectPath });
+      return null;
+    }
+  }
+
+  /**
+   * Deletes project metadata file.
+   */
+  private async deleteProjectMetadata(projectPath: string): Promise<void> {
+    try {
+      const metadataPath = path.join(projectPath, '.arc-elect.json');
+      await fs.unlink(metadataPath);
+      logger.info('ProjectManager: Project metadata deleted', { projectPath });
+    } catch (_error) {
+      // Metadata file might not exist - don't throw error
+      logger.debug('ProjectManager: No project metadata to delete', { projectPath });
     }
   }
 
@@ -687,7 +776,8 @@ class ProjectManager {
           fileSize: stats.size,
         },
         validationStatus: validationResult.isValid ? 'valid' : 'invalid',
-        ...(validationResult.errors && validationResult.errors.length > 0 && { validationErrors: validationResult.errors }),
+        ...(validationResult.errors &&
+          validationResult.errors.length > 0 && { validationErrors: validationResult.errors }),
         relativePath,
         importSource: 'json',
         importDate: new Date(),
@@ -743,7 +833,11 @@ class ProjectManager {
       }
 
       // Check for invalid type format (should be string or array if present)
-      if (dataRecord.type !== undefined && typeof dataRecord.type !== 'string' && !Array.isArray(dataRecord.type)) {
+      if (
+        dataRecord.type !== undefined &&
+        typeof dataRecord.type !== 'string' &&
+        !Array.isArray(dataRecord.type)
+      ) {
         errors.push({
           path: '/type',
           instancePath: '/type',
@@ -1032,11 +1126,11 @@ class ProjectManager {
               lastModified: stats.mtime,
               isValid,
             };
-            
+
             if (version !== undefined) fileInfo.version = version;
             if (title !== undefined) fileInfo.title = title;
             if (description !== undefined) fileInfo.description = description;
-            
+
             return fileInfo;
           } catch (error) {
             logger.warn('ProjectManager: Failed to process RAML file', { filePath, error });

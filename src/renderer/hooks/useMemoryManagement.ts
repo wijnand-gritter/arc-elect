@@ -120,13 +120,15 @@ function getMemoryUsage(): MemoryUsage | null {
     return null;
   }
 
-  const memory = (performance as Performance & {
-    memory: {
-      usedJSHeapSize: number;
-      totalJSHeapSize: number;
-      jsHeapSizeLimit: number;
-    };
-  }).memory;
+  const memory = (
+    performance as Performance & {
+      memory: {
+        usedJSHeapSize: number;
+        totalJSHeapSize: number;
+        jsHeapSizeLimit: number;
+      };
+    }
+  ).memory;
   const usagePercentage = (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100;
 
   return {
@@ -304,7 +306,11 @@ export function useMemoryManagement(options: MemoryManagementOptions = {}): Memo
    * Force garbage collection (if available).
    */
   const forceGC = useCallback(() => {
-    if (enableGC && 'gc' in window && typeof (window as Window & { gc: () => void }).gc === 'function') {
+    if (
+      enableGC &&
+      'gc' in window &&
+      typeof (window as Window & { gc: () => void }).gc === 'function'
+    ) {
       try {
         (window as Window & { gc: () => void }).gc();
         if (enableLogging) {

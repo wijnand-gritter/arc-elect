@@ -21,7 +21,8 @@ import {
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
-  NavigationMenuTrigger
+  NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
 } from './ui/navigation-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 
@@ -103,13 +104,11 @@ const defaultMenu: MenuItem[] = [
       {
         title: 'Browse Schemas',
         page: 'explore',
-        description: 'Browse and search schemas',
         icon: <Search className="size-4" />,
       },
       {
         title: 'Analytics',
         page: 'analytics',
-        description: 'View project analytics and insights',
         icon: <BarChart3 className="size-4" />,
       },
     ],
@@ -257,13 +256,24 @@ const renderMenuItem = (
     return (
       <NavigationMenuItem key={item.title}>
         <NavigationMenuTrigger className="text-muted-foreground hover:text-foreground">
-          {item.title}
+          <div className="flex items-center gap-2">
+            {item.icon}
+            {item.title}
+          </div>
         </NavigationMenuTrigger>
         <NavigationMenuContent>
-          <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-[.75fr_1fr] lg:w-[600px]">
+          <ul className="grid w-[200px] gap-1 p-2">
             {item.items.map((subItem) => (
               <li key={subItem.title}>
-                <SubMenuLink item={subItem} onPageChange={handlePageChange} />
+                <NavigationMenuLink asChild>
+                  <button
+                    onClick={() => subItem.page && handlePageChange(subItem.page)}
+                    className="flex flex-row items-center gap-2 w-full text-left hover:bg-accent hover:text-accent-foreground rounded-md p-2 transition-colors text-sm font-medium"
+                  >
+                    {subItem.icon}
+                    {subItem.title}
+                  </button>
+                </NavigationMenuLink>
               </li>
             ))}
           </ul>
@@ -275,15 +285,14 @@ const renderMenuItem = (
   return (
     <NavigationMenuItem key={item.title}>
       <NavigationMenuLink
-        className={`block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground ${currentPage === item.page
-            ? 'bg-accent text-accent-foreground'
-            : 'text-muted-foreground hover:text-foreground'
-          }`}
+        className={`${navigationMenuTriggerStyle()} ${
+          currentPage === item.page ? 'bg-accent text-accent-foreground' : ''
+        }`}
         onClick={() => item.page && handlePageChange(item.page)}
       >
         <div className="flex items-center gap-2">
           {item.icon}
-          <div className="text-sm font-medium leading-none">{item.title}</div>
+          {item.title}
         </div>
       </NavigationMenuLink>
     </NavigationMenuItem>
@@ -330,10 +339,11 @@ const renderMobileMenuItem = (
   return (
     <div
       key={item.title}
-      className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors ${currentPage === item.page
+      className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors ${
+        currentPage === item.page
           ? 'bg-accent text-accent-foreground'
           : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-        }`}
+      }`}
       onClick={() => item.page && handlePageChange(item.page)}
     >
       {item.icon}
@@ -342,49 +352,6 @@ const renderMobileMenuItem = (
   );
 };
 
-/**
- * Renders a submenu link for dropdown menus.
- *
- * @param props - Component props
- * @param props.item - The submenu item to render
- * @param props.onPageChange - Function to handle page navigation
- * @returns JSX element representing the submenu link
- */
-const SubMenuLink = ({
-  item,
-  onPageChange,
-}: {
-  item: MenuItem;
-  onPageChange: (page: 'project' | 'explore' | 'build' | 'settings' | 'analytics') => void;
-}) => {
-  const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (item.page) {
-      onPageChange(item.page);
-    } else if (item.url) {
-      window.open(item.url, '_blank');
-    }
-  };
 
-  return (
-    <NavigationMenuLink asChild>
-      <a
-        href="#"
-        onClick={handleClick}
-        className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-      >
-        <div className="flex items-center gap-2">
-          {item.icon}
-          <div className="text-sm font-medium leading-none">{item.title}</div>
-        </div>
-        {item.description && (
-          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-            {item.description}
-          </p>
-        )}
-      </a>
-    </NavigationMenuLink>
-  );
-};
 
 export { TopNavigationBar };
