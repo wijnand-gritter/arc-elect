@@ -1,6 +1,0 @@
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Gender",
-  "type": "string",
-  "enum": ["FEMALE", "MALE", "OTHER", "UNDISCLOSED", "UNKNOWN"]
-}

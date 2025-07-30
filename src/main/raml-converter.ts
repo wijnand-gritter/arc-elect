@@ -34,14 +34,48 @@ interface RamlFile {
  * JSON Schema output interface.
  */
 interface JsonSchema {
-  $schema: string;
-  type: string;
+  $schema?: string;
   title?: string;
   description?: string;
-  properties?: Record<string, any>;
+  properties?: Record<string, JsonSchemaProperty>;
   required?: string[];
-  definitions?: Record<string, any>;
-  [key: string]: any;
+  definitions?: Record<string, JsonSchemaProperty>;
+  type?: string;
+  items?: JsonSchemaProperty;
+  additionalProperties?: boolean | JsonSchemaProperty;
+  enum?: unknown[];
+  format?: string;
+  minimum?: number;
+  maximum?: number;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  [key: string]: unknown;
+}
+
+interface JsonSchemaProperty {
+  type?: string | string[];
+  description?: string;
+  properties?: Record<string, JsonSchemaProperty>;
+  items?: JsonSchemaProperty;
+  required?: string[];
+  enum?: unknown[];
+  format?: string;
+  minimum?: number;
+  maximum?: number;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  additionalProperties?: boolean | JsonSchemaProperty;
+  [key: string]: unknown;
+}
+
+interface RamlTypeDefinition {
+  name: string;
+  type: string;
+  properties?: Record<string, JsonSchemaProperty>;
+  isDefinition: boolean;
+  description?: string;
 }
 
 /**
@@ -89,7 +123,7 @@ export class RamlConverter {
   public async convertFile(
     sourcePath: string,
     destinationPath: string,
-    options: ConversionOptions
+    options: ConversionOptions,
   ): Promise<ConversionResult> {
     try {
       logger.info('RamlConverter: Starting file conversion', {
@@ -100,18 +134,18 @@ export class RamlConverter {
 
       // Read and parse RAML file
       const ramlFile = await this.parseRamlFile(sourcePath);
-      
+
       // Convert to JSON Schema
       const schema = await this.convertRamlToJsonSchema(ramlFile, options);
-      
+
       // Apply naming convention
       const outputFileName = this.applyNamingConvention(
         path.basename(sourcePath, '.raml'),
-        options.namingConvention
+        options.namingConvention,
       );
-      
+
       const outputPath = path.join(destinationPath, `${outputFileName}.json`);
-      
+
       // Validate output if requested
       if (options.validateOutput) {
         const validationResult = this.validateJsonSchema(schema);
@@ -124,10 +158,10 @@ export class RamlConverter {
           };
         }
       }
-      
+
       // Write JSON Schema to file
       await fs.writeFile(outputPath, JSON.stringify(schema, null, 2), 'utf-8');
-      
+
       logger.info('RamlConverter: File conversion completed successfully', {
         sourcePath,
         outputPath,
@@ -167,7 +201,7 @@ export class RamlConverter {
       total: number;
       currentFile: string;
       phase: string;
-    }) => void
+    }) => void,
   ): Promise<{
     success: boolean;
     results: ConversionResult[];
@@ -267,9 +301,9 @@ export class RamlConverter {
   private async parseRamlFile(filePath: string): Promise<RamlFile> {
     const content = await fs.readFile(filePath, 'utf-8');
     const lines = content.split('\n');
-    
+
     const metadata: RamlFile['metadata'] = {};
-    
+
     // Extract basic metadata from RAML header
     for (const line of lines) {
       const trimmed = line.trim();
@@ -297,26 +331,26 @@ export class RamlConverter {
    */
   private async convertRamlToJsonSchema(
     ramlFile: RamlFile,
-    options: ConversionOptions
+    options: ConversionOptions,
   ): Promise<JsonSchema> {
     // Basic JSON Schema structure
     const schema: JsonSchema = {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
       title: ramlFile.metadata.title || path.basename(ramlFile.name, '.raml'),
-      description: ramlFile.metadata.description,
+      ...(ramlFile.metadata.description && { description: ramlFile.metadata.description }),
     };
 
     // Parse RAML content and extract types/schemas
     const types = this.extractRamlTypes(ramlFile.content);
-    
+
     if (types.length > 0) {
       schema.properties = {};
       schema.definitions = {};
-      
+
       for (const type of types) {
         const jsonSchemaType = this.convertRamlTypeToJsonSchema(type, options);
-        
+
         if (type.isDefinition) {
           schema.definitions[type.name] = jsonSchemaType;
         } else {
@@ -336,23 +370,11 @@ export class RamlConverter {
   /**
    * Extract type definitions from RAML content.
    */
-  private extractRamlTypes(content: string): Array<{
-    name: string;
-    type: string;
-    properties?: Record<string, any>;
-    isDefinition: boolean;
-    description?: string;
-  }> {
-    const types: Array<{
-      name: string;
-      type: string;
-      properties?: Record<string, any>;
-      isDefinition: boolean;
-      description?: string;
-    }> = [];
+  private extractRamlTypes(content: string): Array<RamlTypeDefinition> {
+    const types: Array<RamlTypeDefinition> = [];
 
     const lines = content.split('\n');
-    let currentType: any = null;
+    let currentType: RamlTypeDefinition | null = null;
     let inTypesSection = false;
 
     for (let i = 0; i < lines.length; i++) {
@@ -383,12 +405,12 @@ export class RamlConverter {
       }
 
       // Extract properties for current type
-      if (currentType && line.match(/^\s{2,}[a-zA-Z][a-zA-Z0-9]*:/)) {
+      if (currentType && currentType.properties && line.match(/^\s{2,}[a-zA-Z][a-zA-Z0-9]*:/)) {
         const propMatch = line.match(/^\s+([a-zA-Z][a-zA-Z0-9]*):(.*)$/);
         if (propMatch) {
           const propName = propMatch[1];
           const propType = propMatch[2].trim();
-          
+
           currentType.properties[propName] = this.parseRamlPropertyType(propType);
         }
       }
@@ -409,12 +431,12 @@ export class RamlConverter {
     ramlType: {
       name: string;
       type: string;
-      properties?: Record<string, any>;
+      properties?: Record<string, JsonSchemaProperty>;
       description?: string;
     },
-    _options: ConversionOptions
-  ): any {
-    const jsonSchemaType: any = {
+    _options: ConversionOptions,
+  ): JsonSchemaProperty {
+    const jsonSchemaType: JsonSchemaProperty = {
       type: 'object',
       title: ramlType.name,
     };
@@ -429,7 +451,7 @@ export class RamlConverter {
 
       for (const [propName, propDef] of Object.entries(ramlType.properties)) {
         jsonSchemaType.properties[propName] = propDef;
-        
+
         // Mark as required if not optional
         if (propDef && typeof propDef === 'object' && !propDef.optional) {
           required.push(propName);
@@ -447,7 +469,7 @@ export class RamlConverter {
   /**
    * Parse RAML property type to JSON Schema property.
    */
-  private parseRamlPropertyType(ramlType: string): any {
+  private parseRamlPropertyType(ramlType: string): JsonSchemaProperty {
     // Handle basic types
     if (ramlType.includes('string')) {
       return { type: 'string' };
@@ -468,15 +490,19 @@ export class RamlConverter {
   /**
    * Apply naming convention to filename.
    */
-  private applyNamingConvention(name: string, convention: ConversionOptions['namingConvention']): string {
+  private applyNamingConvention(
+    name: string,
+    convention: ConversionOptions['namingConvention'],
+  ): string {
     switch (convention) {
       case 'kebab-case':
         return name.toLowerCase().replace(/[_\s]+/g, '-');
       case 'camelCase':
-        return name.replace(/[-_\s]+(.)?/g, (_, char) => char ? char.toUpperCase() : '');
+        return name.replace(/[-_\s]+(.)?/g, (_, char) => (char ? char.toUpperCase() : ''));
       case 'PascalCase':
-        return name.replace(/[-_\s]+(.)?/g, (_, char) => char ? char.toUpperCase() : '')
-                  .replace(/^./, char => char.toUpperCase());
+        return name
+          .replace(/[-_\s]+(.)?/g, (_, char) => (char ? char.toUpperCase() : ''))
+          .replace(/^./, (char) => char.toUpperCase());
       case 'snake_case':
         return name.toLowerCase().replace(/[-\s]+/g, '_');
       default:
@@ -517,8 +543,8 @@ export class RamlConverter {
   /**
    * Generate example data from schema.
    */
-  private generateExampleFromSchema(schema: JsonSchema): any {
-    const example: any = {};
+  private generateExampleFromSchema(schema: JsonSchema): Record<string, unknown> {
+    const example: Record<string, unknown> = {};
 
     if (schema.properties) {
       for (const [propName, propDef] of Object.entries(schema.properties)) {

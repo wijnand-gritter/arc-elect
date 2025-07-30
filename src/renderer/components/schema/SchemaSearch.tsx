@@ -19,7 +19,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Search, Filter, X, Save, Clock, Trash2, Bookmark } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
 import { toast } from 'sonner';
-import type { ValidationStatus } from '../../../types/schema-editor';
+import type { ValidationStatus, SortField } from '../../../types/schema-editor';
 
 /**
  * Schema search component props.
@@ -94,7 +94,7 @@ export function SchemaSearch({
    */
   const handleSortByChange = useCallback(
     (value: string) => {
-      setSearchFilters({ sortBy: value as any });
+      setSearchFilters({ sortBy: value as SortField });
     },
     [setSearchFilters],
   );
@@ -154,8 +154,6 @@ export function SchemaSearch({
     setSearchFilters({
       search: '',
       validationStatus: 'all',
-      fileSize: { min: undefined, max: undefined },
-      dateRange: { start: undefined, end: undefined },
       sortBy: 'name',
       sortDirection: 'asc',
     });

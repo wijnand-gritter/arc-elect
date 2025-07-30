@@ -56,7 +56,7 @@ export const AppLayout: React.FC = () => {
   useKeyboardShortcuts({
     enableGlobal: true,
     customHandlers: {
-      'help': () => {
+      help: () => {
         setIsHelpModalOpen(true);
         announce('Keyboard shortcuts help opened');
       },
@@ -72,7 +72,7 @@ export const AppLayout: React.FC = () => {
         setPage('analytics');
         announce('Switched to Analytics page');
       },
-      'escape': () => {
+      escape: () => {
         if (isHelpModalOpen) {
           setIsHelpModalOpen(false);
           announce('Help modal closed');

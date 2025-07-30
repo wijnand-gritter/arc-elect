@@ -129,7 +129,7 @@ interface BackgroundProcessingResult {
  *   enableQueue: true,
  *   enableScheduling: true
  * });
- * 
+ *
  * // Add analytics processing task
  * addTask({
  *   id: 'analytics-circular-refs',
@@ -170,7 +170,7 @@ export function useBackgroundProcessing(
    */
   const overallProgress = useMemo(() => {
     if (metricsRef.current.totalTasks === 0) return 0;
-    
+
     const completed = metricsRef.current.completedTasks + metricsRef.current.failedTasks;
     return Math.round((completed / metricsRef.current.totalTasks) * 100);
   }, [results]);
@@ -179,9 +179,10 @@ export function useBackgroundProcessing(
    * Calculate performance metrics.
    */
   const metrics = useMemo(() => {
-    const { totalTasks, completedTasks, failedTasks, totalDuration, startTime } = metricsRef.current;
+    const { totalTasks, completedTasks, failedTasks, totalDuration, startTime } =
+      metricsRef.current;
     const elapsed = (Date.now() - startTime) / 1000; // seconds
-    
+
     return {
       totalTasks,
       completedTasks,
@@ -199,79 +200,93 @@ export function useBackgroundProcessing(
   /**
    * Execute a single task.
    */
-  const executeTask = useCallback(async <TInput, TOutput>(
-    task: BackgroundTask<TInput, TOutput>
-  ): Promise<void> => {
-    const { id, input, processor, timeout = defaultTimeout } = task;
-    const abortController = new AbortController();
-    abortControllersRef.current.set(id, abortController);
+  const executeTask = useCallback(
+    async <TInput, TOutput>(task: BackgroundTask<TInput, TOutput>): Promise<void> => {
+      const { id, input, processor, timeout = defaultTimeout } = task;
+      const abortController = new AbortController();
+      abortControllersRef.current.set(id, abortController);
 
-    // Update task status to running
-    setResults(prev => new Map(prev.set(id, {
-      id,
-      status: 'running',
-      progress: 0,
-    })));
+      // Update task status to running
+      setResults(
+        (prev) =>
+          new Map(
+            prev.set(id, {
+              id,
+              status: 'running',
+              progress: 0,
+            }),
+          ),
+      );
 
-    const startTime = Date.now();
-    let timeoutId: NodeJS.Timeout | undefined;
+      const startTime = Date.now();
+      let timeoutId: NodeJS.Timeout | undefined;
 
-    try {
-      // Set up timeout
-      if (timeout > 0) {
-        timeoutId = setTimeout(() => {
-          abortController.abort('Task timeout');
-        }, timeout);
+      try {
+        // Set up timeout
+        if (timeout > 0) {
+          timeoutId = setTimeout(() => {
+            abortController.abort('Task timeout');
+          }, timeout);
+        }
+
+        // Execute the task
+        const result = await processor(input, abortController.signal);
+        const duration = Date.now() - startTime;
+
+        // Update metrics
+        if (enableMonitoring) {
+          metricsRef.current.completedTasks++;
+          metricsRef.current.totalDuration += duration;
+        }
+
+        // Update task result
+        setResults(
+          (prev) =>
+            new Map(
+              prev.set(id, {
+                id,
+                status: 'completed',
+                result,
+                duration,
+                progress: 100,
+              }),
+            ),
+        );
+      } catch (error) {
+        const duration = Date.now() - startTime;
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+        // Update metrics
+        if (enableMonitoring) {
+          metricsRef.current.failedTasks++;
+        }
+
+        // Update task result
+        setResults(
+          (prev) =>
+            new Map(
+              prev.set(id, {
+                id,
+                status: abortController.signal.aborted ? 'cancelled' : 'error',
+                error: errorMessage,
+                duration,
+                progress: 0,
+              }),
+            ),
+        );
+      } finally {
+        // Cleanup
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+        abortControllersRef.current.delete(id);
+
+        // Remove from running tasks
+        setRunning((prev) => prev.filter((t) => t.id !== id));
       }
-
-      // Execute the task
-      const result = await processor(input, abortController.signal);
-      const duration = Date.now() - startTime;
-
-      // Update metrics
-      if (enableMonitoring) {
-        metricsRef.current.completedTasks++;
-        metricsRef.current.totalDuration += duration;
-      }
-
-      // Update task result
-      setResults(prev => new Map(prev.set(id, {
-        id,
-        status: 'completed',
-        result,
-        duration,
-        progress: 100,
-      })));
-
-    } catch (error) {
-      const duration = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
-      // Update metrics
-      if (enableMonitoring) {
-        metricsRef.current.failedTasks++;
-      }
-
-      // Update task result
-      setResults(prev => new Map(prev.set(id, {
-        id,
-        status: abortController.signal.aborted ? 'cancelled' : 'error',
-        error: errorMessage,
-        duration,
-        progress: 0,
-      })));
-
-    } finally {
-      // Cleanup
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-      abortControllersRef.current.delete(id);
-      
-      // Remove from running tasks
-      setRunning(prev => prev.filter(t => t.id !== id));
-    }
-  }, [defaultTimeout, enableMonitoring]);
+    },
+    [defaultTimeout, enableMonitoring],
+  );
 
   /**
    * Process task queue.
@@ -281,22 +296,22 @@ export function useBackgroundProcessing(
       return;
     }
 
-    setQueue(prev => {
+    setQueue((prev) => {
       const nextQueue = [...prev];
       const availableSlots = maxConcurrency - running.length;
-      
+
       // Sort by priority if scheduling is enabled
       if (enableScheduling) {
         nextQueue.sort((a, b) => (a.priority || 0) - (b.priority || 0));
       }
 
       // Check dependencies
-      const readyTasks = nextQueue.filter(task => {
+      const readyTasks = nextQueue.filter((task) => {
         if (!task.dependencies || task.dependencies.length === 0) {
           return true;
         }
-        
-        return task.dependencies.every(depId => {
+
+        return task.dependencies.every((depId) => {
           const result = results.get(depId);
           return result && result.status === 'completed';
         });
@@ -304,61 +319,75 @@ export function useBackgroundProcessing(
 
       // Take tasks up to available slots
       const tasksToRun = readyTasks.slice(0, availableSlots);
-      
+
       // Update running tasks
       if (tasksToRun.length > 0) {
-        setRunning(prev => [...prev, ...tasksToRun]);
-        
+        setRunning((prev) => [...prev, ...tasksToRun]);
+
         // Execute tasks
-        tasksToRun.forEach(task => {
+        tasksToRun.forEach((task) => {
           executeTask(task);
         });
       }
 
       // Remove tasks from queue
-      return nextQueue.filter(task => !tasksToRun.includes(task));
+      return nextQueue.filter((task) => !tasksToRun.includes(task));
     });
-  }, [isPaused, running.length, maxConcurrency, queue.length, enableScheduling, results, executeTask]);
+  }, [
+    isPaused,
+    running.length,
+    maxConcurrency,
+    queue.length,
+    enableScheduling,
+    results,
+    executeTask,
+  ]);
 
   /**
    * Add a task to the queue.
    */
-  const addTask = useCallback(<TInput, TOutput>(
-    task: BackgroundTask<TInput, TOutput>
-  ): void => {
-    // Update metrics
-    if (enableMonitoring) {
-      metricsRef.current.totalTasks++;
-    }
-
-    // Initialize task result
-    setResults(prev => new Map(prev.set(task.id, {
-      id: task.id,
-      status: 'idle',
-      progress: 0,
-    })));
-
-    // Add to queue if enabled, otherwise execute immediately
-    if (enableQueue) {
-      setQueue(prev => {
-        // Check if task already exists
-        const exists = prev.some(t => t.id === task.id);
-        if (exists) {
-          return prev.map(t => t.id === task.id ? task : t);
-        }
-        return [...prev, task];
-      });
-    } else {
-      // Execute immediately if under concurrency limit
-      if (running.length < maxConcurrency) {
-        setRunning(prev => [...prev, task]);
-        executeTask(task);
-      } else {
-        // Add to queue as fallback
-        setQueue(prev => [...prev, task]);
+  const addTask = useCallback(
+    <TInput, TOutput>(task: BackgroundTask<TInput, TOutput>): void => {
+      // Update metrics
+      if (enableMonitoring) {
+        metricsRef.current.totalTasks++;
       }
-    }
-  }, [enableQueue, enableMonitoring, running.length, maxConcurrency, executeTask]);
+
+      // Initialize task result
+      setResults(
+        (prev) =>
+          new Map(
+            prev.set(task.id, {
+              id: task.id,
+              status: 'idle',
+              progress: 0,
+            }),
+          ),
+      );
+
+      // Add to queue if enabled, otherwise execute immediately
+      if (enableQueue) {
+        setQueue((prev) => {
+          // Check if task already exists
+          const exists = prev.some((t) => t.id === task.id);
+          if (exists) {
+            return prev.map((t) => (t.id === task.id ? task : t));
+          }
+          return [...prev, task];
+        });
+      } else {
+        // Execute immediately if under concurrency limit
+        if (running.length < maxConcurrency) {
+          setRunning((prev) => [...prev, task]);
+          executeTask(task);
+        } else {
+          // Add to queue as fallback
+          setQueue((prev) => [...prev, task]);
+        }
+      }
+    },
+    [enableQueue, enableMonitoring, running.length, maxConcurrency, executeTask],
+  );
 
   /**
    * Cancel a task.
@@ -370,16 +399,18 @@ export function useBackgroundProcessing(
     }
 
     // Remove from queue
-    setQueue(prev => prev.filter(task => task.id !== taskId));
+    setQueue((prev) => prev.filter((task) => task.id !== taskId));
 
     // Update result status
-    setResults(prev => {
+    setResults((prev) => {
       const result = prev.get(taskId);
       if (result && result.status === 'running') {
-        return new Map(prev.set(taskId, {
-          ...result,
-          status: 'cancelled',
-        }));
+        return new Map(
+          prev.set(taskId, {
+            ...result,
+            status: 'cancelled',
+          }),
+        );
       }
       return prev;
     });
@@ -390,7 +421,7 @@ export function useBackgroundProcessing(
    */
   const clearTasks = useCallback((): void => {
     // Cancel all running tasks
-    abortControllersRef.current.forEach(controller => {
+    abortControllersRef.current.forEach((controller) => {
       controller.abort('All tasks cancelled');
     });
     abortControllersRef.current.clear();
@@ -427,9 +458,12 @@ export function useBackgroundProcessing(
   /**
    * Get task result by ID.
    */
-  const getResult = useCallback(<TOutput>(taskId: string): TaskResult<TOutput> | undefined => {
-    return results.get(taskId) as TaskResult<TOutput> | undefined;
-  }, [results]);
+  const getResult = useCallback(
+    <TOutput>(taskId: string): TaskResult<TOutput> | undefined => {
+      return results.get(taskId) as TaskResult<TOutput> | undefined;
+    },
+    [results],
+  );
 
   /**
    * Process queue when state changes.

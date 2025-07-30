@@ -1,6 +1,0 @@
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "DeliveryStatus",
-  "type": "string",
-  "enum": ["ABORTED", "IN_TRANSIT", "PAUSED", "READ", "READY", "RECEIVED", "REJECTED", "STARTED"]
-}

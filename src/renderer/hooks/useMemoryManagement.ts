@@ -67,7 +67,7 @@ interface MemoryManagementResult {
   /** Memory usage history (last N measurements) */
   usageHistory: MemoryUsage[];
   /** Memory cache for objects */
-  cache: Map<string, any>;
+  cache: Map<string, CacheItem>;
   /** Function to start memory monitoring */
   startMonitoring: () => void;
   /** Function to stop memory monitoring */
@@ -77,9 +77,9 @@ interface MemoryManagementResult {
   /** Function to clear memory cache */
   clearCache: () => void;
   /** Function to set cache item */
-  setCacheItem: (key: string, value: any, ttl?: number) => void;
+  setCacheItem: <T>(key: string, value: T, ttl?: number) => void;
   /** Function to get cache item */
-  getCacheItem: (key: string) => any;
+  getCacheItem: <T>(key: string) => T | undefined;
   /** Function to remove cache item */
   removeCacheItem: (key: string) => void;
   /** Function to get memory pressure level */
@@ -92,9 +92,9 @@ interface MemoryManagementResult {
  * Cache item with TTL support.
  */
 interface CacheItem {
-  value: any;
+  value: unknown;
   timestamp: number;
-  ttl?: number;
+  ttl?: number | undefined;
   accessCount: number;
   lastAccessed: number;
 }
@@ -104,11 +104,11 @@ interface CacheItem {
  */
 function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B';
-  
+
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
+
   return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
 }
 
@@ -120,7 +120,13 @@ function getMemoryUsage(): MemoryUsage | null {
     return null;
   }
 
-  const memory = (performance as any).memory;
+  const memory = (performance as Performance & {
+    memory: {
+      usedJSHeapSize: number;
+      totalJSHeapSize: number;
+      jsHeapSizeLimit: number;
+    };
+  }).memory;
   const usagePercentage = (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100;
 
   return {
@@ -160,9 +166,7 @@ function getMemoryUsage(): MemoryUsage | null {
  * });
  * ```
  */
-export function useMemoryManagement(
-  options: MemoryManagementOptions = {},
-): MemoryManagementResult {
+export function useMemoryManagement(options: MemoryManagementOptions = {}): MemoryManagementResult {
   const {
     enableMonitoring = true,
     checkInterval = 5000,
@@ -179,7 +183,7 @@ export function useMemoryManagement(
   const [usageHistory, setUsageHistory] = useState<MemoryUsage[]>([]);
   const [cache, setCache] = useState<Map<string, CacheItem>>(new Map());
 
-  const intervalRef = useRef<NodeJS.Timeout>();
+  const intervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const lastCleanupRef = useRef<number>(Date.now());
 
   /**
@@ -187,13 +191,13 @@ export function useMemoryManagement(
    */
   const memoryStatus = useMemo((): 'normal' | 'warning' | 'critical' => {
     if (!memoryUsage) return 'normal';
-    
+
     if (memoryUsage.usagePercentage >= criticalThreshold) {
       return 'critical';
     } else if (memoryUsage.usagePercentage >= warningThreshold) {
       return 'warning';
     }
-    
+
     return 'normal';
   }, [memoryUsage, warningThreshold, criticalThreshold]);
 
@@ -202,13 +206,13 @@ export function useMemoryManagement(
    */
   const getMemoryPressure = useCallback((): 'low' | 'moderate' | 'high' => {
     if (!memoryUsage) return 'low';
-    
+
     if (memoryUsage.usagePercentage >= criticalThreshold) {
       return 'high';
     } else if (memoryUsage.usagePercentage >= warningThreshold) {
       return 'moderate';
     }
-    
+
     return 'low';
   }, [memoryUsage, warningThreshold, criticalThreshold]);
 
@@ -217,9 +221,9 @@ export function useMemoryManagement(
    */
   const optimizationSuggestions = useMemo((): string[] => {
     const suggestions: string[] = [];
-    
+
     if (!memoryUsage) return suggestions;
-    
+
     if (memoryUsage.usagePercentage >= criticalThreshold) {
       suggestions.push('Memory usage is critical - consider closing unused tabs or applications');
       suggestions.push('Clear cache and temporary data');
@@ -228,11 +232,11 @@ export function useMemoryManagement(
       suggestions.push('Memory usage is high - consider optimizing data usage');
       suggestions.push('Enable lazy loading for large datasets');
     }
-    
+
     if (cache.size >= cacheLimit) {
       suggestions.push('Cache is full - oldest items will be automatically removed');
     }
-    
+
     return suggestions;
   }, [memoryUsage, criticalThreshold, warningThreshold, cache.size, cacheLimit]);
 
@@ -243,9 +247,9 @@ export function useMemoryManagement(
     const usage = getMemoryUsage();
     if (usage) {
       setMemoryUsage(usage);
-      
+
       // Update history (keep last 20 measurements)
-      setUsageHistory(prev => {
+      setUsageHistory((prev) => {
         const newHistory = [...prev, usage];
         return newHistory.slice(-20);
       });
@@ -267,12 +271,12 @@ export function useMemoryManagement(
    */
   const startMonitoring = useCallback(() => {
     if (isMonitoring || !enableMonitoring) return;
-    
+
     setIsMonitoring(true);
     updateMemoryUsage();
-    
+
     intervalRef.current = setInterval(updateMemoryUsage, checkInterval);
-    
+
     if (enableLogging) {
       logger.info('Memory monitoring started', { checkInterval });
     }
@@ -283,14 +287,14 @@ export function useMemoryManagement(
    */
   const stopMonitoring = useCallback(() => {
     if (!isMonitoring) return;
-    
+
     setIsMonitoring(false);
-    
+
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = undefined;
     }
-    
+
     if (enableLogging) {
       logger.info('Memory monitoring stopped');
     }
@@ -300,9 +304,9 @@ export function useMemoryManagement(
    * Force garbage collection (if available).
    */
   const forceGC = useCallback(() => {
-    if (enableGC && 'gc' in window && typeof (window as any).gc === 'function') {
+    if (enableGC && 'gc' in window && typeof (window as Window & { gc: () => void }).gc === 'function') {
       try {
-        (window as any).gc();
+        (window as Window & { gc: () => void }).gc();
         if (enableLogging) {
           logger.info('Forced garbage collection');
         }
@@ -318,98 +322,106 @@ export function useMemoryManagement(
   const cleanupCache = useCallback(() => {
     const now = Date.now();
     let removedCount = 0;
-    
-    setCache(prev => {
+
+    setCache((prev) => {
       const newCache = new Map(prev);
-      
+
       // Remove expired items
       for (const [key, item] of newCache.entries()) {
-        if (item.ttl && (now - item.timestamp) > item.ttl) {
+        if (item.ttl && now - item.timestamp > item.ttl) {
           newCache.delete(key);
           removedCount++;
         }
       }
-      
+
       // Remove oldest items if over limit (LRU)
       if (newCache.size > cacheLimit) {
-        const sorted = Array.from(newCache.entries())
-          .sort(([, a], [, b]) => a.lastAccessed - b.lastAccessed);
-        
+        const sorted = Array.from(newCache.entries()).sort(
+          ([, a], [, b]) => a.lastAccessed - b.lastAccessed,
+        );
+
         const toRemove = sorted.slice(0, newCache.size - cacheLimit);
         toRemove.forEach(([key]) => {
           newCache.delete(key);
           removedCount++;
         });
       }
-      
+
       return newCache;
     });
-    
+
     if (removedCount > 0 && enableLogging) {
       logger.info('Cache cleanup completed', { removedItems: removedCount });
     }
-    
+
     lastCleanupRef.current = now;
   }, [cacheLimit, enableLogging]);
 
   /**
    * Set cache item with optional TTL.
    */
-  const setCacheItem = useCallback((key: string, value: any, ttl?: number) => {
-    const now = Date.now();
-    const item: CacheItem = {
-      value,
-      timestamp: now,
-      ttl,
-      accessCount: 0,
-      lastAccessed: now,
-    };
-    
-    setCache(prev => new Map(prev.set(key, item)));
-    
-    // Cleanup if needed
-    if (now - lastCleanupRef.current > 60000) { // Cleanup every minute
-      cleanupCache();
-    }
-  }, [cleanupCache]);
+  const setCacheItem = useCallback(
+    <T>(key: string, value: T, ttl?: number) => {
+      const now = Date.now();
+      const item: CacheItem = {
+        value,
+        timestamp: now,
+        ttl,
+        accessCount: 0,
+        lastAccessed: now,
+      };
+
+      setCache((prev) => new Map(prev.set(key, item)));
+
+      // Cleanup if needed
+      if (now - lastCleanupRef.current > 60000) {
+        // Cleanup every minute
+        cleanupCache();
+      }
+    },
+    [cleanupCache],
+  );
 
   /**
    * Get cache item.
    */
-  const getCacheItem = useCallback((key: string): any => {
-    const item = cache.get(key);
-    if (!item) return undefined;
-    
-    // Check if expired
-    if (item.ttl && (Date.now() - item.timestamp) > item.ttl) {
-      setCache(prev => {
+  const getCacheItem = useCallback(
+    <T>(key: string): T | undefined => {
+      const item = cache.get(key);
+      if (!item) return undefined;
+
+      // Check if expired
+      if (item.ttl && Date.now() - item.timestamp > item.ttl) {
+        setCache((prev) => {
+          const newCache = new Map(prev);
+          newCache.delete(key);
+          return newCache;
+        });
+        return undefined;
+      }
+
+      // Update access stats
+      setCache((prev) => {
         const newCache = new Map(prev);
-        newCache.delete(key);
+        const updatedItem = {
+          ...item,
+          accessCount: item.accessCount + 1,
+          lastAccessed: Date.now(),
+        };
+        newCache.set(key, updatedItem);
         return newCache;
       });
-      return undefined;
-    }
-    
-    // Update access stats
-    setCache(prev => {
-      const newCache = new Map(prev);
-      const updatedItem = {
-        ...item,
-        accessCount: item.accessCount + 1,
-        lastAccessed: Date.now(),
-      };
-      newCache.set(key, updatedItem);
-      return newCache;
-    });
-    
-    return item.value;
-  }, [cache]);
+
+      return item.value as T;
+    },
+    [cache],
+  );
 
   /**
    * Remove cache item.
    */
   const removeCacheItem = useCallback((key: string) => {
-    setCache(prev => {
+    setCache((prev) => {
       const newCache = new Map(prev);
       newCache.delete(key);
       return newCache;
@@ -421,7 +433,7 @@ export function useMemoryManagement(
    */
   const clearCache = useCallback(() => {
     setCache(new Map());
-    
+
     if (enableLogging) {
       logger.info('Memory cache cleared');
     }
@@ -433,7 +445,7 @@ export function useMemoryManagement(
   useEffect(() => {
     if (enableCacheCleanup && memoryStatus === 'critical') {
       cleanupCache();
-      
+
       // Force GC if available
       if (enableGC) {
         forceGC();
@@ -448,7 +460,7 @@ export function useMemoryManagement(
     if (enableMonitoring) {
       startMonitoring();
     }
-    
+
     return () => {
       stopMonitoring();
     };

@@ -713,7 +713,10 @@ export function Analytics(): React.JSX.Element {
                             </div>
                           </div>
                           {/* Animated arrows */}
-                          <div className="absolute inset-0 animate-spin" style={{ animationDuration: '8s' }}>
+                          <div
+                            className="absolute inset-0 animate-spin"
+                            style={{ animationDuration: '8s' }}
+                          >
                             <ArrowRight className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-2 w-4 h-4 text-destructive" />
                             <ArrowRight className="absolute right-0 top-1/2 transform translate-x-2 -translate-y-1/2 rotate-90 w-4 h-4 text-destructive" />
                             <ArrowRight className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-2 rotate-180 w-4 h-4 text-destructive" />
@@ -723,12 +726,20 @@ export function Analytics(): React.JSX.Element {
                         <div className="space-y-2">
                           <div className="text-sm font-medium">Severity Breakdown</div>
                           <div className="flex gap-2 justify-center">
-                            {['high', 'medium', 'low'].map(severity => {
-                              const count = analytics.circularReferences.filter(ref => ref.severity === severity).length;
+                            {['high', 'medium', 'low'].map((severity) => {
+                              const count = analytics.circularReferences.filter(
+                                (ref) => ref.severity === severity,
+                              ).length;
                               return count > 0 ? (
                                 <Badge
                                   key={severity}
-                                  variant={severity === 'high' ? 'destructive' : severity === 'medium' ? 'secondary' : 'default'}
+                                  variant={
+                                    severity === 'high'
+                                      ? 'destructive'
+                                      : severity === 'medium'
+                                        ? 'secondary'
+                                        : 'default'
+                                  }
                                   className="text-xs"
                                 >
                                   {severity}: {count}
@@ -767,9 +778,7 @@ export function Analytics(): React.JSX.Element {
                       <Network className="w-5 h-5" />
                       Interactive Reference Graph
                     </CardTitle>
-                    <CardDescription>
-                      Explore schema relationships and dependencies
-                    </CardDescription>
+                    <CardDescription>Explore schema relationships and dependencies</CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button variant="outline" size="sm">
@@ -796,14 +805,14 @@ export function Analytics(): React.JSX.Element {
                             <div className="text-xs font-medium">Core</div>
                           </div>
                         </div>
-                        
+
                         {/* Connected Nodes */}
                         {analytics.referenceGraph.nodes.slice(0, 6).map((node, index) => {
-                          const angle = (index * 60) * (Math.PI / 180);
+                          const angle = index * 60 * (Math.PI / 180);
                           const radius = 80;
                           const x = Math.cos(angle) * radius;
                           const y = Math.sin(angle) * radius;
-                          
+
                           return (
                             <div
                               key={node.id}
@@ -820,11 +829,16 @@ export function Analytics(): React.JSX.Element {
                                   {node.name.split('.')[0]}
                                 </div>
                               </div>
-                              
+
                               {/* Connection Line */}
                               <svg
                                 className="absolute inset-0 pointer-events-none"
-                                style={{ width: '200px', height: '200px', left: '-84px', top: '-84px' }}
+                                style={{
+                                  width: '200px',
+                                  height: '200px',
+                                  left: '-84px',
+                                  top: '-84px',
+                                }}
                               >
                                 <line
                                   x1="100"
@@ -840,13 +854,13 @@ export function Analytics(): React.JSX.Element {
                           );
                         })}
                       </div>
-                      
+
                       <div className="text-sm text-muted-foreground">
                         Click nodes to explore connections
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Graph Controls */}
                   <div className="absolute top-4 right-4 flex flex-col gap-2">
                     <Button variant="outline" size="sm">
@@ -859,7 +873,7 @@ export function Analytics(): React.JSX.Element {
                       <RotateCcw className="w-4 h-4" />
                     </Button>
                   </div>
-                  
+
                   {/* Legend */}
                   <div className="absolute bottom-4 left-4 bg-background/80 backdrop-blur-sm border rounded p-3 space-y-2">
                     <div className="text-xs font-medium">Legend</div>
@@ -912,9 +926,11 @@ export function Analytics(): React.JSX.Element {
                         <span className="text-sm">Graph Density</span>
                         <div className="flex items-center gap-2">
                           <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
-                            <div 
+                            <div
                               className="h-full bg-primary transition-all duration-300"
-                              style={{ width: `${analytics.referenceGraph.metrics.density * 100}%` }}
+                              style={{
+                                width: `${analytics.referenceGraph.metrics.density * 100}%`,
+                              }}
                             />
                           </div>
                           <span className="text-sm font-medium min-w-[3rem]">
@@ -936,7 +952,11 @@ export function Analytics(): React.JSX.Element {
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Circular References</span>
-                        <Badge variant={analytics.circularReferences.length > 0 ? 'destructive' : 'default'}>
+                        <Badge
+                          variant={
+                            analytics.circularReferences.length > 0 ? 'destructive' : 'default'
+                          }
+                        >
                           {analytics.circularReferences.length}
                         </Badge>
                       </div>
@@ -970,9 +990,12 @@ export function Analytics(): React.JSX.Element {
                         .slice(0, 15)
                         .map((node, index) => {
                           const schema = schemas.find((s) => s.id === node.id);
-                          const maxInDegree = Math.max(...analytics.referenceGraph.nodes.map(n => n.inDegree));
-                          const barWidth = maxInDegree > 0 ? (node.inDegree / maxInDegree) * 100 : 0;
-                          
+                          const maxInDegree = Math.max(
+                            ...analytics.referenceGraph.nodes.map((n) => n.inDegree),
+                          );
+                          const barWidth =
+                            maxInDegree > 0 ? (node.inDegree / maxInDegree) * 100 : 0;
+
                           return (
                             <div
                               key={node.id}
@@ -980,16 +1003,21 @@ export function Analytics(): React.JSX.Element {
                             >
                               {/* Rank indicator */}
                               <div className="absolute -left-2 top-1/2 transform -translate-y-1/2">
-                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                                  index === 0 ? 'bg-yellow-500 text-yellow-900' :
-                                  index === 1 ? 'bg-gray-400 text-gray-900' :
-                                  index === 2 ? 'bg-amber-600 text-amber-100' :
-                                  'bg-muted text-muted-foreground'
-                                }`}>
+                                <div
+                                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                                    index === 0
+                                      ? 'bg-yellow-500 text-yellow-900'
+                                      : index === 1
+                                        ? 'bg-gray-400 text-gray-900'
+                                        : index === 2
+                                          ? 'bg-amber-600 text-amber-100'
+                                          : 'bg-muted text-muted-foreground'
+                                  }`}
+                                >
                                   {index + 1}
                                 </div>
                               </div>
-                              
+
                               <div className="ml-4">
                                 <div className="flex items-center justify-between mb-2">
                                   <div className="flex-1 min-w-0">
@@ -1003,21 +1031,25 @@ export function Analytics(): React.JSX.Element {
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <Badge 
+                                    <Badge
                                       variant={index < 3 ? 'default' : 'outline'}
                                       className={index < 3 ? 'bg-primary' : ''}
                                     >
                                       {node.inDegree} refs
                                     </Badge>
-                                    <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
                                       <ExternalLink className="w-3 h-3" />
                                     </Button>
                                   </div>
                                 </div>
-                                
+
                                 {/* Reference bar */}
                                 <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                                  <div 
+                                  <div
                                     className="h-full bg-gradient-to-r from-primary to-primary/60 transition-all duration-500 ease-out"
                                     style={{ width: `${barWidth}%` }}
                                   />
@@ -1026,7 +1058,7 @@ export function Analytics(): React.JSX.Element {
                             </div>
                           );
                         })}
-                      
+
                       {analytics.referenceGraph.nodes.length === 0 && (
                         <div className="text-center py-8 text-muted-foreground">
                           <GitBranch className="w-12 h-12 mx-auto mb-3 opacity-50" />

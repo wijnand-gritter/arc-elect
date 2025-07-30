@@ -10,7 +10,14 @@
  */
 
 import React, { ReactElement, ReactNode } from 'react';
-import { render, RenderOptions, RenderResult, screen, fireEvent, waitFor } from '@testing-library/react';
+import {
+  render,
+  RenderOptions,
+  RenderResult,
+  screen,
+  fireEvent,
+  waitFor,
+} from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act } from 'react-dom/test-utils';
 import userEvent from '@testing-library/user-event';
@@ -42,24 +49,24 @@ function TestProviders({
   theme?: 'light' | 'dark' | 'system';
   queryClient?: QueryClient;
 }) {
-  const client = queryClient || new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-        staleTime: Infinity,
+  const client =
+    queryClient ||
+    new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+          staleTime: Infinity,
+        },
+        mutations: {
+          retry: false,
+        },
       },
-      mutations: {
-        retry: false,
-      },
-    },
-  });
+    });
 
   return (
     <QueryClientProvider client={client}>
       <ThemeProvider defaultTheme={theme} storageKey="test-theme">
-        <ErrorBoundary>
-          {children}
-        </ErrorBoundary>
+        <ErrorBoundary>{children}</ErrorBoundary>
       </ThemeProvider>
     </QueryClientProvider>
   );
@@ -70,14 +77,9 @@ function TestProviders({
  */
 export function renderWithProviders(
   ui: ReactElement,
-  options: CustomRenderOptions = {}
+  options: CustomRenderOptions = {},
 ): RenderResult {
-  const {
-    theme = 'light',
-    queryClient,
-    withProviders = true,
-    ...renderOptions
-  } = options;
+  const { theme = 'light', queryClient, withProviders = true, ...renderOptions } = options;
 
   if (!withProviders) {
     return render(ui, renderOptions);
@@ -106,7 +108,7 @@ export function createUserEvent() {
  */
 export function createMockSchema(overrides: Partial<Schema> = {}): Schema {
   const id = overrides.id || `schema-${Math.random().toString(36).substr(2, 9)}`;
-  
+
   return {
     id,
     projectId: overrides.projectId || 'test-project',
@@ -145,15 +147,17 @@ export function createMockSchema(overrides: Partial<Schema> = {}): Schema {
 export function createMockProject(overrides: Partial<Project> = {}): Project {
   const id = overrides.id || `project-${Math.random().toString(36).substr(2, 9)}`;
   const schemaCount = overrides.schemas?.length || 5;
-  
-  const schemas = overrides.schemas || Array.from({ length: schemaCount }, (_, i) =>
-    createMockSchema({
-      id: `schema-${i}`,
-      projectId: id,
-      name: `test-schema-${i}`,
-      path: `/test/schemas/schema-${i}.json`,
-    })
-  );
+
+  const schemas =
+    overrides.schemas ||
+    Array.from({ length: schemaCount }, (_, i) =>
+      createMockSchema({
+        id: `schema-${i}`,
+        projectId: id,
+        name: `test-schema-${i}`,
+        path: `/test/schemas/schema-${i}.json`,
+      }),
+    );
 
   return {
     id,
@@ -177,16 +181,17 @@ export function createMockProject(overrides: Partial<Project> = {}): Project {
  */
 export function createMockSchemas(count: number = 10): Schema[] {
   const statuses: ValidationStatus[] = ['valid', 'invalid', 'error', 'pending'];
-  
+
   return Array.from({ length: count }, (_, i) => {
     const status = statuses[i % statuses.length];
     return createMockSchema({
       id: `schema-${i}`,
       name: `test-schema-${i}`,
       validationStatus: status,
-      validationErrors: status === 'invalid' || status === 'error' 
-        ? [{ message: `Test error for schema ${i}`, line: 1, column: 1 }]
-        : [],
+      validationErrors:
+        status === 'invalid' || status === 'error'
+          ? [{ message: `Test error for schema ${i}`, line: 1, column: 1 }]
+          : [],
     });
   });
 }
@@ -196,7 +201,7 @@ export function createMockSchemas(count: number = 10): Schema[] {
  */
 export async function waitForElement(
   selector: string,
-  timeout: number = 5000
+  timeout: number = 5000,
 ): Promise<HTMLElement> {
   return waitFor(
     () => {
@@ -206,35 +211,26 @@ export async function waitForElement(
       }
       return element;
     },
-    { timeout }
+    { timeout },
   );
 }
 
 /**
  * Wait for text to appear in document.
  */
-export async function waitForText(
-  text: string,
-  timeout: number = 5000
-): Promise<HTMLElement> {
-  return waitFor(
-    () => screen.getByText(text),
-    { timeout }
-  );
+export async function waitForText(text: string, timeout: number = 5000): Promise<HTMLElement> {
+  return waitFor(() => screen.getByText(text), { timeout });
 }
 
 /**
  * Simulate file upload.
  */
-export function simulateFileUpload(
-  input: HTMLInputElement,
-  files: File[]
-): void {
+export function simulateFileUpload(input: HTMLInputElement, files: File[]): void {
   Object.defineProperty(input, 'files', {
     value: files,
     writable: false,
   });
-  
+
   fireEvent.change(input);
 }
 
@@ -244,7 +240,7 @@ export function simulateFileUpload(
 export function createMockFile(
   name: string,
   content: string,
-  type: string = 'application/json'
+  type: string = 'application/json',
 ): File {
   return new File([content], name, { type });
 }
@@ -258,21 +254,21 @@ export function mockWindowApi() {
     createProject: jest.fn(),
     loadProject: jest.fn(),
     saveProject: jest.fn(),
-    
+
     // Schema operations
     readFile: jest.fn(),
     writeFile: jest.fn(),
     validateSchema: jest.fn(),
-    
+
     // RAML operations
     scanRamlFiles: jest.fn(),
     convertRamlFile: jest.fn(),
     convertRamlBatch: jest.fn(),
-    
+
     // Settings
     getTheme: jest.fn(),
     setTheme: jest.fn(),
-    
+
     // Analytics
     analyzeSchemas: jest.fn(),
   };
@@ -300,7 +296,7 @@ export function mockLocalStorage() {
       delete store[key];
     }),
     clear: jest.fn(() => {
-      Object.keys(store).forEach(key => delete store[key]);
+      Object.keys(store).forEach((key) => delete store[key]);
     }),
     length: 0,
     key: jest.fn((index: number) => Object.keys(store)[index] || null),
@@ -340,7 +336,7 @@ export function mockIntersectionObserver() {
     observe: jest.fn(),
     unobserve: jest.fn(),
     disconnect: jest.fn(),
-    trigger: (entries: any[]) => callback(entries),
+    trigger: (entries: IntersectionObserverEntry[]) => callback(entries),
   }));
 
   Object.defineProperty(window, 'IntersectionObserver', {
@@ -374,26 +370,27 @@ export function mockPerformanceMemory() {
  */
 export async function testAccessibility(
   component: ReactElement,
-  options: CustomRenderOptions = {}
+  options: CustomRenderOptions = {},
 ) {
   const { container } = renderWithProviders(component, options);
-  
+
   // Basic accessibility checks
   const buttons = container.querySelectorAll('button');
-  buttons.forEach(button => {
+  buttons.forEach((button) => {
     expect(button).toHaveAttribute('type');
   });
 
   const images = container.querySelectorAll('img');
-  images.forEach(img => {
+  images.forEach((img) => {
     expect(img).toHaveAttribute('alt');
   });
 
   const inputs = container.querySelectorAll('input');
-  inputs.forEach(input => {
-    const hasLabel = input.hasAttribute('aria-label') || 
-                    input.hasAttribute('aria-labelledby') ||
-                    container.querySelector(`label[for="${input.id}"]`);
+  inputs.forEach((input) => {
+    const hasLabel =
+      input.hasAttribute('aria-label') ||
+      input.hasAttribute('aria-labelledby') ||
+      container.querySelector(`label[for="${input.id}"]`);
     expect(hasLabel).toBe(true);
   });
 
@@ -405,7 +402,7 @@ export async function testAccessibility(
  */
 export async function testKeyboardNavigation(
   component: ReactElement,
-  options: CustomRenderOptions = {}
+  options: CustomRenderOptions = {},
 ) {
   const user = createUserEvent();
   renderWithProviders(component, options);
@@ -434,18 +431,15 @@ export async function testKeyboardNavigation(
 /**
  * Test component with error boundary.
  */
-export function testWithErrorBoundary(
-  component: ReactElement,
-  shouldError: boolean = false
-) {
+export function testWithErrorBoundary(component: ReactElement, shouldError: boolean = false) {
   const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-  
+
   if (shouldError) {
     // Force component to throw error for testing
     const ThrowError = () => {
       throw new Error('Test error');
     };
-    
+
     renderWithProviders(<ThrowError />);
     expect(errorSpy).toHaveBeenCalled();
   } else {
@@ -464,7 +458,7 @@ export function createTestSuite(
   component: () => ReactElement,
   tests: {
     [testName: string]: (renderResult: RenderResult) => Promise<void> | void;
-  }
+  },
 ) {
   describe(name, () => {
     Object.entries(tests).forEach(([testName, testFn]) => {
@@ -491,14 +485,7 @@ export function createTestSuite(
 }
 
 // Export commonly used testing utilities
-export {
-  render,
-  screen,
-  fireEvent,
-  waitFor,
-  act,
-  userEvent,
-};
+export { render, screen, fireEvent, waitFor, act, userEvent };
 
 // Extend expect with jest-dom matchers
 import '@testing-library/jest-dom';
@@ -507,13 +494,13 @@ import '@testing-library/jest-dom';
 beforeEach(() => {
   // Clear all mocks before each test
   jest.clearAllMocks();
-  
+
   // Reset DOM
   document.body.innerHTML = '';
-  
+
   // Mock console.error to avoid noise in tests
   const originalError = console.error;
-  console.error = (...args: any[]) => {
+  console.error = (...args: unknown[]) => {
     if (
       typeof args[0] === 'string' &&
       args[0].includes('Warning: ReactDOM.render is no longer supported')

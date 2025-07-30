@@ -13,7 +13,12 @@ import { useCallback, useEffect, useState, useRef } from 'react';
 import { useBackgroundProcessing } from '../hooks/useBackgroundProcessing';
 import { AnalyticsService } from './analytics';
 import type { Schema } from '../../types/schema-editor';
-import type { AnalyticsResult, CircularReference, ComplexityMetrics, ReferenceGraph } from './analytics';
+import type {
+  AnalyticsResult,
+  CircularReference,
+  ComplexityMetrics,
+  ReferenceGraph,
+} from './analytics';
 import logger from '../lib/renderer-logger';
 
 /**
@@ -163,8 +168,8 @@ export function useBackgroundAnalytics(
    * Create analytics processor function.
    */
   const createAnalyticsProcessor = useCallback(
-    (taskType: AnalyticsTaskType) => 
-      async (input: AnalyticsTaskInput, signal?: AbortSignal): Promise<any> => {
+    (taskType: AnalyticsTaskType) =>
+      async (input: AnalyticsTaskInput, signal?: AbortSignal): Promise<unknown> => {
         const { schemas } = input;
         const analyticsService = new AnalyticsService();
 
@@ -174,7 +179,7 @@ export function useBackgroundAnalytics(
         }
 
         const startTime = Date.now();
-        console.info(`Starting ${taskType} analysis`, { schemaCount: schemas.length });
+        logger.info(`Starting ${taskType} analysis`, { taskType, schemaCount: schemas.length });
 
         try {
           let result: unknown;
@@ -193,47 +198,49 @@ export function useBackgroundAnalytics(
               break;
 
             case 'full-analysis': {
-               // Perform a comprehensive analysis using the single public helper
-               result = await analyticsService.analyzeSchemas(schemas);
-               break;
-             }
+              // Perform a comprehensive analysis using the single public helper
+              result = await analyticsService.analyzeSchemas(schemas);
+              break;
+            }
 
             default:
               throw new Error(`Unknown analysis task type: ${taskType}`);
           }
 
           const duration = Date.now() - startTime;
-          logger.info(`Completed ${taskType} analysis`, { 
+          logger.info(`Completed ${taskType} analysis`, {
             duration,
-            resultSize: JSON.stringify(result).length 
+            resultSize: JSON.stringify(result).length,
           });
 
           return result;
-
         } catch (error) {
           const duration = Date.now() - startTime;
-          logger.error(`Failed ${taskType} analysis`, { 
+          logger.error(`Failed ${taskType} analysis`, {
             error: error instanceof Error ? error.message : 'Unknown error',
-            duration 
+            duration,
           });
           throw error;
         }
       },
-    []
+    [],
   );
 
   /**
    * Update state with analysis result.
    */
-  const updateResult = useCallback((taskType: AnalyticsTaskType, result: any) => {
-    setState(prev => ({
+  const updateResult = useCallback((taskType: AnalyticsTaskType, result: unknown) => {
+    setState((prev) => ({
       ...prev,
       results: {
         ...prev.results,
-        [taskType === 'full-analysis' ? 'fullAnalysis' : 
-         taskType === 'circular-references' ? 'circularReferences' :
-         taskType === 'complexity-metrics' ? 'complexityMetrics' :
-         'referenceGraph']: result,
+        [taskType === 'full-analysis'
+          ? 'fullAnalysis'
+          : taskType === 'circular-references'
+            ? 'circularReferences'
+            : taskType === 'complexity-metrics'
+              ? 'complexityMetrics'
+              : 'referenceGraph']: result,
       },
       lastAnalysis: new Date(),
       metrics: {
@@ -246,75 +253,80 @@ export function useBackgroundAnalytics(
   /**
    * Execute analysis task.
    */
-  const executeAnalysis = useCallback(async (
-    taskType: AnalyticsTaskType,
-    priority: number = 0
-  ): Promise<void> => {
-    if (schemas.length === 0) {
-      logger.warn('No schemas provided for analysis');
-      return;
-    }
-
-    const taskId = `${taskType}-${Date.now()}`;
-    
-    setState(prev => ({ ...prev, error: null }));
-
-    addTask({
-      id: taskId,
-      input: { schemas, options: { enableCaching } },
-      processor: createAnalyticsProcessor(taskType),
-      priority,
-      timeout: taskType === 'full-analysis' ? 120000 : 60000, // 2 minutes for full analysis
-    });
-
-    // Poll for result
-    const pollInterval = setInterval(() => {
-      const result = getResult(taskId);
-      
-      if (result?.status === 'completed' && result.result) {
-        updateResult(taskType, result.result);
-        clearInterval(pollInterval);
-      } else if (result?.status === 'error') {
-        setState(prev => ({ ...prev, error: result.error || 'Analysis failed' }));
-        clearInterval(pollInterval);
-      } else if (result?.status === 'cancelled') {
-        setState(prev => ({ ...prev, error: 'Analysis was cancelled' }));
-        clearInterval(pollInterval);
+  const executeAnalysis = useCallback(
+    async (taskType: AnalyticsTaskType, priority: number = 0): Promise<void> => {
+      if (schemas.length === 0) {
+        logger.warn('No schemas provided for analysis');
+        return;
       }
-    }, 100);
 
-    // Cleanup after 5 minutes
-    setTimeout(() => clearInterval(pollInterval), 300000);
-  }, [schemas, enableCaching, addTask, createAnalyticsProcessor, getResult, updateResult]);
+      const taskId = `${taskType}-${Date.now()}`;
+
+      setState((prev) => ({ ...prev, error: null }));
+
+      addTask({
+        id: taskId,
+        input: { schemas, options: { enableCaching } },
+        processor: createAnalyticsProcessor(taskType),
+        priority,
+        timeout: taskType === 'full-analysis' ? 120000 : 60000, // 2 minutes for full analysis
+      });
+
+      // Poll for result
+      const pollInterval = setInterval(() => {
+        const result = getResult(taskId);
+
+        if (result?.status === 'completed' && result.result) {
+          updateResult(taskType, result.result);
+          clearInterval(pollInterval);
+        } else if (result?.status === 'error') {
+          setState((prev) => ({ ...prev, error: result.error || 'Analysis failed' }));
+          clearInterval(pollInterval);
+        } else if (result?.status === 'cancelled') {
+          setState((prev) => ({ ...prev, error: 'Analysis was cancelled' }));
+          clearInterval(pollInterval);
+        }
+      }, 100);
+
+      // Cleanup after 5 minutes
+      setTimeout(() => clearInterval(pollInterval), 300000);
+    },
+    [schemas, enableCaching, addTask, createAnalyticsProcessor, getResult, updateResult],
+  );
 
   /**
    * Individual analysis functions.
    */
-  const analyzeCircularReferences = useCallback(() => 
-    executeAnalysis('circular-references', 1), [executeAnalysis]);
+  const analyzeCircularReferences = useCallback(
+    () => executeAnalysis('circular-references', 1),
+    [executeAnalysis],
+  );
 
-  const analyzeComplexity = useCallback(() => 
-    executeAnalysis('complexity-metrics', 2), [executeAnalysis]);
+  const analyzeComplexity = useCallback(
+    () => executeAnalysis('complexity-metrics', 2),
+    [executeAnalysis],
+  );
 
-  const analyzeReferenceGraph = useCallback(() => 
-    executeAnalysis('reference-graph', 2), [executeAnalysis]);
+  const analyzeReferenceGraph = useCallback(
+    () => executeAnalysis('reference-graph', 2),
+    [executeAnalysis],
+  );
 
-  const analyzeAll = useCallback(() => 
-    executeAnalysis('full-analysis', 0), [executeAnalysis]);
+  const analyzeAll = useCallback(() => executeAnalysis('full-analysis', 0), [executeAnalysis]);
 
   /**
    * Cancel all analysis tasks.
    */
   const cancelAnalysis = useCallback(() => {
     clearTasks();
-    setState(prev => ({ ...prev, error: 'Analysis cancelled' }));
+    setState((prev) => ({ ...prev, error: 'Analysis cancelled' }));
   }, [clearTasks]);
 
   /**
    * Clear all results.
    */
   const clearResults = useCallback(() => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       results: {},
       error: null,
@@ -325,7 +337,7 @@ export function useBackgroundAnalytics(
   /**
    * Auto-analyze when schemas change.
    */
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debounceRef = useRef<number | null>(null);
   useEffect(() => {
     if (!autoAnalyze || schemas.length === 0) return;
 
@@ -351,7 +363,7 @@ export function useBackgroundAnalytics(
    * Update processing state.
    */
   useEffect(() => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       isAnalyzing: isProcessing,
       progress: overallProgress,

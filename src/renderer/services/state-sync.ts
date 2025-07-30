@@ -17,7 +17,7 @@ import logger from '../lib/renderer-logger';
 /**
  * Synchronization event types.
  */
-type SyncEventType = 
+type SyncEventType =
   | 'schema-updated'
   | 'schema-created'
   | 'schema-deleted'
@@ -32,7 +32,7 @@ type SyncEventType =
 interface SyncEvent {
   type: SyncEventType;
   timestamp: number;
-  data: any;
+  data: unknown;
   source: string;
   version: number;
 }
@@ -50,8 +50,8 @@ interface SyncConflict {
   type: SyncEventType;
   localVersion: number;
   remoteVersion: number;
-  localData: any;
-  remoteData: any;
+  localData: unknown;
+  remoteData: unknown;
   timestamp: number;
 }
 
@@ -127,14 +127,12 @@ interface StateSyncResult {
  *   enableOptimisticUpdates: true,
  *   conflictResolution: 'user-choice'
  * });
- * 
+ *
  * // Emit schema update event
  * emitEvent('schema-updated', updatedSchema, 'editor');
  * ```
  */
-export function useStateSync(
-  options: StateSyncOptions = {},
-): StateSyncResult {
+export function useStateSync(options: StateSyncOptions = {}): StateSyncResult {
   const {
     enableRealTimeSync = true,
     // enableOptimisticUpdates = true,
@@ -153,7 +151,7 @@ export function useStateSync(
   const [pendingChanges, setPendingChanges] = useState<Set<string>>(new Set());
 
   const eventQueue = useRef<SyncEvent[]>([]);
-  const debounceTimeout = useRef<NodeJS.Timeout>();
+  const debounceTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const versionCounters = useRef<Map<string, number>>(new Map());
   const eventListeners = useRef<Map<string, Set<(event: SyncEvent) => void>>>(new Map());
 
@@ -175,46 +173,48 @@ export function useStateSync(
   /**
    * Add event to history.
    */
-  const addToHistory = useCallback((event: SyncEvent) => {
-    setHistory(prev => {
-      const newHistory = [...prev, event];
-      return newHistory.slice(-maxHistorySize);
-    });
-  }, [maxHistorySize]);
+  const addToHistory = useCallback(
+    (event: SyncEvent) => {
+      setHistory((prev) => {
+        const newHistory = [...prev, event];
+        return newHistory.slice(-maxHistorySize);
+      });
+    },
+    [maxHistorySize],
+  );
 
   /**
    * Emit synchronization event.
    */
-  const emitEvent = useCallback((
-    type: SyncEventType,
-    data: any,
-    source: string = 'unknown'
-  ): void => {
-    if (!isActive) return;
+  const emitEvent = useCallback(
+    (type: SyncEventType, data: any, source: string = 'unknown'): void => {
+      if (!isActive) return;
 
-    const event: SyncEvent = {
-      type,
-      timestamp: Date.now(),
-      data: JSON.parse(JSON.stringify(data)), // Deep clone
-      source,
-      version: getNextVersion(`${type}-${data.id || 'global'}`),
-    };
+      const event: SyncEvent = {
+        type,
+        timestamp: Date.now(),
+        data: JSON.parse(JSON.stringify(data)), // Deep clone
+        source,
+        version: getNextVersion(`${type}-${data.id || 'global'}`),
+      };
 
-    // Add to queue for processing
-    eventQueue.current.push(event);
-    addToHistory(event);
+      // Add to queue for processing
+      eventQueue.current.push(event);
+      addToHistory(event);
 
-    // Process queue with debouncing
-    if (debounceTimeout.current) {
-      clearTimeout(debounceTimeout.current);
-    }
+      // Process queue with debouncing
+      if (debounceTimeout.current) {
+        clearTimeout(debounceTimeout.current);
+      }
 
-    debounceTimeout.current = setTimeout(() => {
-      processEventQueue();
-    }, debounceDelay);
+      debounceTimeout.current = setTimeout(() => {
+        processEventQueue();
+      }, debounceDelay);
 
-    logger.debug('Sync event emitted', { type, source, version: event.version });
-  }, [isActive, getNextVersion, addToHistory, debounceDelay]);
+      logger.debug('Sync event emitted', { type, source, version: event.version });
+    },
+    [isActive, getNextVersion, addToHistory, debounceDelay],
+  );
 
   /**
    * Process queued synchronization events.
@@ -230,10 +230,9 @@ export function useStateSync(
       for (const event of events) {
         await processEvent(event);
       }
-      
+
       setLastSync(new Date());
       setSyncStatus(conflicts.length > 0 ? 'conflict' : 'idle');
-      
     } catch (error) {
       logger.error('Failed to process sync events', error);
       setSyncStatus('error');
@@ -243,183 +242,195 @@ export function useStateSync(
   /**
    * Process individual synchronization event.
    */
-  const processEvent = useCallback(async (event: SyncEvent): Promise<void> => {
-    const { type, data, source, version } = event;
+  const processEvent = useCallback(
+    async (event: SyncEvent): Promise<void> => {
+      const { type, data, source, version } = event;
 
-    try {
-      // Check for conflicts
-      const existingVersion = versionCounters.current.get(`${type}-${data.id || 'global'}`) || 0;
-      
-      if (version < existingVersion && source !== 'local') {
-        // Potential conflict detected
-        const conflict: SyncConflict = {
-          id: `${type}-${data.id}-${Date.now()}`,
-          type,
-          localVersion: existingVersion,
-          remoteVersion: version,
-          localData: getCurrentData(type, data.id),
-          remoteData: data,
-          timestamp: Date.now(),
-        };
+      try {
+        // Check for conflicts
+        const existingVersion = versionCounters.current.get(`${type}-${data.id || 'global'}`) || 0;
 
-        if (autoResolveConflicts) {
-          resolveConflictAutomatically(conflict);
-        } else {
-          setConflicts(prev => [...prev, conflict]);
-          setSyncStatus('conflict');
-          return;
+        if (version < existingVersion && source !== 'local') {
+          // Potential conflict detected
+          const conflict: SyncConflict = {
+            id: `${type}-${data.id}-${Date.now()}`,
+            type,
+            localVersion: existingVersion,
+            remoteVersion: version,
+            localData: getCurrentData(type, data.id),
+            remoteData: data,
+            timestamp: Date.now(),
+          };
+
+          if (autoResolveConflicts) {
+            resolveConflictAutomatically(conflict);
+          } else {
+            setConflicts((prev) => [...prev, conflict]);
+            setSyncStatus('conflict');
+            return;
+          }
         }
+
+        // Apply the event
+        await applyEvent(event);
+
+        // Update version counter
+        versionCounters.current.set(`${type}-${data.id || 'global'}`, version);
+
+        // Track pending changes
+        if (enableChangeTracking && source === 'local') {
+          setPendingChanges((prev) => new Set(prev).add(`${type}-${data.id}`));
+        }
+
+        // Notify listeners
+        const listeners = eventListeners.current.get(type);
+        if (listeners) {
+          listeners.forEach((listener) => listener(event));
+        }
+      } catch (error) {
+        logger.error('Failed to process sync event', { type, error });
+        throw error;
       }
-
-      // Apply the event
-      await applyEvent(event);
-
-      // Update version counter
-      versionCounters.current.set(`${type}-${data.id || 'global'}`, version);
-
-      // Track pending changes
-      if (enableChangeTracking && source === 'local') {
-        setPendingChanges(prev => new Set(prev).add(`${type}-${data.id}`));
-      }
-
-      // Notify listeners
-      const listeners = eventListeners.current.get(type);
-      if (listeners) {
-        listeners.forEach(listener => listener(event));
-      }
-
-    } catch (error) {
-      logger.error('Failed to process sync event', { type, error });
-      throw error;
-    }
-  }, [autoResolveConflicts, enableChangeTracking]);
+    },
+    [autoResolveConflicts, enableChangeTracking],
+  );
 
   /**
    * Get current data for conflict resolution.
    */
-  const getCurrentData = useCallback((type: SyncEventType, entityId: string): any => {
-    switch (type) {
-      case 'schema-updated':
-      case 'schema-created':
-        return currentProject?.schemas.find(s => s.id === entityId);
-      case 'project-loaded':
-      case 'project-saved':
-        return currentProject;
-      default:
-        return null;
-    }
-  }, [currentProject]);
+  const getCurrentData = useCallback(
+    (type: SyncEventType, entityId: string): any => {
+      switch (type) {
+        case 'schema-updated':
+        case 'schema-created':
+          return currentProject?.schemas.find((s) => s.id === entityId);
+        case 'project-loaded':
+        case 'project-saved':
+          return currentProject;
+        default:
+          return null;
+      }
+    },
+    [currentProject],
+  );
 
   /**
    * Apply synchronization event to store.
    */
-  const applyEvent = useCallback(async (event: SyncEvent): Promise<void> => {
-    const { type, data } = event;
+  const applyEvent = useCallback(
+    async (event: SyncEvent): Promise<void> => {
+      const { type, data } = event;
 
-    switch (type) {
-      case 'schema-updated':
-        if (currentProject) {
-          const updatedSchemas = currentProject.schemas.map(schema =>
-            schema.id === data.id ? { ...schema, ...data } : schema
-          );
-          setCurrentProject({
-            ...currentProject,
-            schemas: updatedSchemas,
-          });
-        }
-        break;
+      switch (type) {
+        case 'schema-updated':
+          if (currentProject) {
+            const updatedSchemas = currentProject.schemas.map((schema) =>
+              schema.id === data.id ? { ...schema, ...data } : schema,
+            );
+            setCurrentProject({
+              ...currentProject,
+              schemas: updatedSchemas,
+            });
+          }
+          break;
 
-      case 'schema-created':
-        if (currentProject) {
-          const newSchemas = [...currentProject.schemas, data];
-          setCurrentProject({
-            ...currentProject,
-            schemas: newSchemas,
-          });
-        }
-        break;
+        case 'schema-created':
+          if (currentProject) {
+            const newSchemas = [...currentProject.schemas, data];
+            setCurrentProject({
+              ...currentProject,
+              schemas: newSchemas,
+            });
+          }
+          break;
 
-      case 'schema-deleted':
-        if (currentProject) {
-          const filteredSchemas = currentProject.schemas.filter(
-            schema => schema.id !== data.id
-          );
-          setCurrentProject({
-            ...currentProject,
-            schemas: filteredSchemas,
-          });
-        }
-        break;
+        case 'schema-deleted':
+          if (currentProject) {
+            const filteredSchemas = currentProject.schemas.filter(
+              (schema) => schema.id !== data.id,
+            );
+            setCurrentProject({
+              ...currentProject,
+              schemas: filteredSchemas,
+            });
+          }
+          break;
 
-      case 'project-loaded':
-      case 'project-saved':
-        setCurrentProject(data);
-        break;
+        case 'project-loaded':
+        case 'project-saved':
+          setCurrentProject(data);
+          break;
 
-      case 'validation-completed':
-        // Update validation status for affected schemas
-        if (currentProject && data.results) {
-          const updatedSchemas = currentProject.schemas.map(schema => {
-            const result = data.results.find((r: any) => r.schemaId === schema.id);
-            return result ? { ...schema, validationStatus: result.status } : schema;
-          });
-          setCurrentProject({
-            ...currentProject,
-            schemas: updatedSchemas,
-          });
-        }
-        break;
+        case 'validation-completed':
+          // Update validation status for affected schemas
+          if (currentProject && data.results) {
+            const updatedSchemas = currentProject.schemas.map((schema) => {
+              const result = data.results.find((r: any) => r.schemaId === schema.id);
+              return result ? { ...schema, validationStatus: result.status } : schema;
+            });
+            setCurrentProject({
+              ...currentProject,
+              schemas: updatedSchemas,
+            });
+          }
+          break;
 
-      case 'analytics-updated':
-        // Analytics updates are handled by the analytics store
-        break;
+        case 'analytics-updated':
+          // Analytics updates are handled by the analytics store
+          break;
 
-      default:
-        logger.warn('Unknown sync event type', { type });
-    }
-  }, [currentProject, setCurrentProject]);
+        default:
+          logger.warn('Unknown sync event type', { type });
+      }
+    },
+    [currentProject, setCurrentProject],
+  );
 
   /**
    * Automatically resolve conflicts based on strategy.
    */
-  const resolveConflictAutomatically = useCallback((conflict: SyncConflict): void => {
-    switch (conflictResolution) {
-      case 'last-write-wins':
-        // Use the more recent version
-        if (conflict.remoteVersion > conflict.localVersion) {
-          applyEvent({
-            type: conflict.type,
-            timestamp: Date.now(),
-            data: conflict.remoteData,
-            source: 'conflict-resolution',
-            version: conflict.remoteVersion,
-          });
-        }
-        break;
+  const resolveConflictAutomatically = useCallback(
+    (conflict: SyncConflict): void => {
+      switch (conflictResolution) {
+        case 'last-write-wins':
+          // Use the more recent version
+          if (conflict.remoteVersion > conflict.localVersion) {
+            applyEvent({
+              type: conflict.type,
+              timestamp: Date.now(),
+              data: conflict.remoteData,
+              source: 'conflict-resolution',
+              version: conflict.remoteVersion,
+            });
+          }
+          break;
 
-      case 'merge': {
-        // Attempt to merge the data
-        const merged = mergeData(conflict.localData, conflict.remoteData);
-        applyEvent({
-          type: conflict.type,
-          timestamp: Date.now(),
-          data: merged,
-          source: 'conflict-resolution',
-          version: Math.max(conflict.localVersion, conflict.remoteVersion) + 1,
-        });
+        case 'merge':
+          {
+            // Attempt to merge the data
+            const merged = mergeData(conflict.localData, conflict.remoteData);
+            applyEvent({
+              type: conflict.type,
+              timestamp: Date.now(),
+              data: merged,
+              source: 'conflict-resolution',
+              version: Math.max(conflict.localVersion, conflict.remoteVersion) + 1,
+            });
+          }
+          break;
+
+        case 'reject':
+          // Keep local version, ignore remote
+          logger.info('Conflict rejected, keeping local version', { conflict });
+          break;
+
+        default:
+          // Add to conflicts for user resolution
+          setConflicts((prev) => [...prev, conflict]);
       }
-        break;
-
-      case 'reject':
-        // Keep local version, ignore remote
-        logger.info('Conflict rejected, keeping local version', { conflict });
-        break;
-
-      default:
-        // Add to conflicts for user resolution
-        setConflicts(prev => [...prev, conflict]);
-    }
-  }, [conflictResolution]);
+    },
+    [conflictResolution],
+  );
 
   /**
    * Merge conflicting data objects.
@@ -450,45 +461,45 @@ export function useStateSync(
   /**
    * Manually resolve conflict.
    */
-  const resolveConflict = useCallback((
-    conflictId: string,
-    resolution: 'local' | 'remote' | 'merge'
-  ): void => {
-    setConflicts(prev => {
-      const conflict = prev.find(c => c.id === conflictId);
-      if (!conflict) return prev;
+  const resolveConflict = useCallback(
+    (conflictId: string, resolution: 'local' | 'remote' | 'merge'): void => {
+      setConflicts((prev) => {
+        const conflict = prev.find((c) => c.id === conflictId);
+        if (!conflict) return prev;
 
-      let dataToApply: any;
-      let version: number;
+        let dataToApply: any;
+        let version: number;
 
-      switch (resolution) {
-        case 'local':
-          dataToApply = conflict.localData;
-          version = conflict.localVersion;
-          break;
-        case 'remote':
-          dataToApply = conflict.remoteData;
-          version = conflict.remoteVersion;
-          break;
-        case 'merge':
-          dataToApply = mergeData(conflict.localData, conflict.remoteData);
-          version = Math.max(conflict.localVersion, conflict.remoteVersion) + 1;
-          break;
-      }
+        switch (resolution) {
+          case 'local':
+            dataToApply = conflict.localData;
+            version = conflict.localVersion;
+            break;
+          case 'remote':
+            dataToApply = conflict.remoteData;
+            version = conflict.remoteVersion;
+            break;
+          case 'merge':
+            dataToApply = mergeData(conflict.localData, conflict.remoteData);
+            version = Math.max(conflict.localVersion, conflict.remoteVersion) + 1;
+            break;
+        }
 
-      // Apply the resolution
-      applyEvent({
-        type: conflict.type,
-        timestamp: Date.now(),
-        data: dataToApply,
-        source: 'manual-resolution',
-        version,
+        // Apply the resolution
+        applyEvent({
+          type: conflict.type,
+          timestamp: Date.now(),
+          data: dataToApply,
+          source: 'manual-resolution',
+          version,
+        });
+
+        // Remove resolved conflict
+        return prev.filter((c) => c.id !== conflictId);
       });
-
-      // Remove resolved conflict
-      return prev.filter(c => c.id !== conflictId);
-    });
-  }, [mergeData]);
+    },
+    [mergeData],
+  );
 
   /**
    * Force synchronization.
@@ -497,17 +508,17 @@ export function useStateSync(
     if (!isActive) return;
 
     setSyncStatus('syncing');
-    
+
     try {
       // Process any pending events
       await processEventQueue();
-      
+
       // Clear pending changes
       setPendingChanges(new Set());
-      
+
       setLastSync(new Date());
       setSyncStatus(conflicts.length > 0 ? 'conflict' : 'idle');
-      
+
       logger.info('Force sync completed');
     } catch (error) {
       logger.error('Force sync failed', error);

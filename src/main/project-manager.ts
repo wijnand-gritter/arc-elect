@@ -25,6 +25,7 @@ import type {
   ValidationResult,
   SchemaReference,
 } from '../types/schema-editor';
+import type { RamlFileInfo } from '../types/raml-import';
 
 /**
  * RAML conversion options interface.
@@ -517,7 +518,7 @@ class ProjectManager {
       // Generate a temporary project ID for standalone schema reading
       const tempProjectId = 'temp-' + this.generateProjectId(path.dirname(filePath));
       const schema = await this.readSchemaFile(filePath, tempProjectId);
-      return { success: true, schema: schema || undefined };
+      return schema ? { success: true, schema } : { success: true };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('ProjectManager: Failed to read schema', { filePath, error });
@@ -535,7 +536,7 @@ class ProjectManager {
   }> {
     try {
       const content = await fs.readFile(filePath, 'utf-8');
-      let data: any;
+      let data: unknown;
       try {
         data = JSON.parse(content);
       } catch (parseError) {
@@ -639,7 +640,7 @@ class ProjectManager {
       ]);
 
       // Single JSON parse
-      let data: any;
+      let data: unknown;
       try {
         data = JSON.parse(content);
       } catch (parseError) {
@@ -650,9 +651,6 @@ class ProjectManager {
           path: filePath,
           content: {},
           metadata: {
-            title: undefined,
-            description: undefined,
-            version: undefined,
             lastModified: stats.mtime,
             fileSize: stats.size,
           },
@@ -682,14 +680,14 @@ class ProjectManager {
         projectId,
         name: path.basename(filePath, '.schema.json'),
         path: filePath,
-        content: data,
+        content: data as Record<string, unknown>,
         metadata: {
           ...this.extractMetadata(data),
           lastModified: stats.mtime,
           fileSize: stats.size,
         },
         validationStatus: validationResult.isValid ? 'valid' : 'invalid',
-        validationErrors: validationResult.isValid ? undefined : validationResult.errors,
+        ...(validationResult.errors && validationResult.errors.length > 0 && { validationErrors: validationResult.errors }),
         relativePath,
         importSource: 'json',
         importDate: new Date(),
@@ -707,7 +705,7 @@ class ProjectManager {
   /**
    * Validates already-parsed schema data (optimized - no file I/O).
    */
-  private validateSchemaData(data: any): ValidationResult {
+  private validateSchemaData(data: unknown): ValidationResult {
     // Validate basic JSON Schema structure
     const errors: Array<{
       path: string;
@@ -716,6 +714,9 @@ class ProjectManager {
       keyword: string;
       severity: 'error';
     }> = [];
+
+    // Cast data to record for property access
+    const dataRecord = data as Record<string, unknown>;
 
     // Check if it's a valid JSON object
     if (typeof data !== 'object' || data === null) {
@@ -731,7 +732,7 @@ class ProjectManager {
       // Most JSON objects can be valid schemas, so be very permissive
 
       // Check for invalid $schema format (should be a string if present)
-      if (data.$schema !== undefined && typeof data.$schema !== 'string') {
+      if (dataRecord.$schema !== undefined && typeof dataRecord.$schema !== 'string') {
         errors.push({
           path: '/$schema',
           instancePath: '/$schema',
@@ -742,7 +743,7 @@ class ProjectManager {
       }
 
       // Check for invalid type format (should be string or array if present)
-      if (data.type !== undefined && typeof data.type !== 'string' && !Array.isArray(data.type)) {
+      if (dataRecord.type !== undefined && typeof dataRecord.type !== 'string' && !Array.isArray(dataRecord.type)) {
         errors.push({
           path: '/type',
           instancePath: '/type',
@@ -754,8 +755,8 @@ class ProjectManager {
 
       // Check for invalid properties format (should be object if present)
       if (
-        data.properties !== undefined &&
-        (typeof data.properties !== 'object' || data.properties === null)
+        dataRecord.properties !== undefined &&
+        (typeof dataRecord.properties !== 'object' || dataRecord.properties === null)
       ) {
         errors.push({
           path: '/properties',
@@ -767,7 +768,7 @@ class ProjectManager {
       }
 
       // Check for invalid enum format (should be array if present)
-      if (data.enum !== undefined && !Array.isArray(data.enum)) {
+      if (dataRecord.enum !== undefined && !Array.isArray(dataRecord.enum)) {
         errors.push({
           path: '/enum',
           instancePath: '/enum',
@@ -778,7 +779,7 @@ class ProjectManager {
       }
 
       // Check for invalid $ref format (should be string if present)
-      if (data.$ref !== undefined && typeof data.$ref !== 'string') {
+      if (dataRecord.$ref !== undefined && typeof dataRecord.$ref !== 'string') {
         errors.push({
           path: '/$ref',
           instancePath: '/$ref',
@@ -990,7 +991,7 @@ class ProjectManager {
   /**
    * Scans a directory for RAML files.
    */
-  public async scanRamlFiles(directoryPath: string): Promise<any[]> {
+  public async scanRamlFiles(directoryPath: string): Promise<RamlFileInfo[]> {
     try {
       logger.info('ProjectManager: Scanning RAML files', { directoryPath });
 
@@ -1024,25 +1025,29 @@ class ProjectManager {
               }
             }
 
-            return {
+            const fileInfo: RamlFileInfo = {
               path: filePath,
               name: path.basename(filePath),
               size: stats.size,
               lastModified: stats.mtime,
               isValid,
-              version,
-              title,
-              description,
             };
+            
+            if (version !== undefined) fileInfo.version = version;
+            if (title !== undefined) fileInfo.title = title;
+            if (description !== undefined) fileInfo.description = description;
+            
+            return fileInfo;
           } catch (error) {
             logger.warn('ProjectManager: Failed to process RAML file', { filePath, error });
-            return {
+            const errorFileInfo: RamlFileInfo = {
               path: filePath,
               name: path.basename(filePath),
               size: 0,
               lastModified: new Date(),
               isValid: false,
             };
+            return errorFileInfo;
           }
         }),
       );
@@ -1074,7 +1079,7 @@ class ProjectManager {
       const result = await ramlConverter.convertFile(
         options.sourcePath,
         options.destinationPath,
-        options.options
+        options.options,
       );
 
       if (result.success) {
@@ -1082,7 +1087,7 @@ class ProjectManager {
           inputFile: result.inputFile,
           outputFile: result.outputFile,
         });
-        
+
         return {
           success: true,
           result: {
@@ -1096,10 +1101,10 @@ class ProjectManager {
           inputFile: result.inputFile,
           error: result.error,
         });
-        
+
         return {
           success: false,
-          error: result.error,
+          error: result.error || 'Unknown conversion error',
         };
       }
     } catch (error) {
@@ -1117,7 +1122,9 @@ class ProjectManager {
   /**
    * Converts multiple RAML files to JSON Schema in batch.
    */
-  public async convertRamlBatch(options: RamlBatchConversionParams): Promise<RamlBatchConversionResult> {
+  public async convertRamlBatch(
+    options: RamlBatchConversionParams,
+  ): Promise<RamlBatchConversionResult> {
     try {
       logger.info('ProjectManager: Starting batch RAML conversion', {
         sourceDirectory: options.sourceDirectory,
@@ -1130,7 +1137,7 @@ class ProjectManager {
         options.sourceDirectory,
         options.destinationDirectory,
         options.options,
-        options.progressCallback
+        options.progressCallback,
       );
 
       logger.info('ProjectManager: Batch RAML conversion completed', {

@@ -1,6 +1,0 @@
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "OrderEstimatedUsage",
-  "type": "string",
-  "enum": ["UNKNOWN", "_0_TO_6_WEEKS", "_10_TO_12_WEEKS", "_7_TO_9_WEEKS"]
-}

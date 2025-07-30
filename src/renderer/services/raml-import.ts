@@ -391,7 +391,7 @@ export class RamlImportService {
         }
 
         this.currentImport.processedFiles = result.summary.total;
-        
+
         logger.info('Batch RAML conversion completed', {
           summary: result.summary,
         });
@@ -402,7 +402,7 @@ export class RamlImportService {
       }
     } catch (error) {
       logger.error('Batch RAML conversion failed', { error });
-      
+
       // Fall back to individual file conversion
       logger.info('Falling back to individual file conversion');
       return this.convertRamlFiles(ramlFiles, config, onProgress);

@@ -21,14 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import {
-  Keyboard,
-  Navigation,
-  Search,
-  FileText,
-  Settings,
-  Zap,
-} from 'lucide-react';
+import { Keyboard, Navigation, Search, FileText, Settings, Zap } from 'lucide-react';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 
 /**
@@ -66,39 +59,45 @@ const categoryDescriptions = {
 /**
  * Format shortcut key combination for display.
  */
-function formatShortcutKey(shortcut: { key: string; ctrl?: boolean; alt?: boolean; shift?: boolean; meta?: boolean }): string {
+function formatShortcutKey(shortcut: {
+  key: string;
+  ctrl?: boolean;
+  alt?: boolean;
+  shift?: boolean;
+  meta?: boolean;
+}): string {
   const parts: string[] = [];
-  
+
   // Add modifiers in consistent order
   if (shortcut.ctrl) parts.push('Ctrl');
   if (shortcut.alt) parts.push('Alt');
   if (shortcut.shift) parts.push('Shift');
   if (shortcut.meta) parts.push('Cmd');
-  
+
   // Add the main key
   let key = shortcut.key;
-  
+
   // Format special keys for better readability
   const keyMappings: Record<string, string> = {
-    'Escape': 'Esc',
-    'Enter': '↵',
-    'Tab': '⇥',
-    'Delete': 'Del',
-    'ArrowUp': '↑',
-    'ArrowDown': '↓',
-    'ArrowLeft': '←',
-    'ArrowRight': '→',
+    Escape: 'Esc',
+    Enter: '↵',
+    Tab: '⇥',
+    Delete: 'Del',
+    ArrowUp: '↑',
+    ArrowDown: '↓',
+    ArrowLeft: '←',
+    ArrowRight: '→',
     ' ': 'Space',
   };
-  
+
   if (keyMappings[key]) {
     key = keyMappings[key];
   } else if (key.length === 1) {
     key = key.toUpperCase();
   }
-  
+
   parts.push(key);
-  
+
   return parts.join(' + ');
 }
 
@@ -130,18 +129,21 @@ export function KeyboardShortcutsModal({
    */
   const shortcutsByCategory = useMemo(() => {
     const grouped = shortcuts
-      .filter(shortcut => shortcut.enabled !== false)
-      .reduce((acc, shortcut) => {
-        const category = shortcut.category;
-        if (!acc[category]) {
-          acc[category] = [];
-        }
-        acc[category].push(shortcut);
-        return acc;
-      }, {} as Record<string, typeof shortcuts>);
+      .filter((shortcut) => shortcut.enabled !== false)
+      .reduce(
+        (acc, shortcut) => {
+          const category = shortcut.category;
+          if (!acc[category]) {
+            acc[category] = [];
+          }
+          acc[category].push(shortcut);
+          return acc;
+        },
+        {} as Record<string, typeof shortcuts>,
+      );
 
     // Sort each category by key combination
-    Object.keys(grouped).forEach(category => {
+    Object.keys(grouped).forEach((category) => {
       grouped[category].sort((a, b) => {
         const aKey = formatShortcutKey(a);
         const bKey = formatShortcutKey(b);
@@ -156,7 +158,7 @@ export function KeyboardShortcutsModal({
    * Get category order for consistent display.
    */
   const categoryOrder = ['navigation', 'search', 'editor', 'project', 'general'];
-  const sortedCategories = categoryOrder.filter(cat => shortcutsByCategory[cat]);
+  const sortedCategories = categoryOrder.filter((cat) => shortcutsByCategory[cat]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -195,14 +197,9 @@ export function KeyboardShortcutsModal({
                         className="flex items-center justify-between py-2"
                       >
                         <div className="flex-1">
-                          <p className="text-sm font-medium">
-                            {shortcut.description}
-                          </p>
+                          <p className="text-sm font-medium">{shortcut.description}</p>
                         </div>
-                        <Badge 
-                          variant="outline" 
-                          className="font-mono text-xs font-semibold"
-                        >
+                        <Badge variant="outline" className="font-mono text-xs font-semibold">
                           {formatShortcutKey(shortcut)}
                         </Badge>
                       </div>
@@ -223,23 +220,45 @@ export function KeyboardShortcutsModal({
               <CardContent className="space-y-3">
                 <div className="space-y-2">
                   <p className="text-sm">
-                    <strong>Focus Management:</strong> Most shortcuts work globally, but some are disabled when typing in input fields.
+                    <strong>Focus Management:</strong> Most shortcuts work globally, but some are
+                    disabled when typing in input fields.
                   </p>
                   <Separator />
                   <p className="text-sm">
-                    <strong>Search Shortcuts:</strong> Use <Badge variant="outline" className="font-mono text-xs">Ctrl + F</Badge> to focus search anywhere, or <Badge variant="outline" className="font-mono text-xs">Ctrl + K</Badge> for quick search.
+                    <strong>Search Shortcuts:</strong> Use{' '}
+                    <Badge variant="outline" className="font-mono text-xs">
+                      Ctrl + F
+                    </Badge>{' '}
+                    to focus search anywhere, or{' '}
+                    <Badge variant="outline" className="font-mono text-xs">
+                      Ctrl + K
+                    </Badge>{' '}
+                    for quick search.
                   </p>
                   <Separator />
                   <p className="text-sm">
-                    <strong>Navigation:</strong> Use <Badge variant="outline" className="font-mono text-xs">Ctrl + 1/2/3</Badge> to quickly switch between Explore, Build, and Analytics.
+                    <strong>Navigation:</strong> Use{' '}
+                    <Badge variant="outline" className="font-mono text-xs">
+                      Ctrl + 1/2/3
+                    </Badge>{' '}
+                    to quickly switch between Explore, Build, and Analytics.
                   </p>
                   <Separator />
                   <p className="text-sm">
-                    <strong>Accessibility:</strong> All shortcuts respect accessibility guidelines and work with screen readers.
+                    <strong>Accessibility:</strong> All shortcuts respect accessibility guidelines
+                    and work with screen readers.
                   </p>
                   <Separator />
                   <p className="text-sm">
-                    <strong>Platform Notes:</strong> On macOS, <Badge variant="outline" className="font-mono text-xs">Ctrl</Badge> shortcuts may use <Badge variant="outline" className="font-mono text-xs">Cmd</Badge> instead.
+                    <strong>Platform Notes:</strong> On macOS,{' '}
+                    <Badge variant="outline" className="font-mono text-xs">
+                      Ctrl
+                    </Badge>{' '}
+                    shortcuts may use{' '}
+                    <Badge variant="outline" className="font-mono text-xs">
+                      Cmd
+                    </Badge>{' '}
+                    instead.
                   </p>
                 </div>
               </CardContent>
@@ -248,7 +267,11 @@ export function KeyboardShortcutsModal({
             {/* Footer info */}
             <div className="text-center text-xs text-muted-foreground">
               <p>
-                Press <Badge variant="outline" className="font-mono text-xs">Shift + ?</Badge> to show this help anytime
+                Press{' '}
+                <Badge variant="outline" className="font-mono text-xs">
+                  Shift + ?
+                </Badge>{' '}
+                to show this help anytime
               </p>
             </div>
           </div>

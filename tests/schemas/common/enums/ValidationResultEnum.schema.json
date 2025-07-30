@@ -1,7 +1,0 @@
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "ValidationResult",
-  "type": "string",
-  "enum": ["ERROR", "FAILED", "PASSED"],
-  "description": "Inline enum for validation.result"
-}

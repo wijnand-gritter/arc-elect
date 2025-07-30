@@ -76,12 +76,7 @@ export function useVirtualScrolling<T>(
   items: T[],
   options: VirtualScrollOptions,
 ): VirtualScrollResult<T> {
-  const {
-    itemHeight,
-    containerHeight,
-    overscan = 3,
-    smoothScrolling = true,
-  } = options;
+  const { itemHeight, containerHeight, overscan = 3, smoothScrolling = true } = options;
 
   const [scrollTop, setScrollTop] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -92,12 +87,9 @@ export function useVirtualScrolling<T>(
   const visibleRange = useMemo(() => {
     const itemCount = items.length;
     const visibleItemCount = Math.ceil(containerHeight / itemHeight);
-    
+
     const startIndex = Math.floor(scrollTop / itemHeight);
-    const endIndex = Math.min(
-      itemCount - 1,
-      startIndex + visibleItemCount - 1
-    );
+    const endIndex = Math.min(itemCount - 1, startIndex + visibleItemCount - 1);
 
     // Apply overscan buffer
     const bufferedStart = Math.max(0, startIndex - overscan);
@@ -147,19 +139,22 @@ export function useVirtualScrolling<T>(
   /**
    * Scroll to specific item by index.
    */
-  const scrollToItem = useCallback((index: number) => {
-    if (containerRef.current) {
-      const scrollTop = index * itemHeight;
-      if (smoothScrolling) {
-        containerRef.current.scrollTo({
-          top: scrollTop,
-          behavior: 'smooth',
-        });
-      } else {
-        containerRef.current.scrollTop = scrollTop;
+  const scrollToItem = useCallback(
+    (index: number) => {
+      if (containerRef.current) {
+        const scrollTop = index * itemHeight;
+        if (smoothScrolling) {
+          containerRef.current.scrollTo({
+            top: scrollTop,
+            behavior: 'smooth',
+          });
+        } else {
+          containerRef.current.scrollTop = scrollTop;
+        }
       }
-    }
-  }, [itemHeight, smoothScrolling]);
+    },
+    [itemHeight, smoothScrolling],
+  );
 
   /**
    * Update scroll position when container height changes.
@@ -185,7 +180,7 @@ export function useVirtualScrolling<T>(
 
 /**
  * Hook for virtual grid scrolling (2D virtualization).
- * 
+ *
  * Provides efficient rendering of large grids by virtualizing both
  * rows and columns outside the visible viewport.
  */
@@ -228,10 +223,7 @@ interface VirtualGridResult<T> {
  * @param options - Virtual grid configuration
  * @returns Virtual grid utilities and state
  */
-export function useVirtualGrid<T>(
-  items: T[],
-  options: VirtualGridOptions,
-): VirtualGridResult<T> {
+export function useVirtualGrid<T>(items: T[], options: VirtualGridOptions): VirtualGridResult<T> {
   const {
     itemWidth,
     itemHeight,
@@ -257,7 +249,7 @@ export function useVirtualGrid<T>(
   const visibleRange = useMemo(() => {
     const totalRows = Math.ceil(items.length / columnsPerRow);
     const visibleRowCount = Math.ceil(containerHeight / (itemHeight + gap));
-    
+
     const startRow = Math.floor(scrollTop / (itemHeight + gap));
     const endRow = Math.min(totalRows - 1, startRow + visibleRowCount - 1);
 
@@ -276,14 +268,14 @@ export function useVirtualGrid<T>(
    */
   const visibleItems = useMemo(() => {
     const result = [];
-    
+
     for (let row = visibleRange.startRow; row <= visibleRange.endRow; row++) {
       for (let col = 0; col < columnsPerRow; col++) {
         const index = row * columnsPerRow + col;
         if (index < items.length && items[index]) {
           const x = col * (itemWidth + gap);
           const y = row * (itemHeight + gap);
-          
+
           result.push({
             item: items[index],
             index,
@@ -295,7 +287,7 @@ export function useVirtualGrid<T>(
         }
       }
     }
-    
+
     return result;
   }, [items, visibleRange, columnsPerRow, itemWidth, itemHeight, gap]);
 
@@ -318,16 +310,19 @@ export function useVirtualGrid<T>(
   /**
    * Scroll to specific item by index.
    */
-  const scrollToItem = useCallback((index: number) => {
-    if (containerRef.current) {
-      const row = Math.floor(index / columnsPerRow);
-      const scrollTop = row * (itemHeight + gap);
-      containerRef.current.scrollTo({
-        top: scrollTop,
-        behavior: 'smooth',
-      });
-    }
-  }, [columnsPerRow, itemHeight, gap]);
+  const scrollToItem = useCallback(
+    (index: number) => {
+      if (containerRef.current) {
+        const row = Math.floor(index / columnsPerRow);
+        const scrollTop = row * (itemHeight + gap);
+        containerRef.current.scrollTo({
+          top: scrollTop,
+          behavior: 'smooth',
+        });
+      }
+    },
+    [columnsPerRow, itemHeight, gap],
+  );
 
   return {
     visibleItems,

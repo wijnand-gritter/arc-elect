@@ -72,14 +72,17 @@ interface AccessibilityResult extends AccessibilityState {
   /** Function to add skip links */
   addSkipLink: (target: string, label: string) => void;
   /** Function to enhance element accessibility */
-  enhanceElement: (element: HTMLElement, options: {
-    role?: string;
-    label?: string;
-    description?: string;
-    controls?: string;
-    expanded?: boolean;
-    selected?: boolean;
-  }) => void;
+  enhanceElement: (
+    element: HTMLElement,
+    options: {
+      role?: string;
+      label?: string;
+      description?: string;
+      controls?: string;
+      expanded?: boolean;
+      selected?: boolean;
+    },
+  ) => void;
   /** Function to create roving tabindex */
   createRovingTabindex: (container: HTMLElement, items: string) => () => void;
 }
@@ -106,10 +109,10 @@ interface AccessibilityResult extends AccessibilityState {
  *   enableFocusManagement: true,
  *   enableKeyboardNavigation: true
  * });
- * 
+ *
  * // Announce loading state
  * announce('Loading schemas, please wait');
- * 
+ *
  * // Create focus trap for modal
  * useEffect(() => {
  *   if (isModalOpen && modalRef.current) {
@@ -118,9 +121,7 @@ interface AccessibilityResult extends AccessibilityState {
  * }, [isModalOpen]);
  * ```
  */
-export function useAccessibility(
-  options: AccessibilityOptions = {},
-): AccessibilityResult {
+export function useAccessibility(options: AccessibilityOptions = {}): AccessibilityResult {
   const {
     enableFocusManagement = true,
     enableScreenReaderSupport = true,
@@ -146,17 +147,18 @@ export function useAccessibility(
   /**
    * Create or get announcement element for screen readers.
    */
-  const getAnnounceElement = useCallback((priority: 'polite' | 'assertive' = 'polite'): HTMLElement => {
-    const id = `sr-announce-${priority}`;
-    let element = document.getElementById(id);
-    
-    if (!element) {
-      element = document.createElement('div');
-      element.id = id;
-      element.setAttribute('aria-live', priority);
-      element.setAttribute('aria-atomic', 'true');
-      element.className = 'sr-only';
-      element.style.cssText = `
+  const getAnnounceElement = useCallback(
+    (priority: 'polite' | 'assertive' = 'polite'): HTMLElement => {
+      const id = `sr-announce-${priority}`;
+      let element = document.getElementById(id);
+
+      if (!element) {
+        element = document.createElement('div');
+        element.id = id;
+        element.setAttribute('aria-live', priority);
+        element.setAttribute('aria-atomic', 'true');
+        element.className = 'sr-only';
+        element.style.cssText = `
         position: absolute !important;
         width: 1px !important;
         height: 1px !important;
@@ -167,164 +169,165 @@ export function useAccessibility(
         white-space: nowrap !important;
         border: 0 !important;
       `;
-      document.body.appendChild(element);
-    }
-    
-    return element;
-  }, []);
+        document.body.appendChild(element);
+      }
+
+      return element;
+    },
+    [],
+  );
 
   /**
    * Announce message to screen readers.
    */
-  const announce = useCallback((
-    message: string,
-    priority: 'polite' | 'assertive' = 'polite'
-  ): void => {
-    if (!enableScreenReaderSupport) return;
+  const announce = useCallback(
+    (message: string, priority: 'polite' | 'assertive' = 'polite'): void => {
+      if (!enableScreenReaderSupport) return;
 
-    const element = getAnnounceElement(priority);
-    
-    // Clear existing content
-    element.textContent = '';
-    
-    // Set new message after a brief delay to ensure screen readers notice the change
-    setTimeout(() => {
-      element.textContent = message;
-      logger.debug('Screen reader announcement', { message, priority });
-    }, 100);
-  }, [enableScreenReaderSupport, getAnnounceElement]);
+      const element = getAnnounceElement(priority);
+
+      // Clear existing content
+      element.textContent = '';
+
+      // Set new message after a brief delay to ensure screen readers notice the change
+      setTimeout(() => {
+        element.textContent = message;
+        logger.debug('Screen reader announcement', { message, priority });
+      }, 100);
+    },
+    [enableScreenReaderSupport, getAnnounceElement],
+  );
 
   /**
    * Create focus trap within an element.
    */
-  const createFocusTrap = useCallback((
-    element: HTMLElement,
-    options: FocusTrapOptions = {}
-  ): (() => void) => {
-    if (!enableFocusManagement) return () => {};
+  const createFocusTrap = useCallback(
+    (element: HTMLElement, options: FocusTrapOptions = {}): (() => void) => {
+      if (!enableFocusManagement) return () => {};
 
-    const {
-      enabled = true,
-      returnFocus = true,
-      allowEscape = true,
-    } = options;
+      const { enabled = true, returnFocus = true, allowEscape = true } = options;
 
-    if (!enabled) return () => {};
+      if (!enabled) return () => {};
 
-    // Store the element that was focused before trapping
-    const previousFocus = document.activeElement as HTMLElement;
-    
-    // Get all focusable elements within the trap
-    const getFocusableElements = (): HTMLElement[] => {
-      const selectors = [
-        'a[href]',
-        'button:not([disabled])',
-        'textarea:not([disabled])',
-        'input:not([disabled])',
-        'select:not([disabled])',
-        '[tabindex]:not([tabindex="-1"])',
-        '[contenteditable="true"]',
-      ].join(', ');
-      
-      return Array.from(element.querySelectorAll(selectors)) as HTMLElement[];
-    };
+      // Store the element that was focused before trapping
+      const previousFocus = document.activeElement as HTMLElement;
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (!allowEscape && event.key === 'Escape') {
-        event.preventDefault();
-        return;
-      }
+      // Get all focusable elements within the trap
+      const getFocusableElements = (): HTMLElement[] => {
+        const selectors = [
+          'a[href]',
+          'button:not([disabled])',
+          'textarea:not([disabled])',
+          'input:not([disabled])',
+          'select:not([disabled])',
+          '[tabindex]:not([tabindex="-1"])',
+          '[contenteditable="true"]',
+        ].join(', ');
 
-      if (event.key === 'Tab') {
-        const focusableElements = getFocusableElements();
-        
-        if (focusableElements.length === 0) {
+        return Array.from(element.querySelectorAll(selectors)) as HTMLElement[];
+      };
+
+      const handleKeyDown = (event: KeyboardEvent) => {
+        if (!allowEscape && event.key === 'Escape') {
           event.preventDefault();
           return;
         }
 
-        const firstElement = focusableElements[0];
-        const lastElement = focusableElements[focusableElements.length - 1];
+        if (event.key === 'Tab') {
+          const focusableElements = getFocusableElements();
 
-        if (event.shiftKey) {
-          // Shift + Tab (backward)
-          if (document.activeElement === firstElement) {
+          if (focusableElements.length === 0) {
             event.preventDefault();
-            lastElement.focus();
+            return;
           }
-        } else {
-          // Tab (forward)
-          if (document.activeElement === lastElement) {
-            event.preventDefault();
-            firstElement.focus();
+
+          const firstElement = focusableElements[0];
+          const lastElement = focusableElements[focusableElements.length - 1];
+
+          if (event.shiftKey) {
+            // Shift + Tab (backward)
+            if (document.activeElement === firstElement) {
+              event.preventDefault();
+              lastElement.focus();
+            }
+          } else {
+            // Tab (forward)
+            if (document.activeElement === lastElement) {
+              event.preventDefault();
+              firstElement.focus();
+            }
           }
         }
-      }
-    };
+      };
 
-    // Add event listener
-    element.addEventListener('keydown', handleKeyDown);
+      // Add event listener
+      element.addEventListener('keydown', handleKeyDown);
 
-    // Focus first focusable element
-    const focusableElements = getFocusableElements();
-    if (focusableElements.length > 0) {
-      focusableElements[0].focus();
-    }
-
-    // Update state
-    setState(prev => ({
-      ...prev,
-      focusTrap: {
-        active: true,
-        element,
-      },
-    }));
-
-    logger.debug('Focus trap created', { element: element.tagName });
-
-    // Return cleanup function
-    return () => {
-      element.removeEventListener('keydown', handleKeyDown);
-      
-      // Return focus to previous element
-      if (returnFocus && previousFocus) {
-        previousFocus.focus();
+      // Focus first focusable element
+      const focusableElements = getFocusableElements();
+      if (focusableElements.length > 0) {
+        focusableElements[0].focus();
       }
 
       // Update state
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         focusTrap: {
-          active: false,
-          element: null,
+          active: true,
+          element,
         },
       }));
 
-      logger.debug('Focus trap destroyed');
-    };
-  }, [enableFocusManagement]);
+      logger.debug('Focus trap created', { element: element.tagName });
+
+      // Return cleanup function
+      return () => {
+        element.removeEventListener('keydown', handleKeyDown);
+
+        // Return focus to previous element
+        if (returnFocus && previousFocus) {
+          previousFocus.focus();
+        }
+
+        // Update state
+        setState((prev) => ({
+          ...prev,
+          focusTrap: {
+            active: false,
+            element: null,
+          },
+        }));
+
+        logger.debug('Focus trap destroyed');
+      };
+    },
+    [enableFocusManagement],
+  );
 
   /**
    * Manage focus programmatically.
    */
-  const manageFocus = useCallback((element: HTMLElement | null): void => {
-    if (!enableFocusManagement || !element) return;
+  const manageFocus = useCallback(
+    (element: HTMLElement | null): void => {
+      if (!enableFocusManagement || !element) return;
 
-    // Store last focused element
-    lastFocusRef.current = element;
+      // Store last focused element
+      lastFocusRef.current = element;
 
-    // Focus the element
-    element.focus();
+      // Focus the element
+      element.focus();
 
-    // Scroll into view if needed
-    element.scrollIntoView({
-      behavior: state.prefersReducedMotion ? 'auto' : 'smooth',
-      block: 'nearest',
-      inline: 'nearest',
-    });
+      // Scroll into view if needed
+      element.scrollIntoView({
+        behavior: state.prefersReducedMotion ? 'auto' : 'smooth',
+        block: 'nearest',
+        inline: 'nearest',
+      });
 
-    logger.debug('Focus managed', { element: element.tagName });
-  }, [enableFocusManagement, state.prefersReducedMotion]);
+      logger.debug('Focus managed', { element: element.tagName });
+    },
+    [enableFocusManagement, state.prefersReducedMotion],
+  );
 
   /**
    * Add skip link to page.
@@ -367,120 +370,123 @@ export function useAccessibility(
   /**
    * Enhance element with accessibility attributes.
    */
-  const enhanceElement = useCallback((
-    element: HTMLElement,
-    options: {
-      role?: string;
-      label?: string;
-      description?: string;
-      controls?: string;
-      expanded?: boolean;
-      selected?: boolean;
-    }
-  ): void => {
-    const { role, label, description, controls, expanded, selected } = options;
+  const enhanceElement = useCallback(
+    (
+      element: HTMLElement,
+      options: {
+        role?: string;
+        label?: string;
+        description?: string;
+        controls?: string;
+        expanded?: boolean;
+        selected?: boolean;
+      },
+    ): void => {
+      const { role, label, description, controls, expanded, selected } = options;
 
-    if (role) {
-      element.setAttribute('role', role);
-    }
-
-    if (label) {
-      element.setAttribute('aria-label', label);
-    }
-
-    if (description) {
-      const descId = `desc-${Math.random().toString(36).substr(2, 9)}`;
-      element.setAttribute('aria-describedby', descId);
-      
-      let descElement = document.getElementById(descId);
-      if (!descElement) {
-        descElement = document.createElement('div');
-        descElement.id = descId;
-        descElement.className = 'sr-only';
-        descElement.textContent = description;
-        element.appendChild(descElement);
+      if (role) {
+        element.setAttribute('role', role);
       }
-    }
 
-    if (controls) {
-      element.setAttribute('aria-controls', controls);
-    }
+      if (label) {
+        element.setAttribute('aria-label', label);
+      }
 
-    if (expanded !== undefined) {
-      element.setAttribute('aria-expanded', String(expanded));
-    }
+      if (description) {
+        const descId = `desc-${Math.random().toString(36).substr(2, 9)}`;
+        element.setAttribute('aria-describedby', descId);
 
-    if (selected !== undefined) {
-      element.setAttribute('aria-selected', String(selected));
-    }
+        let descElement = document.getElementById(descId);
+        if (!descElement) {
+          descElement = document.createElement('div');
+          descElement.id = descId;
+          descElement.className = 'sr-only';
+          descElement.textContent = description;
+          element.appendChild(descElement);
+        }
+      }
 
-    logger.debug('Element accessibility enhanced', { element: element.tagName, options });
-  }, []);
+      if (controls) {
+        element.setAttribute('aria-controls', controls);
+      }
+
+      if (expanded !== undefined) {
+        element.setAttribute('aria-expanded', String(expanded));
+      }
+
+      if (selected !== undefined) {
+        element.setAttribute('aria-selected', String(selected));
+      }
+
+      logger.debug('Element accessibility enhanced', { element: element.tagName, options });
+    },
+    [],
+  );
 
   /**
    * Create roving tabindex for widget navigation.
    */
-  const createRovingTabindex = useCallback((
-    container: HTMLElement,
-    itemSelector: string
-  ): (() => void) => {
-    if (!enableKeyboardNavigation) return () => {};
+  const createRovingTabindex = useCallback(
+    (container: HTMLElement, itemSelector: string): (() => void) => {
+      if (!enableKeyboardNavigation) return () => {};
 
-    let currentIndex = 0;
+      let currentIndex = 0;
 
-    const updateTabindexes = () => {
-      const items = container.querySelectorAll(itemSelector) as NodeListOf<HTMLElement>;
-      items.forEach((item, index) => {
-        item.tabIndex = index === currentIndex ? 0 : -1;
-      });
-    };
+      const updateTabindexes = () => {
+        const items = container.querySelectorAll(itemSelector) as NodeListOf<HTMLElement>;
+        items.forEach((item, index) => {
+          item.tabIndex = index === currentIndex ? 0 : -1;
+        });
+      };
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const items = container.querySelectorAll(itemSelector) as NodeListOf<HTMLElement>;
-      
-      switch (event.key) {
-        case 'ArrowDown':
-        case 'ArrowRight':
-          event.preventDefault();
-          currentIndex = (currentIndex + 1) % items.length;
-          updateTabindexes();
-          items[currentIndex].focus();
-          break;
+      const handleKeyDown = (event: KeyboardEvent) => {
+        const items = container.querySelectorAll(itemSelector) as NodeListOf<HTMLElement>;
 
-        case 'ArrowUp':
-        case 'ArrowLeft':
-          event.preventDefault();
-          currentIndex = (currentIndex - 1 + items.length) % items.length;
-          updateTabindexes();
-          items[currentIndex].focus();
-          break;
+        switch (event.key) {
+          case 'ArrowDown':
+          case 'ArrowRight':
+            event.preventDefault();
+            currentIndex = (currentIndex + 1) % items.length;
+            updateTabindexes();
+            items[currentIndex].focus();
+            break;
 
-        case 'Home':
-          event.preventDefault();
-          currentIndex = 0;
-          updateTabindexes();
-          items[currentIndex].focus();
-          break;
+          case 'ArrowUp':
+          case 'ArrowLeft':
+            event.preventDefault();
+            currentIndex = (currentIndex - 1 + items.length) % items.length;
+            updateTabindexes();
+            items[currentIndex].focus();
+            break;
 
-        case 'End':
-          event.preventDefault();
-          currentIndex = items.length - 1;
-          updateTabindexes();
-          items[currentIndex].focus();
-          break;
-      }
-    };
+          case 'Home':
+            event.preventDefault();
+            currentIndex = 0;
+            updateTabindexes();
+            items[currentIndex].focus();
+            break;
 
-    // Initial setup
-    updateTabindexes();
-    container.addEventListener('keydown', handleKeyDown);
+          case 'End':
+            event.preventDefault();
+            currentIndex = items.length - 1;
+            updateTabindexes();
+            items[currentIndex].focus();
+            break;
+        }
+      };
 
-    logger.debug('Roving tabindex created', { container: container.tagName, itemSelector });
+      // Initial setup
+      updateTabindexes();
+      container.addEventListener('keydown', handleKeyDown);
 
-    return () => {
-      container.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [enableKeyboardNavigation]);
+      logger.debug('Roving tabindex created', { container: container.tagName, itemSelector });
+
+      return () => {
+        container.removeEventListener('keydown', handleKeyDown);
+      };
+    },
+    [enableKeyboardNavigation],
+  );
 
   /**
    * Detect user preferences and input methods.
@@ -489,14 +495,14 @@ export function useAccessibility(
     // Detect reduced motion preference
     if (enableReducedMotionSupport) {
       const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-      setState(prev => ({ ...prev, prefersReducedMotion: mediaQuery.matches }));
-      
+      setState((prev) => ({ ...prev, prefersReducedMotion: mediaQuery.matches }));
+
       const handleChange = (e: MediaQueryListEvent) => {
-        setState(prev => ({ ...prev, prefersReducedMotion: e.matches }));
+        setState((prev) => ({ ...prev, prefersReducedMotion: e.matches }));
       };
-      
+
       mediaQuery.addEventListener('change', handleChange);
-      
+
       return () => mediaQuery.removeEventListener('change', handleChange);
     }
   }, [enableReducedMotionSupport]);
@@ -507,14 +513,14 @@ export function useAccessibility(
   useEffect(() => {
     if (enableHighContrastSupport) {
       const mediaQuery = window.matchMedia('(prefers-contrast: high)');
-      setState(prev => ({ ...prev, prefersHighContrast: mediaQuery.matches }));
-      
+      setState((prev) => ({ ...prev, prefersHighContrast: mediaQuery.matches }));
+
       const handleChange = (e: MediaQueryListEvent) => {
-        setState(prev => ({ ...prev, prefersHighContrast: e.matches }));
+        setState((prev) => ({ ...prev, prefersHighContrast: e.matches }));
       };
-      
+
       mediaQuery.addEventListener('change', handleChange);
-      
+
       return () => mediaQuery.removeEventListener('change', handleChange);
     }
   }, [enableHighContrastSupport]);
@@ -525,21 +531,21 @@ export function useAccessibility(
   useEffect(() => {
     if (enableKeyboardNavigation) {
       const handleKeyDown = () => {
-        setState(prev => ({ ...prev, isUsingKeyboard: true }));
-        
+        setState((prev) => ({ ...prev, isUsingKeyboard: true }));
+
         // Clear timeout if it exists
         if (keyboardTimeoutRef.current) {
           clearTimeout(keyboardTimeoutRef.current);
         }
-        
+
         // Set timeout to detect when user stops using keyboard
         keyboardTimeoutRef.current = setTimeout(() => {
-          setState(prev => ({ ...prev, isUsingKeyboard: false }));
+          setState((prev) => ({ ...prev, isUsingKeyboard: false }));
         }, 3000);
       };
 
       const handleMouseDown = () => {
-        setState(prev => ({ ...prev, isUsingKeyboard: false }));
+        setState((prev) => ({ ...prev, isUsingKeyboard: false }));
       };
 
       document.addEventListener('keydown', handleKeyDown);

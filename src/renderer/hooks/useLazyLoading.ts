@@ -112,17 +112,17 @@ export function useLazyLoading<T>(
    */
   const processedData = useMemo(() => {
     let processed = [...allData];
-    
+
     // Apply filtering
     if (filterFn) {
       processed = processed.filter(filterFn);
     }
-    
+
     // Apply sorting
     if (sortFn) {
       processed.sort(sortFn);
     }
-    
+
     return processed;
   }, [allData, filterFn, sortFn]);
 
@@ -159,16 +159,13 @@ export function useLazyLoading<T>(
         // This would require additional state management for external data
         // For now, we'll just use the internal data
       }
-      
+
       // Load next batch from processed data
-      const newCount = Math.min(
-        loadedCount + batchSize,
-        processedData.length
-      );
-      
+      const newCount = Math.min(loadedCount + batchSize, processedData.length);
+
       // Simulate async loading delay for UX
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       setLoadedCount(newCount);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load more items');
@@ -214,14 +211,14 @@ export function useLazyLoading<T>(
       // Debounce scroll handling
       debounceRef.current = setTimeout(() => {
         const scrollBottom = scrollTop + containerHeight;
-        const threshold = totalHeight - (preloadThreshold * 200); // Assume 200px per item
-        
+        const threshold = totalHeight - preloadThreshold * 200; // Assume 200px per item
+
         if (scrollBottom >= threshold) {
           loadMore();
         }
       }, debounceDelay);
     },
-    [autoLoad, hasMore, preloadThreshold, debounceDelay, loadMore]
+    [autoLoad, hasMore, preloadThreshold, debounceDelay, loadMore],
   );
 
   /**
@@ -261,7 +258,7 @@ export function useLazyLoading<T>(
 
 /**
  * Hook for infinite scrolling with intersection observer.
- * 
+ *
  * Uses intersection observer to detect when user scrolls near the end
  * and automatically loads more content.
  */
@@ -290,11 +287,7 @@ export function useInfiniteScroll<T>(
   allData: T[],
   options: InfiniteScrollOptions<T> = {},
 ): InfiniteScrollResult<T> {
-  const {
-    rootMargin = '100px',
-    threshold = 0.1,
-    ...lazyOptions
-  } = options;
+  const { rootMargin = '100px', threshold = 0.1, ...lazyOptions } = options;
 
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [isIntersecting, setIsIntersecting] = useState(false);
@@ -312,7 +305,7 @@ export function useInfiniteScroll<T>(
       (entries) => {
         const entry = entries[0];
         setIsIntersecting(entry.isIntersecting);
-        
+
         if (entry.isIntersecting && lazyResult.hasMore && !lazyResult.isLoading) {
           lazyResult.loadMore();
         }
@@ -320,7 +313,7 @@ export function useInfiniteScroll<T>(
       {
         rootMargin,
         threshold,
-      }
+      },
     );
 
     observer.observe(sentinel);

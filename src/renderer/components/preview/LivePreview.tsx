@@ -155,10 +155,12 @@ class SampleDataGenerator {
     const length = Math.floor(Math.random() * (maxItems - minItems + 1)) + minItems;
 
     const items = [];
-    for (let i = 0; i < length; i++) {
-      const item = this.generateSample(schema.items, depth + 1);
-      if (item !== null) {
-        items.push(item);
+    if (schema.items) {
+      for (let i = 0; i < length; i++) {
+        const item = this.generateSample(schema.items, depth + 1);
+        if (item !== null) {
+          items.push(item);
+        }
       }
     }
     return items;

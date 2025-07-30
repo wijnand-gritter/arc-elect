@@ -21,7 +21,7 @@ export type ErrorSeverity = 'low' | 'medium' | 'high' | 'critical';
 /**
  * Error categories.
  */
-export type ErrorCategory = 
+export type ErrorCategory =
   | 'validation'
   | 'network'
   | 'file-system'
@@ -102,19 +102,19 @@ interface ErrorHandlingResult {
   /** Function to execute with error handling */
   withErrorHandling: <T>(
     operation: () => Promise<T>,
-    options?: Partial<RetryOptions>
+    options?: Partial<RetryOptions>,
   ) => Promise<T>;
   /** Function to create safe handler for events */
   createSafeHandler: <T extends any[]>(
     handler: (...args: T) => Promise<void> | void,
-    options?: { context?: Record<string, any> }
+    options?: { context?: Record<string, any> },
   ) => (...args: T) => Promise<void>;
   /** Function to enhance existing error */
   enhanceError: (
     error: Error,
     severity: ErrorSeverity,
     category: ErrorCategory,
-    context?: Record<string, any>
+    context?: Record<string, any>,
   ) => EnhancedError;
   /** Function to check if error is recoverable */
   isRecoverable: (error: Error) => boolean;
@@ -133,12 +133,12 @@ const DEFAULT_OPTIONS: ErrorHandlingOptions = {
   },
   categorizationRules: {
     'fetch failed': 'network',
-    'ENOENT': 'file-system',
-    'EACCES': 'permission',
-    'SyntaxError': 'parsing',
-    'ValidationError': 'validation',
-    'TimeoutError': 'timeout',
-    'OutOfMemoryError': 'memory',
+    ENOENT: 'file-system',
+    EACCES: 'permission',
+    SyntaxError: 'parsing',
+    ValidationError: 'validation',
+    TimeoutError: 'timeout',
+    OutOfMemoryError: 'memory',
   },
 };
 
@@ -163,65 +163,63 @@ const DEFAULT_OPTIONS: ErrorHandlingOptions = {
  *   showToasts: true,
  *   logErrors: true
  * });
- * 
+ *
  * // Handle async operations with retry
  * const loadData = withErrorHandling(async () => {
  *   const data = await api.fetchData();
  *   return data;
  * }, { maxAttempts: 3 });
- * 
+ *
  * // Create safe event handler
  * const handleClick = createSafeHandler(async () => {
  *   await performAction();
  * }, { context: { component: 'Button', action: 'click' } });
  * ```
  */
-export function useErrorHandling(
-  options: Partial<ErrorHandlingOptions> = {}
-): ErrorHandlingResult {
+export function useErrorHandling(options: Partial<ErrorHandlingOptions> = {}): ErrorHandlingResult {
   const config = { ...DEFAULT_OPTIONS, ...options };
-  
+
   const [error, setError] = useState<EnhancedError | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
   const [retryAttempt, setRetryAttempt] = useState(0);
-  
+
   const errorHistoryRef = useRef<EnhancedError[]>([]);
 
   /**
    * Categorize error based on message and type.
    */
-  const categorizeError = useCallback((error: Error): ErrorCategory => {
-    const message = error.message.toLowerCase();
-    
-    for (const [pattern, category] of Object.entries(config.categorizationRules)) {
-      if (message.includes(pattern.toLowerCase())) {
-        return category;
+  const categorizeError = useCallback(
+    (error: Error): ErrorCategory => {
+      const message = error.message.toLowerCase();
+
+      for (const [pattern, category] of Object.entries(config.categorizationRules)) {
+        if (message.includes(pattern.toLowerCase())) {
+          return category;
+        }
       }
-    }
-    
-    // Check constructor name
-    switch (error.constructor.name) {
-      case 'TypeError':
-      case 'SyntaxError':
-        return 'parsing';
-      case 'ReferenceError':
-        return 'validation';
-      case 'NetworkError':
-        return 'network';
-      case 'TimeoutError':
-        return 'timeout';
-      default:
-        return 'unknown';
-    }
-  }, [config.categorizationRules]);
+
+      // Check constructor name
+      switch (error.constructor.name) {
+        case 'TypeError':
+        case 'SyntaxError':
+          return 'parsing';
+        case 'ReferenceError':
+          return 'validation';
+        case 'NetworkError':
+          return 'network';
+        case 'TimeoutError':
+          return 'timeout';
+        default:
+          return 'unknown';
+      }
+    },
+    [config.categorizationRules],
+  );
 
   /**
    * Determine error severity.
    */
-  const determineSeverity = useCallback((
-    error: Error,
-    category: ErrorCategory
-  ): ErrorSeverity => {
+  const determineSeverity = useCallback((error: Error, category: ErrorCategory): ErrorSeverity => {
     // Critical errors that prevent app from functioning
     if (
       category === 'memory' ||
@@ -242,11 +240,7 @@ export function useErrorHandling(
     }
 
     // Medium severity errors that affect user experience
-    if (
-      category === 'network' ||
-      category === 'timeout' ||
-      category === 'validation'
-    ) {
+    if (category === 'network' || category === 'timeout' || category === 'validation') {
       return 'medium';
     }
 
@@ -259,7 +253,7 @@ export function useErrorHandling(
    */
   const isRecoverable = useCallback((error: Error): boolean => {
     const message = error.message.toLowerCase();
-    
+
     // Non-recoverable errors
     const nonRecoverablePatterns = [
       'out of memory',
@@ -269,10 +263,8 @@ export function useErrorHandling(
       'eperm',
       'syntax error',
     ];
-    
-    return !nonRecoverablePatterns.some(pattern => 
-      message.includes(pattern)
-    );
+
+    return !nonRecoverablePatterns.some((pattern) => message.includes(pattern));
   }, []);
 
   /**
@@ -280,167 +272,162 @@ export function useErrorHandling(
    */
   const suggestActions = useCallback((error: EnhancedError): string[] => {
     const actions: string[] = [];
-    
+
     switch (error.category) {
       case 'network':
         actions.push(
           'Check your internet connection',
           'Try again in a few moments',
-          'Contact support if problem persists'
+          'Contact support if problem persists',
         );
         break;
-        
+
       case 'file-system':
         actions.push(
           'Check if the file exists',
           'Verify file permissions',
-          'Try selecting a different file'
+          'Try selecting a different file',
         );
         break;
-        
+
       case 'permission':
         actions.push(
           'Check file permissions',
           'Run as administrator if needed',
-          'Select a different location'
+          'Select a different location',
         );
         break;
-        
+
       case 'validation':
         actions.push(
           'Check the schema format',
           'Fix validation errors',
-          'Refer to JSON Schema documentation'
+          'Refer to JSON Schema documentation',
         );
         break;
-        
+
       case 'parsing':
-        actions.push(
-          'Check JSON syntax',
-          'Remove invalid characters',
-          'Use a JSON validator'
-        );
+        actions.push('Check JSON syntax', 'Remove invalid characters', 'Use a JSON validator');
         break;
-        
+
       case 'memory':
         actions.push(
           'Close other applications',
           'Restart the application',
-          'Work with smaller datasets'
+          'Work with smaller datasets',
         );
         break;
-        
+
       case 'timeout':
         actions.push(
           'Try again with smaller datasets',
           'Check system performance',
-          'Increase timeout settings'
+          'Increase timeout settings',
         );
         break;
-        
+
       default:
-        actions.push(
-          'Try again',
-          'Restart the application',
-          'Contact support with error details'
-        );
+        actions.push('Try again', 'Restart the application', 'Contact support with error details');
     }
-    
+
     return actions;
   }, []);
 
   /**
    * Enhance error with additional metadata.
    */
-  const enhanceError = useCallback((
-    error: Error,
-    severity?: ErrorSeverity,
-    category?: ErrorCategory,
-    context?: Record<string, any>
-  ): EnhancedError => {
-    const errorCategory = category || categorizeError(error);
-    const errorSeverity = severity || determineSeverity(error, errorCategory);
-    
-    const enhanced: EnhancedError = {
-      ...error,
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-      severity: errorSeverity,
-      category: errorCategory,
-      recoverable: isRecoverable(error),
-      context: context || {},
-      timestamp: new Date(),
-      technicalDetails: {
-        userAgent: navigator.userAgent,
-        timestamp: new Date().toISOString(),
-        url: window.location.href,
-        ...context,
-      },
-    };
-    
-    enhanced.userActions = suggestActions(enhanced);
-    
-    return enhanced;
-  }, [categorizeError, determineSeverity, isRecoverable, suggestActions]);
+  const enhanceError = useCallback(
+    (
+      error: Error,
+      severity?: ErrorSeverity,
+      category?: ErrorCategory,
+      context?: Record<string, any>,
+    ): EnhancedError => {
+      const errorCategory = category || categorizeError(error);
+      const errorSeverity = severity || determineSeverity(error, errorCategory);
+
+      const enhanced: EnhancedError = {
+        ...error,
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        severity: errorSeverity,
+        category: errorCategory,
+        recoverable: isRecoverable(error),
+        context: context || {},
+        timestamp: new Date(),
+        technicalDetails: {
+          userAgent: navigator.userAgent,
+          timestamp: new Date().toISOString(),
+          url: window.location.href,
+          ...context,
+        },
+      };
+
+      enhanced.userActions = suggestActions(enhanced);
+
+      return enhanced;
+    },
+    [categorizeError, determineSeverity, isRecoverable, suggestActions],
+  );
 
   /**
    * Handle error with logging and notifications.
    */
-  const handleError = useCallback((
-    error: Error,
-    context?: Record<string, any>
-  ): EnhancedError => {
-    const enhanced = enhanceError(error, undefined, undefined, context);
-    
-    // Log error
-    if (config.logErrors) {
-      logger.error('Error handled', {
-        error: enhanced.message,
-        severity: enhanced.severity,
-        category: enhanced.category,
-        stack: enhanced.stack,
-        context: enhanced.context,
-        technicalDetails: enhanced.technicalDetails,
-      });
-    }
-    
-    // Show toast notification
-    if (config.showToasts) {
-      const toastOptions = {
-        description: enhanced.userActions?.[0] || 'Please try again',
-        duration: enhanced.severity === 'critical' ? 0 : 5000,
-      };
-      
-      switch (enhanced.severity) {
-        case 'critical':
-          toast.error(`Critical Error: ${enhanced.message}`, toastOptions);
-          break;
-        case 'high':
-          toast.error(enhanced.message, toastOptions);
-          break;
-        case 'medium':
-          toast.warning(enhanced.message, toastOptions);
-          break;
-        case 'low':
-          toast.info(enhanced.message, toastOptions);
-          break;
+  const handleError = useCallback(
+    (error: Error, context?: Record<string, any>): EnhancedError => {
+      const enhanced = enhanceError(error, undefined, undefined, context);
+
+      // Log error
+      if (config.logErrors) {
+        logger.error('Error handled', {
+          error: enhanced.message,
+          severity: enhanced.severity,
+          category: enhanced.category,
+          stack: enhanced.stack,
+          context: enhanced.context,
+          technicalDetails: enhanced.technicalDetails,
+        });
       }
-    }
-    
-    // Store in history
-    errorHistoryRef.current.push(enhanced);
-    
-    // Keep only last 100 errors
-    if (errorHistoryRef.current.length > 100) {
-      errorHistoryRef.current = errorHistoryRef.current.slice(-100);
-    }
-    
-    // Set current error
-    setError(enhanced);
-    
-    return enhanced;
-  }, [config.logErrors, config.showToasts, enhanceError]);
+
+      // Show toast notification
+      if (config.showToasts) {
+        const toastOptions = {
+          description: enhanced.userActions?.[0] || 'Please try again',
+          duration: enhanced.severity === 'critical' ? 0 : 5000,
+        };
+
+        switch (enhanced.severity) {
+          case 'critical':
+            toast.error(`Critical Error: ${enhanced.message}`, toastOptions);
+            break;
+          case 'high':
+            toast.error(enhanced.message, toastOptions);
+            break;
+          case 'medium':
+            toast.warning(enhanced.message, toastOptions);
+            break;
+          case 'low':
+            toast.info(enhanced.message, toastOptions);
+            break;
+        }
+      }
+
+      // Store in history
+      errorHistoryRef.current.push(enhanced);
+
+      // Keep only last 100 errors
+      if (errorHistoryRef.current.length > 100) {
+        errorHistoryRef.current = errorHistoryRef.current.slice(-100);
+      }
+
+      // Set current error
+      setError(enhanced);
+
+      return enhanced;
+    },
+    [config.logErrors, config.showToasts, enhanceError],
+  );
 
   /**
    * Clear current error.
@@ -453,87 +440,90 @@ export function useErrorHandling(
   /**
    * Execute operation with retry logic.
    */
-  const withErrorHandling = useCallback(async <T>(
-    operation: () => Promise<T>,
-    retryOptions?: Partial<RetryOptions>
-  ): Promise<T> => {
-    const options: RetryOptions = {
-      ...config.defaultRetryOptions,
-      ...retryOptions,
-    } as RetryOptions;
-    
-    let lastError: Error;
-    let attempt = 0;
-    
-    while (attempt < options.maxAttempts) {
-      try {
-        if (attempt > 0) {
-          setIsRetrying(true);
-          setRetryAttempt(attempt);
-          
-          // Calculate delay with exponential backoff
-          const delay = options.exponentialBackoff
-            ? options.delay * Math.pow(2, attempt - 1)
-            : options.delay;
-          
-          await new Promise(resolve => setTimeout(resolve, delay));
-          
-          options.onRetry?.(lastError!, attempt);
-        }
-        
-        const result = await operation();
-        
-        // Success - clear retry state
-        setIsRetrying(false);
-        setRetryAttempt(0);
-        
-        return result;
-      } catch (error) {
-        lastError = error as Error;
-        attempt++;
-        
-        // Check if we should retry
-        if (
-          attempt >= options.maxAttempts ||
-          (options.shouldRetry && !options.shouldRetry(lastError, attempt))
-        ) {
-          break;
+  const withErrorHandling = useCallback(
+    async <T>(operation: () => Promise<T>, retryOptions?: Partial<RetryOptions>): Promise<T> => {
+      const options: RetryOptions = {
+        ...config.defaultRetryOptions,
+        ...retryOptions,
+      } as RetryOptions;
+
+      let lastError: Error;
+      let attempt = 0;
+
+      while (attempt < options.maxAttempts) {
+        try {
+          if (attempt > 0) {
+            setIsRetrying(true);
+            setRetryAttempt(attempt);
+
+            // Calculate delay with exponential backoff
+            const delay = options.exponentialBackoff
+              ? options.delay * Math.pow(2, attempt - 1)
+              : options.delay;
+
+            await new Promise((resolve) => setTimeout(resolve, delay));
+
+            options.onRetry?.(lastError!, attempt);
+          }
+
+          const result = await operation();
+
+          // Success - clear retry state
+          setIsRetrying(false);
+          setRetryAttempt(0);
+
+          return result;
+        } catch (error) {
+          lastError = error as Error;
+          attempt++;
+
+          // Check if we should retry
+          if (
+            attempt >= options.maxAttempts ||
+            (options.shouldRetry && !options.shouldRetry(lastError, attempt))
+          ) {
+            break;
+          }
         }
       }
-    }
-    
-    // All retries failed
-    setIsRetrying(false);
-    setRetryAttempt(0);
-    
-    const enhanced = handleError(lastError!, {
-      operation: operation.name || 'anonymous',
-      attempts: attempt,
-      maxAttempts: options.maxAttempts,
-    });
-    
-    throw enhanced;
-  }, [config.defaultRetryOptions, handleError]);
+
+      // All retries failed
+      setIsRetrying(false);
+      setRetryAttempt(0);
+
+      const enhanced = handleError(lastError!, {
+        operation: operation.name || 'anonymous',
+        attempts: attempt,
+        maxAttempts: options.maxAttempts,
+      });
+
+      throw enhanced;
+    },
+    [config.defaultRetryOptions, handleError],
+  );
 
   /**
    * Create safe event handler that catches and handles errors.
    */
-  const createSafeHandler = useCallback(<T extends any[]>(
-    handler: (...args: T) => Promise<void> | void,
-    options?: { context?: Record<string, any> }
-  ) => {
-    return async (...args: T): Promise<void> => {
-      try {
-        await handler(...args);
-      } catch (error) {
-        handleError(error as Error, {
-          handler: handler.name || 'anonymous',
-          args: args.length,
-          ...options?.context,
-        });
-      }
-    };
-  }, [handleError]);
+  const createSafeHandler = useCallback(
+    <T extends any[]>(
+      handler: (...args: T) => Promise<void> | void,
+      options?: { context?: Record<string, any> },
+    ) => {
+      return async (...args: T): Promise<void> => {
+        try {
+          await handler(...args);
+        } catch (error) {
+          handleError(error as Error, {
+            handler: handler.name || 'anonymous',
+            args: args.length,
+            ...options?.context,
+          });
+        }
+      };
+    },
+    [handleError],
+  );
 
   return {
     error,

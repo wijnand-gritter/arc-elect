@@ -57,15 +57,7 @@ const VirtualSchemaListItem = React.memo<{
   onSchemaEdit?: (schema: Schema) => void;
   onSchemaView?: (schema: Schema) => void;
   style?: React.CSSProperties;
-}>(({
-  schema,
-  viewMode,
-  isSelected,
-  onSchemaClick,
-  onSchemaEdit,
-  onSchemaView,
-  style,
-}) => {
+}>(({ schema, viewMode, isSelected, onSchemaClick, onSchemaEdit, onSchemaView, style }) => {
   const handleClick = useCallback(() => {
     onSchemaClick?.(schema);
   }, [schema, onSchemaClick]);
@@ -81,7 +73,7 @@ const VirtualSchemaListItem = React.memo<{
   if (viewMode === 'list') {
     return (
       <div style={style} className="w-full">
-        <Card 
+        <Card
           className={`transition-all duration-200 hover:shadow-md cursor-pointer ${
             isSelected ? 'ring-2 ring-primary' : ''
           }`}
@@ -94,10 +86,13 @@ const VirtualSchemaListItem = React.memo<{
             <div className="flex-1 min-w-0">
               <div className="flex items-center space-x-2">
                 <h3 className="text-sm font-medium truncate">{schema.name}</h3>
-                <Badge 
+                <Badge
                   variant={
-                    schema.validationStatus === 'valid' ? 'default' :
-                    schema.validationStatus === 'invalid' ? 'destructive' : 'secondary'
+                    schema.validationStatus === 'valid'
+                      ? 'default'
+                      : schema.validationStatus === 'invalid'
+                        ? 'destructive'
+                        : 'secondary'
                   }
                   className="text-xs"
                 >
@@ -108,7 +103,11 @@ const VirtualSchemaListItem = React.memo<{
                 {schema.metadata.title || schema.metadata.description || 'No description'}
               </p>
               <div className="flex items-center space-x-4 mt-1 text-xs text-muted-foreground">
-                <span>{schema.metadata.fileSize ? `${(schema.metadata.fileSize / 1024).toFixed(1)} KB` : 'Unknown size'}</span>
+                <span>
+                  {schema.metadata.fileSize
+                    ? `${(schema.metadata.fileSize / 1024).toFixed(1)} KB`
+                    : 'Unknown size'}
+                </span>
                 <span>{schema.metadata.lastModified?.toLocaleDateString() || 'Unknown date'}</span>
                 {schema.referencedBy && schema.referencedBy.length > 0 && (
                   <span>{schema.referencedBy.length} references</span>
@@ -202,11 +201,7 @@ export function VirtualSchemaList({
   const searchFilters = useAppStore((state) => state.searchFilters);
 
   // Memory management
-  const {
-    memoryUsage,
-    memoryStatus,
-    optimizationSuggestions,
-  } = useMemoryManagement({
+  const { memoryUsage, memoryStatus, optimizationSuggestions } = useMemoryManagement({
     enableMonitoring: enablePerformanceMode,
     warningThreshold: 70,
     criticalThreshold: 85,
@@ -314,21 +309,24 @@ export function VirtualSchemaList({
   /**
    * Handle scroll events for both virtual scrolling and lazy loading.
    */
-  const handleScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
-    const target = event.currentTarget;
-    const { scrollTop, scrollHeight, clientHeight } = target;
+  const handleScroll = useCallback(
+    (event: React.UIEvent<HTMLDivElement>) => {
+      const target = event.currentTarget;
+      const { scrollTop, scrollHeight, clientHeight } = target;
 
-    if (viewMode === 'grid') {
-      virtualGrid.onScroll(event);
-    } else {
-      virtualList.onScroll(event);
-    }
+      if (viewMode === 'grid') {
+        virtualGrid.onScroll(event);
+      } else {
+        virtualList.onScroll(event);
+      }
 
-    // Trigger lazy loading
-    if (enablePerformanceMode) {
-      onLazyScroll(scrollTop, clientHeight, scrollHeight);
-    }
-  }, [viewMode, virtualGrid, virtualList, enablePerformanceMode, onLazyScroll]);
+      // Trigger lazy loading
+      if (enablePerformanceMode) {
+        onLazyScroll(scrollTop, clientHeight, scrollHeight);
+      }
+    },
+    [viewMode, virtualGrid, virtualList, enablePerformanceMode, onLazyScroll],
+  );
 
   /**
    * Get validation status counts for display.
@@ -356,7 +354,7 @@ export function VirtualSchemaList({
     const skeletonCount = viewMode === 'grid' ? 12 : 8;
     const skeletons = Array.from({ length: skeletonCount }, (_, i) => (
       <div key={`skeleton-${i}`} className="space-y-3">
-        <Skeleton className={viewMode === 'grid' ? "h-48 w-full" : "h-20 w-full"} />
+        <Skeleton className={viewMode === 'grid' ? 'h-48 w-full' : 'h-20 w-full'} />
         <div className="space-y-2">
           <Skeleton className="h-4 w-3/4" />
           <Skeleton className="h-4 w-1/2" />
@@ -470,15 +468,15 @@ export function VirtualSchemaList({
       {enablePerformanceMode && memoryStatus !== 'normal' && (
         <Card className={`${memoryStatus === 'critical' ? 'border-red-500' : 'border-yellow-500'}`}>
           <CardContent className="flex items-center space-x-3 p-4">
-            <AlertTriangle className={`h-5 w-5 ${memoryStatus === 'critical' ? 'text-red-500' : 'text-yellow-500'}`} />
+            <AlertTriangle
+              className={`h-5 w-5 ${memoryStatus === 'critical' ? 'text-red-500' : 'text-yellow-500'}`}
+            />
             <div className="flex-1">
               <p className="text-sm font-medium">
                 Memory usage is {memoryStatus} ({memoryUsage?.usagePercentage.toFixed(1)}%)
               </p>
               {optimizationSuggestions.length > 0 && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  {optimizationSuggestions[0]}
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">{optimizationSuggestions[0]}</p>
               )}
             </div>
             {memoryUsage && (
@@ -544,9 +542,7 @@ export function VirtualSchemaList({
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="p-6">
-              {renderSkeletons()}
-            </div>
+            <div className="p-6">{renderSkeletons()}</div>
           ) : filteredAndSortedSchemas.length === 0 ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
@@ -568,7 +564,7 @@ export function VirtualSchemaList({
             >
               <div className="p-4">
                 {viewMode === 'grid' ? renderGridItems() : renderListItems()}
-                
+
                 {/* Lazy Loading Indicator */}
                 {(isLazyLoading || hasMore) && (
                   <div className="flex items-center justify-center py-6">

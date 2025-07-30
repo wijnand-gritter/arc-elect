@@ -1,6 +1,0 @@
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "IndicationType",
-  "type": "string",
-  "enum": ["MULTIPLE_CHOICE", "TEXT"]
-}

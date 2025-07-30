@@ -526,65 +526,67 @@ export class AnalyticsService {
     return 'high';
   }
 
-  private countProperties(obj: any, visited = new Set()): number {
+  private countProperties(obj: unknown, visited = new Set()): number {
     if (typeof obj !== 'object' || obj === null || visited.has(obj)) {
       return 0;
     }
 
+    const objRecord = obj as Record<string, unknown>;
     visited.add(obj);
     let count = 0;
 
-    if (obj.properties && typeof obj.properties === 'object') {
-      count += Object.keys(obj.properties).length;
-      for (const prop of Object.values(obj.properties)) {
+    if (objRecord.properties && typeof objRecord.properties === 'object') {
+      for (const prop of Object.values(objRecord.properties as Record<string, unknown>)) {
         count += this.countProperties(prop, visited);
       }
     }
 
-    if (obj.items) {
-      count += this.countProperties(obj.items, visited);
+    if (objRecord.items) {
+      count += this.countProperties(objRecord.items, visited);
     }
 
-    if (obj.additionalProperties && typeof obj.additionalProperties === 'object') {
-      count += this.countProperties(obj.additionalProperties, visited);
+    if (objRecord.additionalProperties && typeof objRecord.additionalProperties === 'object') {
+      count += this.countProperties(objRecord.additionalProperties, visited);
     }
 
     return count;
   }
 
-  private calculateMaxDepth(obj: any, currentDepth = 0, visited = new Set()): number {
+  private calculateMaxDepth(obj: unknown, currentDepth = 0, visited = new Set()): number {
     if (typeof obj !== 'object' || obj === null || visited.has(obj)) {
       return currentDepth;
     }
 
+    const objRecord = obj as Record<string, unknown>;
     visited.add(obj);
     let maxDepth = currentDepth;
 
-    if (obj.properties && typeof obj.properties === 'object') {
-      for (const prop of Object.values(obj.properties)) {
+    if (objRecord.properties && typeof objRecord.properties === 'object') {
+      for (const prop of Object.values(objRecord.properties as Record<string, unknown>)) {
         maxDepth = Math.max(maxDepth, this.calculateMaxDepth(prop, currentDepth + 1, visited));
       }
     }
 
-    if (obj.items) {
-      maxDepth = Math.max(maxDepth, this.calculateMaxDepth(obj.items, currentDepth + 1, visited));
+    if (objRecord.items) {
+      maxDepth = Math.max(maxDepth, this.calculateMaxDepth(objRecord.items, currentDepth + 1, visited));
     }
 
     return maxDepth;
   }
 
-  private countRequiredProperties(obj: any): number {
+  private countRequiredProperties(obj: unknown): number {
     if (typeof obj !== 'object' || obj === null) {
       return 0;
     }
 
+    const objRecord = obj as Record<string, unknown>;
     let count = 0;
-    if (Array.isArray(obj.required)) {
-      count += obj.required.length;
+    if (Array.isArray(objRecord.required)) {
+      count += objRecord.required.length;
     }
 
-    if (obj.properties && typeof obj.properties === 'object') {
-      for (const prop of Object.values(obj.properties)) {
+    if (objRecord.properties && typeof objRecord.properties === 'object') {
+      for (const prop of Object.values(objRecord.properties as Record<string, unknown>)) {
         count += this.countRequiredProperties(prop);
       }
     }

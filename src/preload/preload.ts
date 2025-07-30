@@ -227,7 +227,8 @@ contextBridge.exposeInMainWorld('api', {
    * @param options - Conversion options
    * @returns Promise resolving to conversion result or error
    */
-  convertRamlFile: (options: RamlFileConversionParams) => ipcRenderer.invoke('raml:convert', options),
+  convertRamlFile: (options: RamlFileConversionParams) =>
+    ipcRenderer.invoke('raml:convert', options),
 
   /**
    * Converts multiple RAML files to JSON Schema in batch.
@@ -235,7 +236,8 @@ contextBridge.exposeInMainWorld('api', {
    * @param options - Batch conversion options
    * @returns Promise resolving to batch conversion result or error
    */
-  convertRamlBatch: (options: RamlBatchConversionParams) => ipcRenderer.invoke('raml:convertBatch', options),
+  convertRamlBatch: (options: RamlBatchConversionParams) =>
+    ipcRenderer.invoke('raml:convertBatch', options),
 
   /**
    * Clears a directory of all files.

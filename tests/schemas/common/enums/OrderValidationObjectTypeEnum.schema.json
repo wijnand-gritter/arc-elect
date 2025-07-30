@@ -1,7 +1,0 @@
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "OrderValidationObjectType",
-  "type": "string",
-  "enum": ["ORDERLOAN", "ORDERRENTAL", "SALESORDER"],
-  "description": "Inline enum for orderValidation.objectType"
-}

@@ -235,7 +235,7 @@ export function SchemaEditor({
         setIsSaving(false);
       }
     }),
-    [schema.name, schema.filePath, content, onDirtyChange],
+    [schema.name, schema.path, content, onDirtyChange],
   );
 
   /**

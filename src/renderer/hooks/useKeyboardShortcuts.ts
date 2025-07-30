@@ -65,7 +65,7 @@ interface KeyboardShortcutsOptions {
  *   enableGlobal: true,
  *   enableDebug: true
  * });
- * 
+ *
  * // Register custom shortcut
  * registerShortcut({
  *   key: 's',
@@ -76,9 +76,7 @@ interface KeyboardShortcutsOptions {
  * });
  * ```
  */
-export function useKeyboardShortcuts(
-  options: KeyboardShortcutsOptions = {},
-): {
+export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}): {
   shortcuts: KeyboardShortcut[];
   registerShortcut: (shortcut: KeyboardShortcut) => void;
   unregisterShortcut: (key: string) => void;
@@ -92,7 +90,7 @@ export function useKeyboardShortcuts(
   } = options;
 
   const shortcutsRef = useRef<Map<string, KeyboardShortcut>>(new Map());
-  
+
   // App store access
   const setPage = useAppStore((state) => state.setPage);
   const currentProject = useAppStore((state) => state.currentProject);
@@ -102,18 +100,18 @@ export function useKeyboardShortcuts(
   /**
    * Check if shortcut matches keyboard event.
    */
-  const isShortcutPressed = useCallback((
-    event: KeyboardEvent,
-    shortcut: KeyboardShortcut
-  ): boolean => {
-    const keyMatch = event.key.toLowerCase() === shortcut.key.toLowerCase();
-    const ctrlMatch = !!shortcut.ctrl === (event.ctrlKey || event.metaKey);
-    const altMatch = !!shortcut.alt === event.altKey;
-    const shiftMatch = !!shortcut.shift === event.shiftKey;
-    const metaMatch = !!shortcut.meta === event.metaKey;
+  const isShortcutPressed = useCallback(
+    (event: KeyboardEvent, shortcut: KeyboardShortcut): boolean => {
+      const keyMatch = event.key.toLowerCase() === shortcut.key.toLowerCase();
+      const ctrlMatch = !!shortcut.ctrl === (event.ctrlKey || event.metaKey);
+      const altMatch = !!shortcut.alt === event.altKey;
+      const shiftMatch = !!shortcut.shift === event.shiftKey;
+      const metaMatch = !!shortcut.meta === event.metaKey;
 
-    return keyMatch && ctrlMatch && altMatch && shiftMatch && metaMatch;
-  }, []);
+      return keyMatch && ctrlMatch && altMatch && shiftMatch && metaMatch;
+    },
+    [],
+  );
 
   /**
    * Generate shortcut key for storage.
@@ -124,7 +122,7 @@ export function useKeyboardShortcuts(
     if (shortcut.alt) modifiers.push('alt');
     if (shortcut.shift) modifiers.push('shift');
     if (shortcut.meta) modifiers.push('meta');
-    
+
     return `${modifiers.join('+')}_${shortcut.key.toLowerCase()}`;
   }, []);
 
@@ -154,7 +152,7 @@ export function useKeyboardShortcuts(
       category: 'navigation',
       action: () => setPage('analytics'),
     },
-    
+
     // Search shortcuts
     {
       key: 'f',
@@ -162,7 +160,9 @@ export function useKeyboardShortcuts(
       description: 'Focus search',
       category: 'search',
       action: () => {
-        const searchInput = document.querySelector('input[placeholder*="search" i]') as HTMLInputElement;
+        const searchInput = document.querySelector(
+          'input[placeholder*="search" i]',
+        ) as HTMLInputElement;
         if (searchInput) {
           searchInput.focus();
           searchInput.select();
@@ -178,14 +178,16 @@ export function useKeyboardShortcuts(
       action: () => {
         // Focus search and clear current query
         setSearchQuery('');
-        const searchInput = document.querySelector('input[placeholder*="search" i]') as HTMLInputElement;
+        const searchInput = document.querySelector(
+          'input[placeholder*="search" i]',
+        ) as HTMLInputElement;
         if (searchInput) {
           searchInput.focus();
         }
       },
       preventDefault: true,
     },
-    
+
     // Modal shortcuts
     {
       key: 'Escape',
@@ -193,7 +195,7 @@ export function useKeyboardShortcuts(
       category: 'general',
       action: () => closeAllModals(),
     },
-    
+
     // Project shortcuts
     {
       key: 'o',
@@ -220,7 +222,7 @@ export function useKeyboardShortcuts(
       },
       preventDefault: true,
     },
-    
+
     // Editor shortcuts
     {
       key: 'Enter',
@@ -234,7 +236,7 @@ export function useKeyboardShortcuts(
         }
       },
     },
-    
+
     // Accessibility shortcuts
     {
       key: 'Tab',
@@ -257,7 +259,7 @@ export function useKeyboardShortcuts(
         logger.info('Keyboard shortcuts help requested');
       },
     },
-    
+
     // Quick actions
     {
       key: 'n',
@@ -288,7 +290,7 @@ export function useKeyboardShortcuts(
         logger.info('Delete schema shortcut triggered');
       },
     },
-    
+
     // View shortcuts
     {
       key: 'g',
@@ -297,9 +299,13 @@ export function useKeyboardShortcuts(
       category: 'navigation',
       action: () => {
         // Toggle view mode in schema list
-        const gridButton = document.querySelector('button[aria-label*="grid" i]') as HTMLButtonElement;
-        const listButton = document.querySelector('button[aria-label*="list" i]') as HTMLButtonElement;
-        
+        const gridButton = document.querySelector(
+          'button[aria-label*="grid" i]',
+        ) as HTMLButtonElement;
+        const listButton = document.querySelector(
+          'button[aria-label*="list" i]',
+        ) as HTMLButtonElement;
+
         if (gridButton?.getAttribute('aria-pressed') === 'true') {
           listButton?.click();
         } else {
@@ -307,7 +313,7 @@ export function useKeyboardShortcuts(
         }
       },
     },
-    
+
     // Refresh shortcuts
     {
       key: 'r',
@@ -335,73 +341,81 @@ export function useKeyboardShortcuts(
   /**
    * Register a keyboard shortcut.
    */
-  const registerShortcut = useCallback((shortcut: KeyboardShortcut): void => {
-    const key = generateShortcutKey(shortcut);
-    shortcutsRef.current.set(key, { ...shortcut, enabled: shortcut.enabled ?? true });
-    
-    if (enableDebug) {
-      logger.debug('Registered keyboard shortcut', { key, shortcut });
-    }
-  }, [generateShortcutKey, enableDebug]);
+  const registerShortcut = useCallback(
+    (shortcut: KeyboardShortcut): void => {
+      const key = generateShortcutKey(shortcut);
+      shortcutsRef.current.set(key, { ...shortcut, enabled: shortcut.enabled ?? true });
+
+      if (enableDebug) {
+        logger.debug('Registered keyboard shortcut', { key, shortcut });
+      }
+    },
+    [generateShortcutKey, enableDebug],
+  );
 
   /**
    * Unregister a keyboard shortcut.
    */
-  const unregisterShortcut = useCallback((key: string): void => {
-    shortcutsRef.current.delete(key);
-    
-    if (enableDebug) {
-      logger.debug('Unregistered keyboard shortcut', { key });
-    }
-  }, [enableDebug]);
+  const unregisterShortcut = useCallback(
+    (key: string): void => {
+      shortcutsRef.current.delete(key);
+
+      if (enableDebug) {
+        logger.debug('Unregistered keyboard shortcut', { key });
+      }
+    },
+    [enableDebug],
+  );
 
   /**
    * Handle keyboard events.
    */
-  const handleKeyDown = useCallback((event: KeyboardEvent): void => {
-    // Skip if user is typing in an input, textarea, or contenteditable
-    const target = event.target as HTMLElement;
-    const isInput = target.tagName === 'INPUT' || 
-                   target.tagName === 'TEXTAREA' || 
-                   target.isContentEditable;
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent): void => {
+      // Skip if user is typing in an input, textarea, or contenteditable
+      const target = event.target as HTMLElement;
+      const isInput =
+        target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
 
-    // Allow some shortcuts even in inputs (like Escape)
-    const allowInInputs = ['Escape', 'Tab'];
-    
-    if (isInput && !allowInInputs.includes(event.key)) {
-      return;
-    }
+      // Allow some shortcuts even in inputs (like Escape)
+      const allowInInputs = ['Escape', 'Tab'];
 
-    // Check all registered shortcuts
-    for (const [key, shortcut] of shortcutsRef.current.entries()) {
-      if (!shortcut.enabled) continue;
-      
-      if (isShortcutPressed(event, shortcut)) {
-        if (enableDebug) {
-          logger.debug('Keyboard shortcut triggered', { key, shortcut });
-        }
-        
-        try {
-          // Check for custom handler first
-          const shortcutId = key.split('_').pop(); // Extract base key from compound key
-          if (customHandlers[shortcutId || key]) {
-            customHandlers[shortcutId || key]();
-          } else {
-            shortcut.action();
-          }
-          
-          if (shortcut.preventDefault) {
-            event.preventDefault();
-            event.stopPropagation();
-          }
-        } catch (error) {
-          logger.error('Error executing keyboard shortcut', { key, error });
-        }
-        
-        break; // Only execute first matching shortcut
+      if (isInput && !allowInInputs.includes(event.key)) {
+        return;
       }
-    }
-  }, [isShortcutPressed, enableDebug]);
+
+      // Check all registered shortcuts
+      for (const [key, shortcut] of shortcutsRef.current.entries()) {
+        if (!shortcut.enabled) continue;
+
+        if (isShortcutPressed(event, shortcut)) {
+          if (enableDebug) {
+            logger.debug('Keyboard shortcut triggered', { key, shortcut });
+          }
+
+          try {
+            // Check for custom handler first
+            const shortcutId = key.split('_').pop(); // Extract base key from compound key
+            if (customHandlers[shortcutId || key]) {
+              customHandlers[shortcutId || key]();
+            } else {
+              shortcut.action();
+            }
+
+            if (shortcut.preventDefault) {
+              event.preventDefault();
+              event.stopPropagation();
+            }
+          } catch (error) {
+            logger.error('Error executing keyboard shortcut', { key, error });
+          }
+
+          break; // Only execute first matching shortcut
+        }
+      }
+    },
+    [isShortcutPressed, enableDebug],
+  );
 
   /**
    * Initialize default shortcuts.

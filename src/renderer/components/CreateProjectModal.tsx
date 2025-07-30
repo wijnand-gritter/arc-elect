@@ -91,7 +91,8 @@ export function CreateProjectModal({
         }
       }
     } catch (error) {
-      logger.error('Failed to select folder', { error: error.message, stack: error.stack });
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      logger.error('Failed to select folder', { error: errorObj.message, stack: errorObj.stack });
     } finally {
       setIsSelecting(false);
     }
