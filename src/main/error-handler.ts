@@ -148,7 +148,7 @@ export function validateInput(
 
 /**
  * Handle uncaught exceptions.
- * 
+ *
  * This ensures that any unhandled exceptions are properly logged
  * before the application exits.
  */
@@ -167,7 +167,7 @@ process.on('uncaughtException', (error) => {
 
 /**
  * Handle unhandled promise rejections.
- * 
+ *
  * This ensures that any unhandled promise rejections are properly
  * logged before the application exits.
  */
@@ -183,4 +183,4 @@ process.on('unhandledRejection', (reason, promise) => {
 
   // Give logger time to flush before exit
   setTimeout(() => process.exit(1), 100);
-}); 
+});
