@@ -373,7 +373,7 @@ class ProjectManager {
 
       // Load project metadata if it exists
       const savedMetadata = await this.loadProjectMetadata(projectPath);
-      
+
       // Create project config from path and metadata
       const config: ProjectConfig = {
         name: savedMetadata?.name || path.basename(projectPath),
@@ -475,7 +475,7 @@ class ProjectManager {
 
       // Remove project from the projects map
       this.projects.delete(projectId);
-      
+
       // Delete project metadata file
       await this.deleteProjectMetadata(project.path);
 
@@ -501,16 +501,18 @@ class ProjectManager {
         settings: project.settings,
         version: '1.0.0',
       };
-      
-      logger.info('ProjectManager: Saving project metadata', { 
+
+      logger.info('ProjectManager: Saving project metadata', {
         projectPath: project.path,
         projectName: project.name,
         projectId: project.id,
-        metadata 
+        metadata,
       });
-      
+
       await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2), 'utf8');
-      logger.info('ProjectManager: Project metadata saved successfully', { projectPath: project.path });
+      logger.info('ProjectManager: Project metadata saved successfully', {
+        projectPath: project.path,
+      });
     } catch (error) {
       logger.error('ProjectManager: Failed to save project metadata', {
         projectPath: project.path,
@@ -533,19 +535,19 @@ class ProjectManager {
       const metadataPath = path.join(projectPath, '.arc-elect.json');
       const metadataContent = await fs.readFile(metadataPath, 'utf8');
       const metadata = JSON.parse(metadataContent);
-      
+
       const result: {
         name?: string;
         schemaPattern?: string;
         createdAt?: Date;
         settings?: Project['settings'];
       } = {};
-      
+
       if (metadata.name) result.name = metadata.name;
       if (metadata.schemaPattern) result.schemaPattern = metadata.schemaPattern;
       if (metadata.createdAt) result.createdAt = new Date(metadata.createdAt);
       if (metadata.settings) result.settings = metadata.settings;
-      
+
       return result;
     } catch (_error) {
       // Metadata file doesn't exist or is invalid - return null

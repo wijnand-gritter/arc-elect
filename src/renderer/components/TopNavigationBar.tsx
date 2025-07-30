@@ -352,6 +352,4 @@ const renderMobileMenuItem = (
   );
 };
 
-
-
 export { TopNavigationBar };
