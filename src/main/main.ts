@@ -108,18 +108,51 @@ app.on('before-quit', () => {
  * @returns Promise resolving to file content or error
  */
 ipcMain.handle('file:read', async (_event, filePath: string) => {
+  const startTime = Date.now();
+  
   try {
-    // Basic validation: only allow reading from user documents or a safe directory
-    // (Pas dit aan naar je eigen security-beleid)
-    if (typeof filePath !== 'string' || filePath.length > 512) {
+    // Enhanced validation
+    if (typeof filePath !== 'string') {
+      throw new Error('File path must be a string');
+    }
+    
+    if (filePath.length === 0) {
+      throw new Error('File path cannot be empty');
+    }
+    
+    if (filePath.length > 512) {
+      throw new Error('File path too long (max 512 characters)');
+    }
+
+    // Basic security check - prevent directory traversal
+    if (filePath.includes('..') || filePath.includes('//')) {
       throw new Error('Invalid file path');
     }
+
     const data = await fs.readFile(filePath, 'utf-8');
-    logger.info('File read', filePath);
+    const duration = Date.now() - startTime;
+    
+    logger.info('File read successfully', { 
+      filePath, 
+      duration, 
+      size: data.length 
+    });
+    
     return { success: true, data };
   } catch (error) {
-    logger.error('Error reading file:', error);
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
+    const duration = Date.now() - startTime;
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    logger.error('Error reading file', { 
+      filePath, 
+      error: errorMessage, 
+      duration 
+    });
+    
+    return { 
+      success: false, 
+      error: errorMessage 
+    };
   }
 });
 
@@ -132,19 +165,55 @@ ipcMain.handle('file:read', async (_event, filePath: string) => {
  * @returns Promise resolving to success status or error
  */
 ipcMain.handle('file:write', async (_event, filePath: string, data: string) => {
+  const startTime = Date.now();
+  
   try {
-    if (typeof filePath !== 'string' || filePath.length > 512) {
+    // Enhanced validation
+    if (typeof filePath !== 'string') {
+      throw new Error('File path must be a string');
+    }
+    
+    if (filePath.length === 0) {
+      throw new Error('File path cannot be empty');
+    }
+    
+    if (filePath.length > 512) {
+      throw new Error('File path too long (max 512 characters)');
+    }
+
+    if (typeof data !== 'string') {
+      throw new Error('File data must be a string');
+    }
+
+    // Basic security check - prevent directory traversal
+    if (filePath.includes('..') || filePath.includes('//')) {
       throw new Error('Invalid file path');
     }
-    if (typeof data !== 'string') {
-      throw new Error('Invalid file data');
-    }
+
     await fs.writeFile(filePath, data, 'utf-8');
-    logger.info('File written', filePath);
+    const duration = Date.now() - startTime;
+    
+    logger.info('File written successfully', { 
+      filePath, 
+      duration, 
+      size: data.length 
+    });
+    
     return { success: true };
   } catch (error) {
-    logger.error('Error writing file:', error);
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
+    const duration = Date.now() - startTime;
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    logger.error('Error writing file', { 
+      filePath, 
+      error: errorMessage, 
+      duration 
+    });
+    
+    return { 
+      success: false, 
+      error: errorMessage 
+    };
   }
 });
 
