@@ -104,8 +104,6 @@ interface AppState {
   createProject: (config: ProjectConfig) => Promise<void>;
   /** Function to load a project from path */
   loadProject: (projectPath: string) => Promise<void>;
-  /** Function to force reload a project from path, bypassing cache */
-  forceReloadProject: (projectPath: string) => Promise<void>;
   /** Function to set the current project */
   setCurrentProject: (project: Project | null) => void;
   /** Function to save current project for persistence */
@@ -251,75 +249,6 @@ export const useAppStore = create<AppState>()(
               isLoadingProject: false,
             });
             logger.error('Store: Exception loading project', { error });
-          }
-        },
-
-        /**
-         * Force reloads a project from the filesystem, bypassing cache.
-         *
-         * @param projectPath - Path to the project directory
-         */
-        forceReloadProject: async (projectPath: string) => {
-          const startTime = Date.now();
-          logger.info('Store: Force reloading project', { projectPath });
-
-          set({ isLoadingProject: true, projectError: null });
-
-          try {
-            // First clear the project cache
-            await window.api.clearProjectCache();
-            logger.info('Store: Cleared project cache');
-
-            // Then force reload the project
-            const result = await window.api.forceReloadProject(projectPath);
-            if (result.success && result.project) {
-              // Validate project data with type guards
-              if (!validateWithLogging(result.project, isProject, 'forceReloadProject result')) {
-                throw new Error('Invalid project data received from main process');
-              }
-
-              // Debug: Log schema IDs to verify they're properly transferred
-              logger.info('Store: Project force reloaded with schemas', {
-                projectName: result.project.name,
-                schemaCount: result.project.schemas?.length ?? 0,
-                schemaIds:
-                  result.project.schemas?.map((s) => ({
-                    name: s.name,
-                    id: s.id,
-                    referencedByCount: s.referencedBy?.length ?? 0,
-                  })) ?? [],
-              });
-
-              set({
-                currentProject: result.project,
-                recentProjects: [
-                  result.project,
-                  ...get()
-                    .recentProjects.filter((p) => p.id !== result.project!.id)
-                    .slice(0, 9),
-                ],
-                isLoadingProject: false,
-                currentPage: 'project',
-              });
-
-              // Save the current project for persistence
-              get().saveCurrentProject();
-
-              logger.info(`Store: Project force reloaded in ${Date.now() - startTime}ms`);
-            } else {
-              set({
-                projectError: result.error || 'Failed to force reload project',
-                isLoadingProject: false,
-              });
-              logger.error('Store: Failed to force reload project', { error: result.error });
-            }
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            set({
-              projectError: `Failed to force reload project: ${errorMessage}`,
-              isLoadingProject: false,
-            });
-            logger.error('Store: Exception force reloading project', { error });
           }
         },
 

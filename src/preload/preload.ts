@@ -159,22 +159,6 @@ contextBridge.exposeInMainWorld('api', {
    */
   deleteProject: (projectId: string) => ipcRenderer.invoke('project:delete', projectId),
 
-  /**
-   * Clears the project cache for a specific project or all projects.
-   *
-   * @param projectId - Optional project ID to clear specific project cache
-   * @returns Promise resolving to success status or error
-   */
-  clearProjectCache: (projectId?: string) => ipcRenderer.invoke('project:clearCache', projectId),
-
-  /**
-   * Force reloads a project from the filesystem, bypassing cache.
-   *
-   * @param projectPath - Path to the project to reload
-   * @returns Promise resolving to project data or error
-   */
-  forceReloadProject: (projectPath: string) => ipcRenderer.invoke('project:forceReload', projectPath),
-
   // File System Operations API
 
   /**
