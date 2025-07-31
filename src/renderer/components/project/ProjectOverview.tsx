@@ -407,10 +407,11 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
                 {recentProjects.slice(0, 5).map((recentProject) => (
                   <div
                     key={recentProject.id}
-                    className={`flex items-center justify-between p-4 rounded-lg border transition-all duration-200 cursor-pointer hover-lift ${recentProject.id === project.id
+                    className={`flex items-center justify-between p-4 rounded-lg border transition-all duration-200 cursor-pointer hover-lift ${
+                      recentProject.id === project.id
                         ? 'border-primary bg-primary/5'
                         : 'border-border/50 hover:bg-muted/50'
-                      }`}
+                    }`}
                     onClick={() => handleOpenProject(recentProject.path)}
                   >
                     <div className="flex-1 min-w-0">

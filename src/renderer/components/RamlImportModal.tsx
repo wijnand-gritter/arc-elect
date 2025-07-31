@@ -19,12 +19,10 @@ import { Switch } from './ui/switch';
 import { Card, CardContent } from './ui/card';
 import { Progress } from './ui/progress';
 import { ScrollArea } from './ui/scroll-area';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Upload, FolderOpen, Settings, Loader2, Folder, Code } from 'lucide-react';
+import { Upload, FolderOpen, Settings, Loader2, Folder } from 'lucide-react';
 import { toast } from 'sonner';
 import type {
   RamlImportConfig,
-  TransformationOptions,
   ImportResult,
 } from '../../types/raml-import';
 
@@ -71,18 +69,7 @@ export function RamlImportModal({
     }));
   };
 
-  const handleTransformationOptionChange = (
-    option: keyof TransformationOptions,
-    value: boolean | string,
-  ) => {
-    setConfig((prev) => ({
-      ...prev,
-      transformationOptions: {
-        ...prev.transformationOptions,
-        [option]: value,
-      },
-    }));
-  };
+
 
   const handleImport = async () => {
     if (!config.sourcePath || !config.destinationPath) {
@@ -244,103 +231,7 @@ export function RamlImportModal({
                   </div>
                 </div>
 
-                {/* Transformation Options */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Code className="h-5 w-5 text-primary" />
-                    <Label className="text-base font-medium">Transformation Options</Label>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="preserve-structure">Preserve structure</Label>
-                        <p className="text-xs text-muted-foreground">
-                          Preserve original RAML structure and hierarchy
-                        </p>
-                      </div>
-                      <Switch
-                        id="preserve-structure"
-                        checked={config.transformationOptions.preserveStructure}
-                        onCheckedChange={(checked) =>
-                          handleTransformationOptionChange('preserveStructure', checked)
-                        }
-                      />
-                    </div>
 
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="generate-examples">Generate examples</Label>
-                        <p className="text-xs text-muted-foreground">
-                          Convert RAML examples to JSON Schema examples
-                        </p>
-                      </div>
-                      <Switch
-                        id="generate-examples"
-                        checked={config.transformationOptions.generateExamples}
-                        onCheckedChange={(checked) =>
-                          handleTransformationOptionChange('generateExamples', checked)
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="include-annotations">Include annotations</Label>
-                        <p className="text-xs text-muted-foreground">
-                          Convert RAML annotations to JSON Schema descriptions
-                        </p>
-                      </div>
-                      <Switch
-                        id="include-annotations"
-                        checked={config.transformationOptions.includeAnnotations}
-                        onCheckedChange={(checked) =>
-                          handleTransformationOptionChange('includeAnnotations', checked)
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="naming-convention">Naming convention</Label>
-                        <p className="text-xs text-muted-foreground">
-                          Choose a naming convention for generated schemas
-                        </p>
-                      </div>
-                      <Select
-                        value={config.transformationOptions.namingConvention}
-                        onValueChange={(value) =>
-                          handleTransformationOptionChange('namingConvention', value)
-                        }
-                      >
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue placeholder="Select a convention" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="kebab-case">Kebab Case (e.g., my-schema)</SelectItem>
-                          <SelectItem value="snake_case">Snake Case (e.g., my_schema)</SelectItem>
-                          <SelectItem value="camelCase">Camel Case (e.g., mySchema)</SelectItem>
-                          <SelectItem value="PascalCase">Pascal Case (e.g., MySchema)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="validate-output">Validate output</Label>
-                        <p className="text-xs text-muted-foreground">
-                          Validate the generated JSON Schema against the RAML definition
-                        </p>
-                      </div>
-                      <Switch
-                        id="validate-output"
-                        checked={config.transformationOptions.validateOutput}
-                        onCheckedChange={(checked) =>
-                          handleTransformationOptionChange('validateOutput', checked)
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
 
                 {/* Import Progress */}
                 {isImporting && (
