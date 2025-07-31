@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 
 import type { Project } from '../../../types/schema-editor';
 import type { ImportResult } from '../../../types/raml-import';
+import type { RamlImportConfig } from '../../../types/raml-import';
 
 /**
  * Project overview component props.
@@ -107,21 +108,59 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
     setProjectToDelete(null);
   };
 
-  /**
-   * Handles opening the RAML import modal.
-   */
   const handleRamlImport = () => {
     setIsRamlImportOpen(true);
   };
 
-  /**
-   * Handles RAML import completion.
-   */
-  const handleRamlImportComplete = (result: ImportResult) => {
-    if (result.success) {
-      toast.success('RAML import completed successfully', {
-        description: `Converted ${result.convertedFiles} files`,
+  const handleRamlImportConfig = async (config: RamlImportConfig): Promise<ImportResult> => {
+    try {
+      // Use the RAML batch conversion API
+      const result = await window.api.convertRamlBatch({
+        sourceDirectory: config.sourcePath,
+        destinationDirectory: config.destinationPath,
+        options: config.transformationOptions,
       });
+
+      if (result.success) {
+        return {
+          success: true,
+          processedFiles: result.summary.total,
+          convertedFiles: result.summary.successful,
+          failedFiles: result.summary.failed,
+          errors: result.results
+            .filter((r: any) => !r.success)
+            .map((r: any) => ({
+              filePath: r.inputFile || 'unknown',
+              message: r.error || 'Conversion failed',
+              type: 'conversion' as const,
+            })),
+          warnings: [],
+          duration: 0,
+          timestamp: new Date(),
+        };
+      } else {
+        return {
+          success: false,
+          processedFiles: 0,
+          convertedFiles: 0,
+          failedFiles: 0,
+          errors: [{ filePath: 'unknown', message: result.error || 'Unknown error', type: 'filesystem' as const }],
+          warnings: [],
+          duration: 0,
+          timestamp: new Date(),
+        };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        processedFiles: 0,
+        convertedFiles: 0,
+        failedFiles: 0,
+        errors: [{ filePath: 'unknown', message: error instanceof Error ? error.message : 'Unknown error', type: 'filesystem' as const }],
+        warnings: [],
+        duration: 0,
+        timestamp: new Date(),
+      };
     }
   };
 
@@ -239,7 +278,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
         <RamlImportModal
           isOpen={isRamlImportOpen}
           onClose={() => setIsRamlImportOpen(false)}
-          onImportComplete={handleRamlImportComplete}
+          onImport={handleRamlImportConfig}
         />
 
         {/* Delete Confirmation Dialog */}
@@ -403,7 +442,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
       <RamlImportModal
         isOpen={isRamlImportOpen}
         onClose={() => setIsRamlImportOpen(false)}
-        onImportComplete={handleRamlImportComplete}
+        onImport={handleRamlImportConfig}
       />
 
       {/* Delete Confirmation Dialog */}

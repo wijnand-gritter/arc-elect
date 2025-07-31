@@ -24,7 +24,22 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowLeft, FileText, AlertCircle, CheckCircle, Clock, Calendar, Copy, XCircle, HelpCircle, Info, Code, List, Shield, Edit } from 'lucide-react';
+import {
+  ArrowLeft,
+  FileText,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  Calendar,
+  Copy,
+  XCircle,
+  HelpCircle,
+  Info,
+  Code,
+  List,
+  Shield,
+  Edit,
+} from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
 import { toast } from 'sonner';
 import type { Schema, SchemaReference, ValidationStatus } from '../../../types/schema-editor';
@@ -69,24 +84,31 @@ export function SchemaDetailModal({
   onEdit,
 }: SchemaDetailModalProps): React.JSX.Element {
   const { currentProject, modalStack, currentModalIndex, navigateToSchema, goBack } = useAppStore();
-  const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'properties' | 'validation'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'properties' | 'validation'>(
+    'overview',
+  );
 
   // Get the current schema from the modal stack
   const currentModal = modalStack[currentModalIndex];
   const schema = currentModal?.schema;
   const canGoBack = currentModalIndex > 0;
 
-  const handleReferenceClick = useCallback((reference: SchemaReference) => {
-    if (schema) {
-      // Find the referenced schema in the current project
-      const referencedSchema = currentProject?.schemas.find((s) => s.name === reference.schemaName);
-      if (referencedSchema) {
-        navigateToSchema(referencedSchema, 'overview');
-      } else {
-        toast.error(`Referenced schema not found: ${reference.schemaName}`);
+  const handleReferenceClick = useCallback(
+    (reference: SchemaReference) => {
+      if (schema) {
+        // Find the referenced schema in the current project
+        const referencedSchema = currentProject?.schemas.find(
+          (s) => s.name === reference.schemaName,
+        );
+        if (referencedSchema) {
+          navigateToSchema(referencedSchema, 'overview');
+        } else {
+          toast.error(`Referenced schema not found: ${reference.schemaName}`);
+        }
       }
-    }
-  }, [schema, currentProject, navigateToSchema]);
+    },
+    [schema, currentProject, navigateToSchema],
+  );
 
   const handleCopyContent = async () => {
     if (!schema) return;
@@ -220,7 +242,9 @@ export function SchemaDetailModal({
         <div className="flex-1 min-h-0">
           <Tabs
             value={activeTab}
-            onValueChange={(value) => setActiveTab(value as 'overview' | 'content' | 'properties' | 'validation')}
+            onValueChange={(value) =>
+              setActiveTab(value as 'overview' | 'content' | 'properties' | 'validation')
+            }
             className="h-full flex flex-col"
           >
             <TabsList className="grid w-full grid-cols-4 mb-4">

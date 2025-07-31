@@ -153,9 +153,9 @@ class ProjectManager {
 
     // Folder dialog
     ipcMain.handle(
-      'dialog:folder',
-      async (_event, options?: { title?: string; defaultPath?: string }) => {
-        return this.showFolderDialog(options);
+      'dialog:selectFolder',
+      async (_event, title: string) => {
+        return this.showFolderDialog({ title });
       },
     );
 
@@ -207,10 +207,6 @@ class ProjectManager {
     ipcMain.handle('raml:cancel', async () => {
       // Placeholder for cancellation logic
       return { success: true };
-    });
-
-    ipcMain.handle('dialog:selectFolder', async (_event, title: string) => {
-      return this.showFolderDialog({ title });
     });
   }
 
