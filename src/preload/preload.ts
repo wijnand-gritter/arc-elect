@@ -12,19 +12,6 @@
 
 import { contextBridge, ipcRenderer } from 'electron';
 
-// RAML conversion interfaces
-interface RamlFileConversionParams {
-  sourceFile: string;
-  destinationDirectory: string;
-  options: {
-    preserveStructure: boolean;
-    generateExamples: boolean;
-    includeAnnotations: boolean;
-    namingConvention: 'kebab-case' | 'camelCase' | 'PascalCase' | 'snake_case';
-    validateOutput: boolean;
-  };
-}
-
 interface RamlBatchConversionParams {
   sourceDirectory: string;
   destinationDirectory: string;
@@ -227,8 +214,6 @@ contextBridge.exposeInMainWorld('api', {
    * @param options - Conversion options
    * @returns Promise resolving to conversion result or error
    */
-  convertRamlFile: (options: RamlFileConversionParams) =>
-    ipcRenderer.invoke('raml:convert', options),
 
   /**
    * Converts multiple RAML files to JSON Schema in batch.

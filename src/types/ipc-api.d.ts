@@ -18,11 +18,6 @@ export {};
 /**
  * RAML conversion result interface.
  */
-interface RamlConversionResult {
-  success: boolean;
-  error?: string;
-  result?: unknown;
-}
 
 /**
  * Global window interface extension for the IPC API.
@@ -279,22 +274,6 @@ declare global {
         success: boolean;
         data?: RamlFileInfo[];
         error?: string;
-      }>;
-
-      /**
-       * Converts a single RAML file to JSON Schema.
-       *
-       * @param options - Conversion options
-       * @returns Promise resolving to conversion result or error
-       */
-      convertRamlFile: (options: {
-        sourcePath: string;
-        destinationPath: string;
-        options: TransformationOptions;
-      }) => Promise<{
-        success: boolean;
-        error?: string;
-        result?: RamlConversionResult;
       }>;
 
       /**

@@ -27,7 +27,8 @@
     "icons:mac": "node scripts/generate-mac-icon.js",
     "icons:setup": "node scripts/setup-icons.js",
     "icons:clean": "rm -rf build/icons",
-    "icons:full": "npm run icons:clean && npm run icons && npm run icons:mac && npm run icons:setup"
+    "icons:full": "npm run icons:clean && npm run icons && npm run icons:mac && npm run icons:setup",
+    "test:raml": "node scripts/test-raml-conversion.js"
   },
   "keywords": [],
   "author": {

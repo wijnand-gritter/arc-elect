@@ -55,7 +55,7 @@ export class SimpleRamlParser {
           required: [],
           isEnum: false,
           enumValues: [],
-          description: ''
+          description: '',
         };
         continue;
       }
@@ -77,13 +77,20 @@ export class SimpleRamlParser {
         const propName = trimmed.slice(0, -1);
         const isOptional = propName.endsWith('?');
         const cleanPropName = propName.replace('?', '');
-        const propDetails = this.parsePropertyDetails(lines, i + 1, currentType.name, cleanPropName, inlineEnums);
+        const propDetails = this.parsePropertyDetails(
+          lines,
+          i + 1,
+          currentType.name,
+          cleanPropName,
+          inlineEnums,
+        );
         currentType.properties[cleanPropName] = {
           type: propDetails.type || 'string',
           description: propDetails.description || '',
           format: propDetails.format,
           items: propDetails.items,
-          $ref: propDetails.$ref
+          $ref: propDetails.$ref,
+          originalType: propDetails.originalType,
         };
         if (!isOptional) {
           currentType.required.push(cleanPropName);
@@ -95,13 +102,19 @@ export class SimpleRamlParser {
     return types;
   }
 
-  parsePropertyDetails(lines: string[], startIndex: number, parentTypeName: string, propertyName: string, inlineEnums: RamlType[]) {
+  parsePropertyDetails(
+    lines: string[],
+    startIndex: number,
+    parentTypeName: string,
+    propertyName: string,
+    inlineEnums: RamlType[],
+  ) {
     const details: any = {
       type: 'string',
       description: '',
       format: null,
       items: null,
-      $ref: null
+      $ref: null,
     };
     let hasInlineEnum = false;
     let inlineEnumValues: string[] = [];
@@ -116,11 +129,10 @@ export class SimpleRamlParser {
         } else if (trimmed.startsWith('type:')) {
           const typeValue = trimmed.substring(5).trim();
           if (typeValue.includes(' | ')) {
-            const unionTypes = typeValue.split(' | ').map(t => t.trim());
-            const firstType = unionTypes[0];
-            details.type = this.mapRamlType(firstType);
-            details.$ref = this.getTypeReference(firstType);
-            details.originalType = firstType;
+            const unionTypes = typeValue.split(' | ').map((t) => t.trim());
+            // Handle union types as array of types
+            details.type = unionTypes.map((type) => this.mapRamlType(type));
+            details.originalType = typeValue;
           } else {
             details.type = this.mapRamlType(typeValue);
             details.$ref = this.getTypeReference(typeValue);
@@ -144,7 +156,7 @@ export class SimpleRamlParser {
             const itemType = itemTrimmed.substring(5).trim();
             details.items = {
               type: this.mapRamlType(itemType),
-              $ref: this.getTypeReference(itemType)
+              $ref: this.getTypeReference(itemType),
             };
             break;
           }
@@ -163,7 +175,7 @@ export class SimpleRamlParser {
         description: `Inline enum for ${parentTypeName}.${propertyName}`,
         isInlineEnum: true,
         originalParent: parentTypeName,
-        originalProperty: propertyName
+        originalProperty: propertyName,
       };
       inlineEnums.push(inlineEnum);
       details.$ref = `../common/enums/${enumTypeName}Enum.schema.json`;
@@ -176,17 +188,20 @@ export class SimpleRamlParser {
     if (!ramlType) return 'string';
     const cleanType = ramlType.replace(/\?$/, '');
     const typeMap: Record<string, string | null> = {
-      'string': 'string',
-      'number': 'number',
-      'integer': 'integer',
-      'boolean': 'boolean',
-      'date': 'string',
+      string: 'string',
+      number: 'number',
+      integer: 'integer',
+      boolean: 'boolean',
+      date: 'string',
       'date-only': 'string',
-      'datetime': 'string',
-      'time': 'string',
-      'object': 'object',
-      'array': 'array',
-      'any': null
+      datetime: 'string',
+      'datetime-only': 'string',
+      'datetime-with-timezone': 'string',
+      time: 'string',
+      'time-only': 'string',
+      object: 'object',
+      array: 'array',
+      any: 'any',
     };
     if (typeMap[cleanType] !== undefined) return typeMap[cleanType];
     if (cleanType.includes('.')) return null;
@@ -196,7 +211,22 @@ export class SimpleRamlParser {
   getTypeReference(ramlType: string) {
     if (!ramlType) return null;
     const cleanType = ramlType.replace(/\?$/, '');
-    const basicTypes = ['string', 'number', 'integer', 'boolean', 'date', 'date-only', 'datetime', 'time', 'object', 'array', 'any'];
+    const basicTypes = [
+      'string',
+      'number',
+      'integer',
+      'boolean',
+      'date',
+      'date-only',
+      'datetime',
+      'datetime-only',
+      'datetime-with-timezone',
+      'time',
+      'time-only',
+      'object',
+      'array',
+      'any',
+    ];
     if (basicTypes.includes(cleanType)) return null;
     let typeName = cleanType;
     let libraryName = null;
@@ -218,16 +248,19 @@ export class SimpleRamlParser {
   }
 
   toPascalCase(str: string) {
-    return str.charAt(0).toUpperCase() + str.slice(1).replace(/[_-]([a-z])/g, (match, letter) => letter.toUpperCase());
+    return (
+      str.charAt(0).toUpperCase() +
+      str.slice(1).replace(/[_-]([a-z])/g, (match, letter) => letter.toUpperCase())
+    );
   }
 
   convertToJsonSchema(type: RamlType) {
     if (type.isEnum) {
       const schema: any = {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "title": type.name,
-        "type": "string",
-        "enum": type.enumValues
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        title: type.name,
+        type: 'string',
+        enum: type.enumValues,
       };
       if (type.isInlineEnum) {
         schema.description = type.description;
@@ -235,32 +268,43 @@ export class SimpleRamlParser {
       return schema;
     }
     const schema: any = {
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "title": type.name,
-      "type": "object",
-      "properties": {},
-      "additionalProperties": false
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      title: type.name,
+      type: 'object',
+      properties: {},
+      additionalProperties: false,
     };
     for (const [propName, propDef] of Object.entries(type.properties)) {
       if (propDef.$ref) {
-        schema.properties[propName] = { "$ref": propDef.$ref };
+        schema.properties[propName] = { $ref: propDef.$ref };
       } else if (propDef.type === 'array' && propDef.items) {
         schema.properties[propName] = {
-          "type": "array",
-          "items": propDef.items.$ref ? { "$ref": propDef.items.$ref } : { "type": propDef.items.type }
+          type: 'array',
+          items: propDef.items.$ref ? { $ref: propDef.items.$ref } : { type: propDef.items.type },
         };
-      } else if (propDef.type === null && propDef.originalType === 'any') {
+      } else if (propDef.type === 'any' || propDef.originalType === 'any') {
         schema.properties[propName] = {
-          "description": "Allows any JSON value"
+          type: {},
+        };
+      } else if (Array.isArray(propDef.type)) {
+        // Handle union types as array
+        schema.properties[propName] = {
+          type: propDef.type,
         };
       } else if (propDef.type) {
-        const propSchema: any = { "type": propDef.type };
+        const propSchema: any = { type: propDef.type };
         if (propDef.originalType === 'date-only') {
           propSchema.format = 'date';
         } else if (propDef.originalType === 'datetime') {
           propSchema.format = 'date-time';
         } else if (propDef.originalType === 'time') {
           propSchema.format = 'time';
+        } else if (propDef.originalType === 'time-only') {
+          propSchema.format = 'time';
+        } else if (propDef.originalType === 'datetime-only') {
+          propSchema.format = 'date-time';
+        } else if (propDef.originalType === 'datetime-with-timezone') {
+          propSchema.format = 'date-time';
         } else if (propDef.format) {
           propSchema.format = propDef.format;
         }
@@ -274,11 +318,11 @@ export class SimpleRamlParser {
   }
 }
 
-export async function convertRamlDirectoryToJsonSchemas(ramlDir: string, outputDir: string) {
+export async function convertRamlToJsonSchemas(ramlDir: string, outputDir: string) {
   const parser = new SimpleRamlParser();
   const enumTypes = new Map<string, any>();
   const payloadTypes = new Map<string, any>();
-  const SCHEMAS_ROOT = path.join(outputDir, 'schemas');
+  const SCHEMAS_ROOT = outputDir;
   const OUTPUT_BUSINESS_OBJECTS = path.join(SCHEMAS_ROOT, 'business-objects');
   const OUTPUT_COMMON = path.join(SCHEMAS_ROOT, 'common');
   const OUTPUT_ENUMS = path.join(OUTPUT_COMMON, 'enums');
@@ -293,41 +337,55 @@ export async function convertRamlDirectoryToJsonSchemas(ramlDir: string, outputD
   await fsExtra.ensureDir(OUTPUT_ENUMS);
 
   // Write message.schema.json
-  await fs.writeFile(MESSAGE_SCHEMA_FILE, JSON.stringify({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "Berichten",
-    "type": "object",
-    "properties": {
-      "metadata": { "$ref": "./metadata.schema.json" },
-      "payload": {
-        "oneOf": [
-          { "$ref": "./datamodelObjects.schema.json" },
-          {
-            "type": "array",
-            "items": { "$ref": "./datamodelObjects.schema.json" },
-            "additionalProperties": false
-          }
-        ]
-      }
-    },
-    "required": [ "metadata", "payload" ],
-    "additionalProperties": false
-  }, null, 2));
+  await fs.writeFile(
+    MESSAGE_SCHEMA_FILE,
+    JSON.stringify(
+      {
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        title: 'Berichten',
+        type: 'object',
+        properties: {
+          metadata: { $ref: './metadata.schema.json' },
+          payload: {
+            oneOf: [
+              { $ref: './datamodelObjects.schema.json' },
+              {
+                type: 'array',
+                items: { $ref: './datamodelObjects.schema.json' },
+                additionalProperties: false,
+              },
+            ],
+          },
+        },
+        required: ['metadata', 'payload'],
+        additionalProperties: false,
+      },
+      null,
+      2,
+    ),
+  );
 
   // Write metadata.schema.json
-  await fs.writeFile(METADATA_SCHEMA_FILE, JSON.stringify({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "Metadata",
-    "type": "object",
-    "properties": {
-      "berichtId": { "type": "string", "description": "Uniek bericht ID" },
-      "tijdstip": { "type": "string", "format": "date-time" },
-      "bronsysteem": { "type": "string" },
-      "correlatieId": { "type": "string" }
-    },
-    "required": [ "berichtId", "tijdstip", "bronsysteem" ],
-    "additionalProperties": false
-  }, null, 2));
+  await fs.writeFile(
+    METADATA_SCHEMA_FILE,
+    JSON.stringify(
+      {
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        title: 'Metadata',
+        type: 'object',
+        properties: {
+          berichtId: { type: 'string', description: 'Uniek bericht ID' },
+          tijdstip: { type: 'string', format: 'date-time' },
+          bronsysteem: { type: 'string' },
+          correlatieId: { type: 'string' },
+        },
+        required: ['berichtId', 'tijdstip', 'bronsysteem'],
+        additionalProperties: false,
+      },
+      null,
+      2,
+    ),
+  );
 
   // Find all RAML files
   const files = await fs.readdir(ramlDir);
@@ -338,7 +396,7 @@ export async function convertRamlDirectoryToJsonSchemas(ramlDir: string, outputD
   if (await fsExtra.pathExists(enumDir)) {
     enumRamlFiles = (await fs.readdir(enumDir)).filter((f: string) => f.endsWith('.raml'));
   }
-  const allFiles = [...ramlFiles, ...enumRamlFiles.map(f => `enums/${f}`)];
+  const allFiles = [...ramlFiles, ...enumRamlFiles.map((f) => `enums/${f}`)];
   for (const file of allFiles) {
     const filePath = path.join(ramlDir, file);
     try {
@@ -359,42 +417,36 @@ export async function convertRamlDirectoryToJsonSchemas(ramlDir: string, outputD
   // Write enums
   for (const [name, schema] of enumTypes) {
     const filename = `${name}Enum.schema.json`;
-    await fs.writeFile(
-      path.join(OUTPUT_ENUMS, filename),
-      JSON.stringify(schema, null, 2)
-    );
+    await fs.writeFile(path.join(OUTPUT_ENUMS, filename), JSON.stringify(schema, null, 2));
   }
   // Write business objects (formerly payloads)
   for (const [name, schema] of payloadTypes) {
     const filename = `${name}.schema.json`;
     await fs.writeFile(
       path.join(OUTPUT_BUSINESS_OBJECTS, filename),
-      JSON.stringify(schema, null, 2)
+      JSON.stringify(schema, null, 2),
     );
   }
   // Update datamodelObjects.schema.json
   const datamodelObjects: any = {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "Datamodel Objecten",
-    "type": "object",
-    "properties": {},
-    "required": [],
-    "additionalProperties": false
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    title: 'Datamodel Objecten',
+    type: 'object',
+    properties: {},
+    required: [],
+    additionalProperties: false,
   };
   for (const [name] of payloadTypes) {
     const camelCaseName = name.charAt(0).toLowerCase() + name.slice(1);
     datamodelObjects.properties[camelCaseName] = {
-      "$ref": `./business-objects/${name}.schema.json`
+      $ref: `./business-objects/${name}.schema.json`,
     };
   }
-  await fs.writeFile(
-    DATAMODEL_OBJECTS_FILE,
-    JSON.stringify(datamodelObjects, null, 2)
-  );
+  await fs.writeFile(DATAMODEL_OBJECTS_FILE, JSON.stringify(datamodelObjects, null, 2));
   return {
     enums: Array.from(enumTypes.keys()),
     payloads: Array.from(payloadTypes.keys()),
-    outputDir: SCHEMAS_ROOT
+    outputDir: SCHEMAS_ROOT,
   };
 }
 
@@ -432,7 +484,7 @@ export class RamlConverter {
       // Use the new SimpleRamlParser for conversion
       const parser = new SimpleRamlParser();
       const types = await parser.parseFile(sourcePath);
-      
+
       if (types.length === 0) {
         return {
           success: false,
@@ -458,13 +510,16 @@ export class RamlConverter {
       const outputPath = path.join(destinationPath, `${outputFileName}.json`);
 
       // Write JSON Schema to file
-      const outputSchema = schemas.length === 1 ? schemas[0] : {
-        $schema: 'https://json-schema.org/draft/2020-12/schema',
-        title: path.basename(sourcePath, '.raml'),
-        type: 'object',
-        properties: {},
-        definitions: {},
-      };
+      const outputSchema =
+        schemas.length === 1
+          ? schemas[0]
+          : {
+              $schema: 'https://json-schema.org/draft/2020-12/schema',
+              title: path.basename(sourcePath, '.raml'),
+              type: 'object',
+              properties: {},
+              definitions: {},
+            };
 
       if (schemas.length > 1) {
         // Add all schemas as definitions

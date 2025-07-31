@@ -31,6 +31,8 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Database,
+  X,
 } from 'lucide-react';
 import { SchemaDetailModal } from '../components/schema/SchemaDetailModal';
 import { useAppStore } from '../stores/useAppStore';
@@ -43,6 +45,81 @@ import {
   TableRow,
 } from '../components/ui/table';
 import type { Schema } from '../../types/schema-editor';
+
+/**
+ * Determines the schema type based on its folder structure.
+ */
+function getSchemaType(schema: Schema): {
+  type: string;
+  label: string;
+  variant: 'default' | 'secondary' | 'destructive' | 'outline';
+} {
+  // Use relativePath if available, otherwise fall back to name
+  const path = (schema.relativePath || schema.name || '').toLowerCase();
+
+  // Check for common patterns in the path
+  if (path.includes('business-objects') || path.includes('businessobjects')) {
+    return { type: 'business-object', label: 'Business Object', variant: 'default' };
+  }
+
+  if (path.includes('common/enums') || path.includes('enums')) {
+    return { type: 'enum', label: 'Enum', variant: 'secondary' };
+  }
+
+  if (path.includes('common/') || path.includes('shared/')) {
+    return { type: 'common', label: 'Common', variant: 'outline' };
+  }
+
+  if (
+    path.includes('message.schema.json') ||
+    path.includes('metadata.schema.json') ||
+    path.includes('datamodelobjects.schema.json')
+  ) {
+    return { type: 'base', label: 'Base Schema', variant: 'destructive' };
+  }
+
+  // Default to unknown if no pattern matches
+  return { type: 'unknown', label: 'Other', variant: 'secondary' };
+}
+
+// SortButton component defined outside to avoid recreation
+type SortField = 'name' | 'title' | 'fileSize' | 'lastModified' | 'validationStatus' | 'type';
+
+interface SortButtonProps {
+  field: SortField;
+  currentField: SortField;
+  currentDirection: 'asc' | 'desc';
+  onSort: (field: SortField) => void;
+  children: React.ReactNode;
+}
+
+const SortButton = ({
+  field,
+  currentField,
+  currentDirection,
+  onSort,
+  children,
+}: SortButtonProps) => (
+  <Button
+    variant="ghost"
+    size="sm"
+    onClick={() => onSort(field)}
+    className="h-auto p-0 font-medium hover:bg-transparent"
+  >
+    {children}
+    <div className="ml-1 flex items-center">
+      {currentField === field ? (
+        currentDirection === 'asc' ? (
+          <ArrowUp className="h-3 w-3" />
+        ) : (
+          <ArrowDown className="h-3 w-3" />
+        )
+      ) : (
+        <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
+      )}
+    </div>
+  </Button>
+);
 
 /**
  * Explore page component for schema exploration.
@@ -68,9 +145,9 @@ export function Explore(): React.JSX.Element {
   const setPage = useAppStore((state: any) => state.setPage);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortField, setSortField] = useState<
-    'name' | 'title' | 'fileSize' | 'lastModified' | 'validationStatus'
-  >('name');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [sortField, setSortField] = useState<SortField>('title');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -91,6 +168,34 @@ export function Explore(): React.JSX.Element {
     [setPage],
   );
 
+  // Get unique types and statuses for filter options
+  const availableTypes = useMemo(() => {
+    if (!currentProject?.schemas) return [];
+    const typeMap = new Map<string, { type: string; label: string; variant: string }>();
+
+    currentProject.schemas.forEach((schema: Schema) => {
+      const typeInfo = getSchemaType(schema);
+
+      // Store both type and label to avoid the mock schema issue
+      typeMap.set(typeInfo.type, {
+        type: typeInfo.type,
+        label: typeInfo.label,
+        variant: typeInfo.variant,
+      });
+    });
+
+    return Array.from(typeMap.values()).sort((a, b) => a.label.localeCompare(b.label));
+  }, [currentProject?.schemas]);
+
+  const availableStatuses = useMemo(() => {
+    if (!currentProject?.schemas) return [];
+    const statuses = new Set<string>();
+    currentProject.schemas.forEach((schema: Schema) => {
+      statuses.add(schema.validationStatus);
+    });
+    return Array.from(statuses).sort();
+  }, [currentProject?.schemas]);
+
   // Filter and sort schemas
   const filteredAndSortedSchemas = useMemo(() => {
     const schemas = currentProject?.schemas || [];
@@ -98,53 +203,47 @@ export function Explore(): React.JSX.Element {
     // Helper function to recursively search through schema content
     const searchInSchemaContent = (obj: any, query: string): boolean => {
       if (typeof obj === 'string') {
-        return obj.toLowerCase().includes(query);
+        return obj.toLowerCase().includes(query.toLowerCase());
       }
-      if (typeof obj === 'number') {
-        return obj.toString().toLowerCase().includes(query);
-      }
-      if (Array.isArray(obj)) {
-        return obj.some((item) => searchInSchemaContent(item, query));
-      }
-      if (obj && typeof obj === 'object') {
-        return Object.entries(obj).some(([key, value]) => {
-          // Search in property names
-          if (key.toLowerCase().includes(query)) {
-            return true;
-          }
-          // Search in property values
-          return searchInSchemaContent(value, query);
-        });
+      if (typeof obj === 'object' && obj !== null) {
+        return Object.values(obj).some((value) => searchInSchemaContent(value, query));
       }
       return false;
     };
 
-    // Filter schemas based on search query
-    const filtered = schemas.filter((schema: Schema) => {
-      if (!searchQuery) return true;
+    // Filter schemas based on search query and filters
+    let filtered = schemas;
 
-      const query = searchQuery.toLowerCase();
-      const name = schema.name.toLowerCase();
-      const title = schema.metadata.title?.toLowerCase() || '';
-      const description = schema.metadata.description?.toLowerCase() || '';
+    // Text search filter
+    if (searchQuery.trim()) {
+      filtered = filtered.filter((schema: Schema) => {
+        const searchLower = searchQuery.toLowerCase();
+        return (
+          schema.name.toLowerCase().includes(searchLower) ||
+          (schema.metadata.title && schema.metadata.title.toLowerCase().includes(searchLower)) ||
+          searchInSchemaContent(schema.content, searchQuery)
+        );
+      });
+    }
 
-      // Search in basic metadata
-      if (name.includes(query) || title.includes(query) || description.includes(query)) {
-        return true;
-      }
+    // Type filter
+    if (typeFilter !== 'all') {
+      filtered = filtered.filter((schema: Schema) => {
+        return getSchemaType(schema).type === typeFilter;
+      });
+    }
 
-      // Search in schema content (properties, definitions, etc.)
-      if (schema.content && searchInSchemaContent(schema.content, query)) {
-        return true;
-      }
-
-      return false;
-    });
+    // Status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((schema: Schema) => {
+        return schema.validationStatus === statusFilter;
+      });
+    }
 
     // Sort schemas
-    const sorted = [...filtered].sort((a: Schema, b: Schema) => {
-      let aValue: string | number | Date;
-      let bValue: string | number | Date;
+    filtered.sort((a: Schema, b: Schema) => {
+      let aValue: any;
+      let bValue: any;
 
       switch (sortField) {
         case 'name':
@@ -156,16 +255,20 @@ export function Explore(): React.JSX.Element {
           bValue = b.metadata.title || b.name;
           break;
         case 'fileSize':
-          aValue = a.metadata.fileSize;
-          bValue = b.metadata.fileSize;
+          aValue = a.metadata.fileSize || 0;
+          bValue = b.metadata.fileSize || 0;
           break;
         case 'lastModified':
-          aValue = a.metadata.lastModified || new Date(0);
-          bValue = b.metadata.lastModified || new Date(0);
+          aValue = a.metadata.lastModified || 0;
+          bValue = b.metadata.lastModified || 0;
           break;
         case 'validationStatus':
           aValue = a.validationStatus;
           bValue = b.validationStatus;
+          break;
+        case 'type':
+          aValue = getSchemaType(a).type;
+          bValue = getSchemaType(b).type;
           break;
         default:
           aValue = a.name;
@@ -177,124 +280,191 @@ export function Explore(): React.JSX.Element {
       return 0;
     });
 
-    return sorted;
-  }, [currentProject?.schemas, searchQuery, sortField, sortDirection]);
+    return filtered;
+  }, [currentProject?.schemas, searchQuery, typeFilter, statusFilter, sortField, sortDirection]);
 
-  // Pagination logic
+  // Pagination
   const totalItems = filteredAndSortedSchemas.length;
   const totalPages = Math.ceil(totalItems / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
   const paginatedSchemas = filteredAndSortedSchemas.slice(startIndex, endIndex);
 
-  // Reset to first page when search or sort changes
-  React.useEffect(() => {
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+  }, []);
+
+  const handlePageSizeChange = useCallback((value: string) => {
+    setPageSize(parseInt(value));
     setCurrentPage(1);
-  }, [searchQuery, sortField, sortDirection]);
+  }, []);
 
   const handleSort = useCallback(
-    (field: typeof sortField) => {
+    (field: SortField) => {
       if (sortField === field) {
         setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
       } else {
         setSortField(field);
         setSortDirection('asc');
       }
+      setCurrentPage(1);
     },
     [sortField, sortDirection],
   );
 
-  const handlePageChange = useCallback(
-    (page: number) => {
-      setCurrentPage(Math.max(1, Math.min(page, totalPages)));
-    },
-    [totalPages],
-  );
-
-  const handlePageSizeChange = useCallback((newPageSize: string) => {
-    const size = parseInt(newPageSize, 10);
-    setPageSize(size);
-    setCurrentPage(1); // Reset to first page when changing page size
+  const clearFilters = useCallback(() => {
+    setSearchQuery('');
+    setTypeFilter('all');
+    setStatusFilter('all');
+    setCurrentPage(1);
   }, []);
 
-  const SortButton = ({
-    field,
-    children,
-  }: {
-    field: typeof sortField;
-    children: React.ReactNode;
-  }) => (
-    <Button variant="ghost" onClick={() => handleSort(field)} className="h-8 px-2">
-      {children}
-      {sortField === field ? (
-        sortDirection === 'asc' ? (
-          <ArrowUp className="ml-2 h-4 w-4" />
-        ) : (
-          <ArrowDown className="ml-2 h-4 w-4" />
-        )
-      ) : (
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      )}
-    </Button>
-  );
+  if (!currentProject) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center">
+          <Database className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+          <h3 className="text-lg font-medium mb-2">No project loaded</h3>
+          <p className="text-muted-foreground">Load a project to explore schemas</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col">
-      <Card className="glass-blue border-0 flex-1 flex flex-col">
-        <CardContent className="p-3 flex-1 flex flex-col min-h-0">
-          <div className="flex flex-col h-full">
-            {/* Search and filters */}
-            <div className="flex items-center justify-between py-2 flex-shrink-0">
+      <Card className="glass-blue border-0 flex-1">
+        <CardContent className="p-4 flex flex-col h-full">
+          {/* Search and Controls */}
+          <div className="flex items-center justify-between mb-4 flex-shrink-0">
+            <div className="flex items-center gap-3">
               <Input
-                placeholder="Search schemas by name, title, description, or properties..."
+                placeholder="Search schemas..."
                 value={searchQuery}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setSearchQuery(e.target.value)
                 }
-                className="max-w-sm"
+                className="w-64"
               />
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Show:</span>
-                <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
-                  <SelectTrigger className="w-20">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="25">25</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+
+              {/* Type Filter */}
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  {availableTypes.map((typeInfo) => (
+                    <SelectItem key={typeInfo.type} value={typeInfo.type}>
+                      {typeInfo.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Status Filter */}
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  {availableStatuses.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {status}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Clear Filters */}
+              {(searchQuery || typeFilter !== 'all' || statusFilter !== 'all') && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 px-2">
+                  <X className="h-4 w-4 mr-1" />
+                  Clear
+                </Button>
+              )}
             </div>
 
-            {/* Table Container */}
-            <div className="flex-1 min-h-0 flex flex-col">
-              <div className="rounded-md border flex-1 flex flex-col">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>
-                        <SortButton field="title">Schema</SortButton>
-                      </TableHead>
-                      <TableHead>
-                        <SortButton field="name">Path</SortButton>
-                      </TableHead>
-                      <TableHead>
-                        <SortButton field="fileSize">Size</SortButton>
-                      </TableHead>
-                      <TableHead>
-                        <SortButton field="lastModified">Last Modified</SortButton>
-                      </TableHead>
-                      <TableHead>
-                        <SortButton field="validationStatus">Status</SortButton>
-                      </TableHead>
-                      <TableHead></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedSchemas.length > 0 ? (
-                      paginatedSchemas.map((schema: Schema) => (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Show:</span>
+              <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Table Container */}
+          <div className="flex-1 min-h-0 flex flex-col">
+            <div className="rounded-md border flex-1 flex flex-col">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>
+                      <SortButton
+                        field="title"
+                        currentField={sortField}
+                        currentDirection={sortDirection}
+                        onSort={handleSort}
+                      >
+                        Schema
+                      </SortButton>
+                    </TableHead>
+                    <TableHead>
+                      <SortButton
+                        field="type"
+                        currentField={sortField}
+                        currentDirection={sortDirection}
+                        onSort={handleSort}
+                      >
+                        Type
+                      </SortButton>
+                    </TableHead>
+                    <TableHead>
+                      <SortButton
+                        field="fileSize"
+                        currentField={sortField}
+                        currentDirection={sortDirection}
+                        onSort={handleSort}
+                      >
+                        Size
+                      </SortButton>
+                    </TableHead>
+                    <TableHead>
+                      <SortButton
+                        field="lastModified"
+                        currentField={sortField}
+                        currentDirection={sortDirection}
+                        onSort={handleSort}
+                      >
+                        Last Modified
+                      </SortButton>
+                    </TableHead>
+                    <TableHead>
+                      <SortButton
+                        field="validationStatus"
+                        currentField={sortField}
+                        currentDirection={sortDirection}
+                        onSort={handleSort}
+                      >
+                        Status
+                      </SortButton>
+                    </TableHead>
+                    <TableHead></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedSchemas.length > 0 ? (
+                    paginatedSchemas.map((schema: Schema) => {
+                      const schemaType = getSchemaType(schema);
+                      return (
                         <TableRow
                           key={schema.id}
                           className="cursor-pointer hover:bg-muted/50 transition-colors"
@@ -306,8 +476,10 @@ export function Explore(): React.JSX.Element {
                               {schema.metadata.title || schema.name}
                             </div>
                           </TableCell>
-                          <TableCell className="text-muted-foreground text-sm">
-                            {schema.name}
+                          <TableCell>
+                            <Badge variant={schemaType.variant} className="text-xs">
+                              {schemaType.label}
+                            </Badge>
                           </TableCell>
                           <TableCell className="text-muted-foreground text-sm">
                             {schema.metadata.fileSize} bytes
@@ -360,96 +532,98 @@ export function Explore(): React.JSX.Element {
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={6} className="h-24 text-center">
-                          {searchQuery ? 'No schemas match your search.' : 'No schemas found.'}
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
-
-            {/* Pagination and Results info - Fixed at bottom */}
-            <div className="flex items-center justify-between px-2 py-3 flex-shrink-0 border-t mt-3">
-              <div className="text-muted-foreground text-sm">
-                Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} schema(s)
-                {searchQuery && ` matching "${searchQuery}"`}
-              </div>
-
-              {/* Pagination Controls */}
-              {totalPages > 1 && (
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePageChange(1)}
-                    disabled={currentPage === 1}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ChevronsLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      let pageNum;
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
-                      } else {
-                        pageNum = currentPage - 2 + i;
-                      }
-
-                      return (
-                        <Button
-                          key={pageNum}
-                          variant={currentPage === pageNum ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => handlePageChange(pageNum)}
-                          className="h-8 w-8 p-0"
-                        >
-                          {pageNum}
-                        </Button>
                       );
-                    })}
-                  </div>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePageChange(totalPages)}
-                    disabled={currentPage === totalPages}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ChevronsRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
+                    })
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center">
+                        {searchQuery || typeFilter !== 'all' || statusFilter !== 'all'
+                          ? 'No schemas match your filters.'
+                          : 'No schemas found.'}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </div>
+          </div>
+
+          {/* Pagination and Results info - Fixed at bottom */}
+          <div className="flex items-center justify-between px-2 py-3 flex-shrink-0 border-t mt-3">
+            <div className="text-muted-foreground text-sm">
+              Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} schema(s)
+              {searchQuery && ` matching "${searchQuery}"`}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(1)}
+                  disabled={currentPage === 1}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => handlePageChange(pageNum)}
+                        className="h-8 w-8 p-0"
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronsRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

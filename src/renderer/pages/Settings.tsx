@@ -11,11 +11,11 @@
  */
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { ModeToggle } from '@/components/ModeToggle';
 import { toast } from 'sonner';
+import { Palette, Database, Download, Upload, Trash2 } from 'lucide-react';
 
 /**
  * Settings page component for application configuration.
@@ -100,61 +100,92 @@ export function Settings(): React.JSX.Element {
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col space-y-4">
+      {/* Theme Settings Card */}
       <Card className="glass-blue border-0 flex-1">
+        <CardHeader className="gradient-accent rounded-t-lg border-b border-primary/20 py-4">
+          <CardTitle className="text-foreground flex items-center gap-2 text-lg">
+            <Palette className="w-4 h-4" />
+            Theme Settings
+          </CardTitle>
+          <CardDescription className="text-muted-foreground text-sm">
+            Customize the appearance of your application
+          </CardDescription>
+        </CardHeader>
         <CardContent className="p-4">
-          {/* Theme Settings Section */}
           <div className="space-y-4">
-            <div>
-              <h3 className="text-lg font-medium">Theme Settings</h3>
-              <p className="text-sm text-muted-foreground">
-                Customize the appearance of your application
-              </p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <label htmlFor="theme" className="text-sm font-medium text-foreground">
-                Theme:
-              </label>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Choose your preferred theme to customize the application's appearance. The theme
+              setting will be saved and applied automatically.
+            </p>
+            <div className="flex items-center justify-between p-4 rounded-lg border border-border/50 bg-muted/30">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-primary"></div>
+                <div>
+                  <h4 className="font-medium text-sm">Application Theme</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Switch between light, dark, or system theme
+                  </p>
+                </div>
+              </div>
               <div className="neumorphism rounded-lg p-2">
                 <ModeToggle />
               </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          <Separator className="border-primary/20" />
-
-          {/* Data Management Section */}
+      {/* Data Management Card */}
+      <Card className="glass-blue border-0">
+        <CardHeader className="gradient-accent rounded-t-lg border-b border-primary/20 py-4">
+          <CardTitle className="text-foreground flex items-center gap-2 text-lg">
+            <Database className="w-4 h-4" />
+            Data Management
+          </CardTitle>
+          <CardDescription className="text-muted-foreground text-sm">
+            Manage your application data and settings
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-4">
           <div className="space-y-4">
-            <div>
-              <h3 className="text-lg font-medium text-foreground flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
-                Data Management
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Manage your application data and settings
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Button
-                variant="outline"
-                onClick={handleClear}
-                className="border-gradient hover-lift hover:gradient-accent transition-all duration-200"
-              >
-                Clear All Data
-              </Button>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Export your settings for backup, import settings from another installation, or clear
+              all data to start fresh.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <Button
                 variant="outline"
                 onClick={handleExport}
-                className="border-gradient hover-lift hover:gradient-accent transition-all duration-200"
+                className="border-gradient hover-lift hover:gradient-accent transition-all duration-200 h-auto p-4 flex flex-col items-center gap-2"
               >
-                Export Settings
+                <Download className="w-5 h-5" />
+                <div className="text-center">
+                  <div className="font-medium text-sm">Export Settings</div>
+                  <div className="text-xs text-muted-foreground">Backup your configuration</div>
+                </div>
               </Button>
               <Button
                 variant="outline"
                 onClick={handleImport}
-                className="border-gradient hover-lift hover:gradient-accent transition-all duration-200"
+                className="border-gradient hover-lift hover:gradient-accent transition-all duration-200 h-auto p-4 flex flex-col items-center gap-2"
               >
-                Import Settings
+                <Upload className="w-5 h-5" />
+                <div className="text-center">
+                  <div className="font-medium text-sm">Import Settings</div>
+                  <div className="text-xs text-muted-foreground">Restore from backup</div>
+                </div>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleClear}
+                className="border-gradient hover-lift hover:gradient-accent transition-all duration-200 h-auto p-4 flex flex-col items-center gap-2 text-destructive hover:text-destructive"
+              >
+                <Trash2 className="w-5 h-5" />
+                <div className="text-center">
+                  <div className="font-medium text-sm">Clear All Data</div>
+                  <div className="text-xs text-muted-foreground">Start fresh</div>
+                </div>
               </Button>
             </div>
           </div>

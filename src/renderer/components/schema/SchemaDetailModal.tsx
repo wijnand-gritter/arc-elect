@@ -30,7 +30,6 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
-  Calendar,
   Copy,
   XCircle,
   HelpCircle,
@@ -38,7 +37,6 @@ import {
   Code,
   List,
   Shield,
-  Edit,
 } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
 import { toast } from 'sonner';
@@ -81,7 +79,7 @@ interface SchemaDetailModalProps {
 export function SchemaDetailModal({
   isOpen,
   onClose,
-  onEdit,
+  onEdit: _onEdit,
 }: SchemaDetailModalProps): React.JSX.Element {
   const { currentProject, modalStack, currentModalIndex, navigateToSchema, goBack } = useAppStore();
   const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'properties' | 'validation'>(
@@ -164,19 +162,6 @@ export function SchemaDetailModal({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const formatRelativeDate = (date: Date): string => {
-    const now = new Date();
-    const diffInMs = now.getTime() - date.getTime();
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-
-    if (diffInDays === 0) return 'Today';
-    if (diffInDays === 1) return 'Yesterday';
-    if (diffInDays < 7) return `${diffInDays} days ago`;
-    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
-    if (diffInDays < 365) return `${Math.floor(diffInDays / 30)} months ago`;
-    return `${Math.floor(diffInDays / 365)} years ago`;
-  };
-
   const getPropertyType = (property: unknown): string => {
     if (typeof property === 'object' && property !== null) {
       if ('type' in property) {
@@ -201,8 +186,23 @@ export function SchemaDetailModal({
   }
 
   const validationStatus = getValidationStatus(schema.validationStatus);
-  const lastModified = formatRelativeDate(schema.metadata.lastModified);
   const fileSize = formatFileSize(schema.metadata.fileSize);
+
+  // Format datetime for display
+  const formatDateTime = (date: Date): string => {
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    }).format(date);
+  };
+
+  const lastModifiedDateTime = schema.metadata.lastModified
+    ? formatDateTime(new Date(schema.metadata.lastModified))
+    : 'Unknown';
 
   // Get references and referenced by from the schema
   const references = schema.references || [];
@@ -229,12 +229,6 @@ export function SchemaDetailModal({
                   </DialogDescription>
                 </div>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant={validationStatus.variant} className="flex items-center gap-1">
-                {validationStatus.icon}
-                {validationStatus.text}
-              </Badge>
             </div>
           </div>
         </DialogHeader>
@@ -276,18 +270,31 @@ export function SchemaDetailModal({
                           </div>
                           <div>
                             <label className="text-sm font-medium text-muted-foreground">
+                              Title
+                            </label>
+                            <p className="text-sm">{schema.metadata.title || 'No title'}</p>
+                          </div>
+                          {/* Validation Status */}
+                          <div className="space-y-4">
+                            <label className="text-sm font-medium text-muted-foreground">
+                              Validation Status
+                            </label>
+                            <p className="text-sm">
+                              <Badge
+                                variant={validationStatus.variant}
+                                className="flex items-center gap-1"
+                              >
+                                {validationStatus.icon}
+                                {validationStatus.text}
+                              </Badge>
+                            </p>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-muted-foreground">
                               Path
                             </label>
-                            <p className="text-xs font-mono">{schema.relativePath}</p>
+                            <p className="text-sm">{schema.relativePath}</p>
                           </div>
-                          {schema.metadata.title && (
-                            <div>
-                              <label className="text-sm font-medium text-muted-foreground">
-                                Title
-                              </label>
-                              <p className="text-sm">{schema.metadata.title}</p>
-                            </div>
-                          )}
                           {schema.metadata.description && (
                             <div>
                               <label className="text-sm font-medium text-muted-foreground">
@@ -301,15 +308,18 @@ export function SchemaDetailModal({
 
                       {/* File Information */}
                       <div className="space-y-4">
-                        <h4 className="font-medium">File Information</h4>
                         <div className="grid grid-cols-2 gap-4">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm">{lastModified}</span>
+                          <div>
+                            <label className="text-sm font-medium text-muted-foreground">
+                              Last Modified
+                            </label>
+                            <p className="text-sm">{lastModifiedDateTime}</p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm">{fileSize}</span>
+                          <div>
+                            <label className="text-sm font-medium text-muted-foreground">
+                              File Size
+                            </label>
+                            <p className="text-sm">{fileSize}</p>
                           </div>
                         </div>
                       </div>
@@ -371,18 +381,19 @@ export function SchemaDetailModal({
                     </CardHeader>
                     <CardContent className="h-[500px] overflow-y-auto">
                       <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                          <p className="text-sm text-muted-foreground">
-                            JSON Schema content and structure
-                          </p>
-                          <Button variant="outline" size="sm" onClick={handleCopyContent}>
-                            <Copy className="h-4 w-4 mr-2" />
-                            Copy
+                        <div className="relative">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleCopyContent}
+                            className="absolute top-2 right-2 h-8 w-8 p-0 z-10"
+                          >
+                            <Copy className="h-4 w-4" />
                           </Button>
+                          <pre className="bg-muted p-4 rounded text-xs overflow-x-auto">
+                            <code>{JSON.stringify(schema.content, null, 2)}</code>
+                          </pre>
                         </div>
-                        <pre className="bg-muted p-4 rounded text-sm overflow-x-auto">
-                          <code>{JSON.stringify(schema.content, null, 2)}</code>
-                        </pre>
                       </div>
                     </CardContent>
                   </Card>
@@ -566,18 +577,6 @@ export function SchemaDetailModal({
               </ScrollArea>
             </div>
           </Tabs>
-        </div>
-
-        <div className="flex-shrink-0 pt-4 border-t">
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={onClose}>
-              Close
-            </Button>
-            <Button onClick={() => onEdit(schema)}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit Schema
-            </Button>
-          </div>
         </div>
       </DialogContent>
     </Dialog>

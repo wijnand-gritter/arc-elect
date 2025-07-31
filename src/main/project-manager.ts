@@ -17,7 +17,7 @@ import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import { watch } from 'chokidar';
 import logger from './main-logger';
-import { ramlConverter } from './raml-converter';
+import { convertRamlToJsonSchemas } from './raml-converter';
 import type {
   Project,
   ProjectConfig,
@@ -39,15 +39,6 @@ interface RamlConversionOptions {
 }
 
 /**
- * RAML file conversion parameters.
- */
-interface RamlFileConversionParams {
-  sourcePath: string;
-  destinationPath: string;
-  options: RamlConversionOptions;
-}
-
-/**
  * RAML batch conversion parameters.
  */
 interface RamlBatchConversionParams {
@@ -60,15 +51,6 @@ interface RamlBatchConversionParams {
     currentFile: string;
     phase: string;
   }) => void;
-}
-
-/**
- * RAML conversion result interface.
- */
-interface RamlConversionResult {
-  success: boolean;
-  error?: string;
-  result?: unknown;
 }
 
 /**
@@ -195,10 +177,6 @@ class ProjectManager {
           error: error instanceof Error ? error.message : 'Failed to scan RAML files',
         };
       }
-    });
-
-    ipcMain.handle('raml:convert', async (_event, options: RamlFileConversionParams) => {
-      return this.convertRamlFile(options);
     });
 
     ipcMain.handle('raml:convertBatch', async (_event, options: RamlBatchConversionParams) => {
@@ -1329,61 +1307,6 @@ class ProjectManager {
   }
 
   /**
-   * Converts a single RAML file to JSON Schema using the RAML converter.
-   */
-  public async convertRamlFile(options: RamlFileConversionParams): Promise<RamlConversionResult> {
-    try {
-      logger.info('ProjectManager: Converting RAML file', {
-        sourcePath: options.sourcePath,
-        destinationPath: options.destinationPath,
-        options: options.options,
-      });
-
-      // Use the RAML converter service
-      const result = await ramlConverter.convertFile(
-        options.sourcePath,
-        options.destinationPath,
-        options.options,
-      );
-
-      if (result.success) {
-        logger.info('ProjectManager: RAML conversion completed successfully', {
-          inputFile: result.inputFile,
-          outputFile: result.outputFile,
-        });
-
-        return {
-          success: true,
-          result: {
-            inputFile: result.inputFile,
-            outputFile: result.outputFile,
-            schema: result.schema,
-          },
-        };
-      } else {
-        logger.error('ProjectManager: RAML conversion failed', {
-          inputFile: result.inputFile,
-          error: result.error,
-        });
-
-        return {
-          success: false,
-          error: result.error || 'Unknown conversion error',
-        };
-      }
-    } catch (error) {
-      logger.error('ProjectManager: RAML conversion failed with exception', {
-        sourcePath: options.sourcePath,
-        error,
-      });
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  }
-
-  /**
    * Converts multiple RAML files to JSON Schema in batch.
    */
   public async convertRamlBatch(
@@ -1396,24 +1319,42 @@ class ProjectManager {
         options: options.options,
       });
 
-      // Use the RAML converter service for batch processing
-      const result = await ramlConverter.convertBatch(
+      // Clear destination directory before conversion
+      try {
+        await this.clearDirectory(options.destinationDirectory);
+        logger.info('ProjectManager: Destination directory cleared', {
+          destinationDirectory: options.destinationDirectory,
+        });
+      } catch (error) {
+        logger.warn('ProjectManager: Failed to clear destination directory', {
+          destinationDirectory: options.destinationDirectory,
+          error,
+        });
+        // Continue with conversion even if clearing fails
+      }
+
+      // Use the new RAML directory conversion function
+      const result = await convertRamlToJsonSchemas(
         options.sourceDirectory,
         options.destinationDirectory,
-        options.options,
-        options.progressCallback,
       );
 
       logger.info('ProjectManager: Batch RAML conversion completed', {
         sourceDirectory: options.sourceDirectory,
         destinationDirectory: options.destinationDirectory,
-        summary: result.summary,
+        enums: result.enums.length,
+        payloads: result.payloads.length,
       });
 
       return {
-        success: result.success,
-        results: result.results,
-        summary: result.summary,
+        success: true,
+        results: [],
+        summary: {
+          total: result.enums.length + result.payloads.length,
+          successful: result.enums.length + result.payloads.length,
+          failed: 0,
+          warnings: 0,
+        },
       };
     } catch (error) {
       logger.error('ProjectManager: Batch RAML conversion failed with exception', {
