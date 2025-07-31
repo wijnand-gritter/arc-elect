@@ -452,26 +452,29 @@ class ProjectManager {
     error?: string;
   }> {
     try {
-      const userDataPath = path.join(process.env.HOME || process.env.USERPROFILE || '', '.arc-elect');
+      const userDataPath = path.join(
+        process.env.HOME || process.env.USERPROFILE || '',
+        '.arc-elect',
+      );
       const projectsDir = path.join(userDataPath, 'projects');
-      
+
       // Ensure the directory exists
       await fs.mkdir(projectsDir, { recursive: true });
-      
+
       const projectFiles = await fs.readdir(projectsDir);
       const projects: Project[] = [];
-      
+
       for (const file of projectFiles) {
         if (file.endsWith('.json')) {
           try {
             const metadataPath = path.join(projectsDir, file);
             const metadataContent = await fs.readFile(metadataPath, 'utf8');
             const metadata = JSON.parse(metadataContent);
-            
+
             // Check if the project directory still exists
             try {
               await fs.access(metadata.path);
-              
+
               // Create a Project object from the metadata
               const project: Project = {
                 id: metadata.id,
@@ -488,18 +491,20 @@ class ProjectManager {
                 },
                 schemas: [], // Will be loaded when project is opened
               };
-              
+
               projects.push(project);
             } catch {
               // Project directory doesn't exist anymore, skip it
-              logger.debug('ProjectManager: Project directory no longer exists', { path: metadata.path });
+              logger.debug('ProjectManager: Project directory no longer exists', {
+                path: metadata.path,
+              });
             }
           } catch (error) {
             logger.warn('ProjectManager: Failed to load project metadata', { file, error });
           }
         }
       }
-      
+
       // Sort by last modified and return top 10
       const sortedProjects = projects
         .sort((a, b) => b.lastModified.getTime() - a.lastModified.getTime())
@@ -563,7 +568,10 @@ class ProjectManager {
    */
   private async saveProjectMetadata(project: Project): Promise<void> {
     try {
-      const userDataPath = path.join(process.env.HOME || process.env.USERPROFILE || '', '.arc-elect');
+      const userDataPath = path.join(
+        process.env.HOME || process.env.USERPROFILE || '',
+        '.arc-elect',
+      );
       const projectsDir = path.join(userDataPath, 'projects');
       const metadataPath = path.join(projectsDir, `${project.id}.json`);
 
@@ -612,18 +620,21 @@ class ProjectManager {
     settings?: Project['settings'];
   } | null> {
     try {
-      const userDataPath = path.join(process.env.HOME || process.env.USERPROFILE || '', '.arc-elect');
+      const userDataPath = path.join(
+        process.env.HOME || process.env.USERPROFILE || '',
+        '.arc-elect',
+      );
       const projectsDir = path.join(userDataPath, 'projects');
-      
+
       // Try to find the metadata file by scanning all project files
       const projectFiles = await fs.readdir(projectsDir);
-      
+
       for (const file of projectFiles) {
         if (file.endsWith('.json')) {
           const metadataPath = path.join(projectsDir, file);
           const metadataContent = await fs.readFile(metadataPath, 'utf8');
           const metadata = JSON.parse(metadataContent);
-          
+
           // Check if this metadata file corresponds to the project path
           if (metadata.path === projectPath) {
             const result: {
@@ -642,7 +653,7 @@ class ProjectManager {
           }
         }
       }
-      
+
       return null;
     } catch (_error) {
       // Metadata file doesn't exist or is invalid - return null
@@ -656,18 +667,21 @@ class ProjectManager {
    */
   private async deleteProjectMetadata(projectPath: string): Promise<void> {
     try {
-      const userDataPath = path.join(process.env.HOME || process.env.USERPROFILE || '', '.arc-elect');
+      const userDataPath = path.join(
+        process.env.HOME || process.env.USERPROFILE || '',
+        '.arc-elect',
+      );
       const projectsDir = path.join(userDataPath, 'projects');
-      
+
       // Try to find and delete the metadata file
       const projectFiles = await fs.readdir(projectsDir);
-      
+
       for (const file of projectFiles) {
         if (file.endsWith('.json')) {
           const metadataPath = path.join(projectsDir, file);
           const metadataContent = await fs.readFile(metadataPath, 'utf8');
           const metadata = JSON.parse(metadataContent);
-          
+
           // Check if this metadata file corresponds to the project path
           if (metadata.path === projectPath) {
             await fs.unlink(metadataPath);
@@ -676,7 +690,7 @@ class ProjectManager {
           }
         }
       }
-      
+
       logger.debug('ProjectManager: No project metadata to delete', { projectPath });
     } catch (_error) {
       // Metadata file might not exist - don't throw error
