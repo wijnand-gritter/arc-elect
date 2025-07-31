@@ -26,7 +26,7 @@ import type { RamlImportConfig, ImportResult } from '../../types/raml-import';
 interface RamlImportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onImport: (config: RamlImportConfig) => Promise<ImportResult>;
+  onImport: (config: RamlImportConfig, projectName?: string) => Promise<ImportResult>;
 }
 
 export function RamlImportModal({
@@ -48,6 +48,7 @@ export function RamlImportModal({
     },
   });
 
+  const [projectName, setProjectName] = useState<string>('');
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
   const [importStatus, setImportStatus] = useState<string>('');
@@ -88,7 +89,7 @@ export function RamlImportModal({
         });
       }, 200);
 
-      await onImport(config);
+      await onImport(config, projectName);
 
       clearInterval(progressInterval);
       setImportProgress(100);
@@ -99,6 +100,7 @@ export function RamlImportModal({
         setIsImporting(false);
         setImportProgress(0);
         setImportStatus('');
+        setProjectName('');
       }, 1000);
     } catch (error) {
       toast.error('Import failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
@@ -199,6 +201,25 @@ export function RamlImportModal({
                   {config.destinationPath && (
                     <p className="text-xs text-muted-foreground">
                       Selected: {config.destinationPath}
+                    </p>
+                  )}
+                </div>
+
+                {/* Project Name */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Folder className="h-5 w-5 text-primary" />
+                    <Label className="text-base font-medium">Project Name</Label>
+                  </div>
+                  <Input
+                    placeholder="Enter project name (optional)"
+                    value={projectName}
+                    onChange={(e) => setProjectName(e.target.value)}
+                    className="flex-1"
+                  />
+                  {projectName && (
+                    <p className="text-xs text-muted-foreground">
+                      This will create a new project from the destination directory
                     </p>
                   )}
                 </div>

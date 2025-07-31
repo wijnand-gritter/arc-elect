@@ -76,17 +76,14 @@ export function CreateProjectModal({
     setIsSelecting(true);
 
     try {
-      const result = await window.api.showFolderDialog({
-        title: 'Select Project Folder',
-        ...(selectedPath && { defaultPath: selectedPath }),
-      });
+      const result = await window.api.selectFolder('Select Project Folder');
 
-      if (result.success && result.path) {
-        setSelectedPath(result.path);
+      if (result.success && result.data) {
+        setSelectedPath(result.data);
 
         // Auto-generate project name from folder name if not set
         if (!projectName) {
-          const folderName = result.path.split(/[/\\]/).pop() || 'New Project';
+          const folderName = result.data.split(/[/\\]/).pop() || 'New Project';
           setProjectName(folderName);
         }
       }

@@ -20,7 +20,7 @@ import { RamlImportModal } from '../RamlImportModal';
 import { FolderOpen, Plus, XCircle, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
-import type { Project } from '../../../types/schema-editor';
+import type { Project, ProjectConfig } from '../../../types/schema-editor';
 import type { ImportResult, RamlImportConfig } from '../../../types/raml-import';
 
 /**
@@ -58,6 +58,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
   const recentProjects = useAppStore((state) => state.recentProjects);
   const loadProject = useAppStore((state) => state.loadProject);
   const deleteProject = useAppStore((state) => state.deleteProject);
+  const createProject = useAppStore((state) => state.createProject);
 
   /**
    * Handles opening a recent project.
@@ -111,7 +112,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
     setIsRamlImportOpen(true);
   };
 
-  const handleRamlImportConfig = async (config: RamlImportConfig): Promise<ImportResult> => {
+  const handleRamlImportConfig = async (config: RamlImportConfig, projectName?: string): Promise<ImportResult> => {
     try {
       // Use the RAML batch conversion API
       const result = await window.api.convertRamlBatch({
@@ -121,6 +122,29 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
       });
 
       if (result.success) {
+        // If a project name is provided, create a new project from the destination directory
+        if (projectName && projectName.trim()) {
+          try {
+            const projectConfig: ProjectConfig = {
+              name: projectName.trim(),
+              path: config.destinationPath,
+              schemaPattern: '*.json',
+              settings: {
+                autoValidate: true,
+                watchForChanges: true,
+                maxFileSize: 10 * 1024 * 1024, // 10MB
+                allowedExtensions: ['.json'],
+              },
+            };
+
+            await createProject(projectConfig);
+            toast.success(`Project "${projectName}" created successfully!`);
+          } catch (projectError) {
+            console.error('Failed to create project after RAML import:', projectError);
+            // Don't fail the import if project creation fails
+          }
+        }
+
         return {
           success: true,
           processedFiles: result.summary.total,
