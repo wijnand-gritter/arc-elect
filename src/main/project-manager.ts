@@ -1051,31 +1051,64 @@ class ProjectManager {
     const schemaMap = new Map<string, Schema>();
     const referencedByMap = new Map<string, Set<string>>();
 
+    // Comprehensive debug logging
+    logger.info('ProjectManager: Starting reference resolution', {
+      schemaCount: schemas.length,
+      schemas: schemas.map(s => ({ id: s.id, name: s.name, relativePath: s.relativePath }))
+    });
+
     schemas.forEach((schema) => {
       // Initialize referencedBy tracking
       referencedByMap.set(schema.id, new Set());
 
       // Build lookup map with all possible name variations
+      const keys = [];
+      
+      // Original name
       schemaMap.set(schema.name, schema);
+      keys.push(schema.name);
+      
+      // Relative path
       schemaMap.set(schema.relativePath, schema);
-
+      keys.push(schema.relativePath);
+      
       // Filename without extension
       const filename = path.basename(schema.relativePath, path.extname(schema.relativePath));
       schemaMap.set(filename, schema);
-
+      keys.push(filename);
+      
       // Schema name without .schema suffix (backward compatibility)
       if (schema.name.endsWith('.schema')) {
-        schemaMap.set(schema.name.replace('.schema', ''), schema);
+        const nameWithoutSchema = schema.name.replace('.schema', '');
+        schemaMap.set(nameWithoutSchema, schema);
+        keys.push(nameWithoutSchema);
       }
-
+      
+      // Schema name without .schema.json extension
+      if (schema.name.endsWith('.schema.json')) {
+        const nameWithoutExt = schema.name.replace('.schema.json', '');
+        schemaMap.set(nameWithoutExt, schema);
+        keys.push(nameWithoutExt);
+      }
+      
       // Add variations for schema names with .schema.json extension
       if (schema.name.endsWith('.schema.json')) {
         const nameWithoutExt = schema.name.replace('.schema.json', '');
         schemaMap.set(nameWithoutExt, schema);
+        keys.push(nameWithoutExt);
       }
 
       // Add the full path as a key for better matching
       schemaMap.set(schema.relativePath, schema);
+      keys.push(schema.relativePath);
+
+      logger.debug(`Schema map keys for ${schema.name}:`, keys);
+    });
+
+    // Log all available schema map keys
+    logger.info('ProjectManager: Schema map keys', {
+      totalKeys: schemaMap.size,
+      keys: Array.from(schemaMap.keys())
     });
 
     // Process references efficiently
@@ -1083,43 +1116,81 @@ class ProjectManager {
     let resolvedReferences = 0;
     let unresolvedReferences = 0;
 
-    // Debug: Log schema map keys for troubleshooting
-    if (process.env.NODE_ENV === 'development') {
-      logger.debug('Schema map keys:', Array.from(schemaMap.keys()));
-    }
-
     schemas.forEach((schema) => {
       totalReferences += schema.references.length;
+      
+      logger.debug(`Processing references for schema: ${schema.name}`, {
+        schemaId: schema.id,
+        referenceCount: schema.references.length,
+        references: schema.references
+      });
 
       schema.references.forEach((ref) => {
+        logger.debug(`Processing reference: ${ref.schemaName} (${ref.$ref})`);
+        
         // Try multiple ways to find the referenced schema
         let referencedSchema = schemaMap.get(ref.schemaName);
+        let resolutionMethod = 'direct';
         
-        // If not found, try to extract the filename from the $ref path
-        if (!referencedSchema && ref.$ref) {
-          const extractedName = this.extractSchemaNameFromRef(ref.$ref);
-          if (extractedName) {
-            referencedSchema = schemaMap.get(extractedName);
+        if (referencedSchema) {
+          logger.debug(`Found schema via direct lookup: ${ref.schemaName}`);
+        } else {
+          // If not found, try to extract the filename from the $ref path
+          if (ref.$ref) {
+            const extractedName = this.extractSchemaNameFromRef(ref.$ref);
+            logger.debug(`Extracted name from $ref: ${extractedName}`);
+            
+            if (extractedName) {
+              referencedSchema = schemaMap.get(extractedName);
+              if (referencedSchema) {
+                resolutionMethod = 'extracted';
+                logger.debug(`Found schema via extracted name: ${extractedName}`);
+              }
+            }
           }
-        }
 
-        // If still not found, try to match by relative path
-        if (!referencedSchema && ref.$ref) {
-          // Remove leading ./ and trailing .schema.json
-          const cleanRef = ref.$ref.replace(/^\.\//, '').replace(/\.schema\.json$/, '');
-          referencedSchema = schemaMap.get(cleanRef);
+          // If still not found, try to match by relative path
+          if (!referencedSchema && ref.$ref) {
+            // Remove leading ./ and trailing .schema.json
+            const cleanRef = ref.$ref.replace(/^\.\//, '').replace(/\.schema\.json$/, '');
+            logger.debug(`Trying clean ref: ${cleanRef}`);
+            
+            referencedSchema = schemaMap.get(cleanRef);
+            if (referencedSchema) {
+              resolutionMethod = 'clean_path';
+              logger.debug(`Found schema via clean path: ${cleanRef}`);
+            }
+          }
+
+          // Try case-insensitive matching
+          if (!referencedSchema) {
+            const lowerRef = ref.schemaName.toLowerCase();
+            for (const [key, schema] of schemaMap.entries()) {
+              if (key.toLowerCase() === lowerRef) {
+                referencedSchema = schema;
+                resolutionMethod = 'case_insensitive';
+                logger.debug(`Found schema via case-insensitive match: ${key}`);
+                break;
+              }
+            }
+          }
         }
 
         if (referencedSchema && referencedSchema.id !== schema.id) {
           referencedByMap.get(referencedSchema.id)!.add(schema.id);
           resolvedReferences++;
+          logger.debug(`Successfully resolved reference: ${schema.name} -> ${referencedSchema.name} (${resolutionMethod})`);
         } else {
           unresolvedReferences++;
-          // Only log unresolved references in debug mode to avoid spam
-          if (process.env.NODE_ENV === 'development') {
-            logger.debug(`Unresolved reference: ${schema.name} -> ${ref.schemaName} (${ref.$ref})`);
-            logger.debug(`Available keys for ${ref.schemaName}:`, Array.from(schemaMap.keys()).filter(key => key.includes(ref.schemaName)));
-          }
+          logger.warn(`Unresolved reference: ${schema.name} -> ${ref.schemaName} (${ref.$ref})`, {
+            schemaId: schema.id,
+            refSchemaName: ref.schemaName,
+            refPath: ref.$ref,
+            availableKeys: Array.from(schemaMap.keys()).filter(key => 
+              key.toLowerCase().includes(ref.schemaName.toLowerCase()) ||
+              key.toLowerCase().includes(ref.schemaName.toLowerCase().replace(/\.schema\.json$/, ''))
+            )
+          });
         }
       });
     });
@@ -1127,6 +1198,7 @@ class ProjectManager {
     // Convert Sets back to arrays for final schema objects
     schemas.forEach((schema) => {
       schema.referencedBy = Array.from(referencedByMap.get(schema.id) || []);
+      logger.debug(`Final referencedBy for ${schema.name}:`, schema.referencedBy);
     });
 
     const duration = Date.now() - startTime;
@@ -1136,6 +1208,7 @@ class ProjectManager {
       resolvedReferences,
       unresolvedReferences,
       duration: `${duration}ms`,
+      resolutionRate: totalReferences > 0 ? (resolvedReferences / totalReferences * 100).toFixed(1) + '%' : '0%'
     });
   }
 
@@ -1145,25 +1218,36 @@ class ProjectManager {
   private extractSchemaNameFromRef(ref: string): string | null {
     if (!ref) return null;
 
+    logger.debug(`Extracting schema name from ref: ${ref}`);
+
     // Handle different reference formats
     if (ref.startsWith('#/')) {
       // Internal reference like #/definitions/User
       const parts = ref.split('/');
-      return parts[parts.length - 1] || null;
+      const result = parts[parts.length - 1] || null;
+      logger.debug(`Internal reference extracted: ${result}`);
+      return result;
     } else if (ref.includes('.schema.json')) {
       // File reference like ./business-objects/Address.schema.json
       const filename = ref.split('/').pop() || ref;
-      return filename.replace('.schema.json', '');
+      const result = filename.replace('.schema.json', '');
+      logger.debug(`Schema.json reference extracted: ${result} from ${filename}`);
+      return result;
     } else if (ref.includes('.json')) {
       // File reference like ./user.json or user.json
       const filename = ref.split('/').pop() || ref;
-      return filename.replace('.json', '');
+      const result = filename.replace('.json', '');
+      logger.debug(`JSON reference extracted: ${result} from ${filename}`);
+      return result;
     } else if (ref.includes('/')) {
       // Path reference like ./schemas/user
       const parts = ref.split('/');
-      return parts[parts.length - 1] || null;
+      const result = parts[parts.length - 1] || null;
+      logger.debug(`Path reference extracted: ${result}`);
+      return result;
     } else {
       // Simple schema name
+      logger.debug(`Simple schema name: ${ref}`);
       return ref;
     }
   }
@@ -1179,12 +1263,16 @@ class ProjectManager {
         const objRecord = obj as Record<string, unknown>;
 
         if (objRecord.$ref && typeof objRecord.$ref === 'string') {
+          logger.debug(`Found $ref at path ${path}: ${objRecord.$ref}`);
           const schemaName = this.extractSchemaNameFromRef(objRecord.$ref);
           if (schemaName) {
             references.push({
               $ref: objRecord.$ref,
               schemaName,
             });
+            logger.debug(`Added reference: ${schemaName} from ${objRecord.$ref}`);
+          } else {
+            logger.warn(`Failed to extract schema name from $ref: ${objRecord.$ref}`);
           }
         }
 
@@ -1196,6 +1284,7 @@ class ProjectManager {
     };
 
     extractRefs(data);
+    logger.debug(`Extracted ${references.length} references from schema data`);
     return references;
   }
 
