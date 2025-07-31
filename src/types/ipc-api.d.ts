@@ -170,6 +170,29 @@ declare global {
         error?: string;
       }>;
 
+      /**
+       * Clears the project cache for a specific project or all projects.
+       *
+       * @param projectId - Optional project ID to clear specific project cache
+       * @returns Promise resolving to success status or error
+       */
+      clearProjectCache: (projectId?: string) => Promise<{
+        success: boolean;
+        error?: string;
+      }>;
+
+      /**
+       * Force reloads a project from the filesystem, bypassing cache.
+       *
+       * @param projectPath - Path to the project to reload
+       * @returns Promise resolving to project data or error
+       */
+      forceReloadProject: (projectPath: string) => Promise<{
+        success: boolean;
+        project?: Project;
+        error?: string;
+      }>;
+
       // File system operations for schemas
       /**
        * Scans a directory for schema files matching the pattern.

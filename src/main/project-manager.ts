@@ -195,6 +195,24 @@ class ProjectManager {
       }
     });
 
+    // Project cache management
+    ipcMain.handle('project:clearCache', async (_event, projectId?: string) => {
+      try {
+        this.clearProjectCache(projectId);
+        return { success: true };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to clear project cache',
+        };
+      }
+    });
+
+    // Force reload project
+    ipcMain.handle('project:forceReload', async (_event, projectPath: string) => {
+      return this.loadProject(projectPath, true);
+    });
+
     ipcMain.handle('raml:validateSchemas', async (_event, directoryPath: string) => {
       try {
         const isValid = await this.validateSchemasInDirectory(directoryPath);
@@ -347,12 +365,12 @@ class ProjectManager {
   /**
    * Loads a project from the specified path.
    */
-  private async loadProject(projectPath: string): Promise<{
+  private async loadProject(projectPath: string, forceReload = false): Promise<{
     success: boolean;
     project?: Project;
     error?: string;
   }> {
-    logger.info('ProjectManager: Loading project - START', { projectPath });
+    logger.info('ProjectManager: Loading project - START', { projectPath, forceReload });
 
     try {
       // Check if directory exists
@@ -362,12 +380,18 @@ class ProjectManager {
         return { success: false, error: 'Project directory does not exist' };
       }
 
-      // Check if project is already loaded
+      // Check if project is already loaded (unless force reload is requested)
       const projectId = this.generateProjectId(projectPath);
       const existingProject = this.projects.get(projectId);
-      if (existingProject) {
+      if (existingProject && !forceReload) {
         logger.info('ProjectManager: Project already loaded', { projectId });
         return { success: true, project: existingProject };
+      }
+
+      // If force reload, remove the existing project from cache
+      if (forceReload && existingProject) {
+        this.projects.delete(projectId);
+        logger.info('ProjectManager: Removed project from cache for force reload', { projectId });
       }
 
       // Load project metadata if it exists
@@ -1094,7 +1118,7 @@ class ProjectManager {
       schema.references.forEach((ref) => {
         // Try multiple ways to find the referenced schema
         let referencedSchema = schemaMap.get(ref.schemaName);
-        
+
         // If not found, try to extract the filename from the $ref path
         if (!referencedSchema && ref.$ref) {
           const extractedName = this.extractSchemaNameFromRef(ref.$ref);
@@ -1118,7 +1142,10 @@ class ProjectManager {
           // Only log unresolved references in debug mode to avoid spam
           if (process.env.NODE_ENV === 'development') {
             logger.debug(`Unresolved reference: ${schema.name} -> ${ref.schemaName} (${ref.$ref})`);
-            logger.debug(`Available keys for ${ref.schemaName}:`, Array.from(schemaMap.keys()).filter(key => key.includes(ref.schemaName)));
+            logger.debug(
+              `Available keys for ${ref.schemaName}:`,
+              Array.from(schemaMap.keys()).filter((key) => key.includes(ref.schemaName)),
+            );
           }
         }
       });
@@ -1475,6 +1502,19 @@ class ProjectManager {
     } catch (error) {
       logger.error('ProjectManager: Failed to validate schemas', { directoryPath, error });
       return false;
+    }
+  }
+
+  /**
+   * Clears the project cache for a specific project or all projects.
+   */
+  public clearProjectCache(projectId?: string): void {
+    if (projectId) {
+      this.projects.delete(projectId);
+      logger.info('ProjectManager: Cleared project cache', { projectId });
+    } else {
+      this.projects.clear();
+      logger.info('ProjectManager: Cleared all project cache');
     }
   }
 

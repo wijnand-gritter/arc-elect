@@ -280,7 +280,10 @@ export function SchemaDetailModal({
                               Validation Status
                             </label>
                             <div className="flex items-center gap-2">
-                              <Badge variant={validationStatus.variant} className="flex items-center gap-1">
+                              <Badge
+                                variant={validationStatus.variant}
+                                className="flex items-center gap-1"
+                              >
                                 {validationStatus.icon}
                                 {validationStatus.text}
                               </Badge>
