@@ -278,7 +278,8 @@ contextBridge.exposeInMainWorld('api', {
    * @param title - Dialog title
    * @returns Promise resolving to selected folder path or error
    */
-  selectDestinationFolder: (title: string) => ipcRenderer.invoke('dialog:selectDestinationFolder', title),
+  selectDestinationFolder: (title: string) =>
+    ipcRenderer.invoke('dialog:selectDestinationFolder', title),
 
   /**
    * Creates a directory with recursive parent creation.
