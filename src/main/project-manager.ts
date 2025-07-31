@@ -152,12 +152,22 @@ class ProjectManager {
     });
 
     // Folder dialog
-    ipcMain.handle(
-      'dialog:selectFolder',
-      async (_event, title: string) => {
-        return this.showFolderDialog({ title });
-      },
-    );
+    ipcMain.handle('dialog:selectFolder', async (_event, title: string) => {
+      return this.showFolderDialog({ title });
+    });
+
+    // Create directory
+    ipcMain.handle('fs:createDirectory', async (_event, dirPath: string) => {
+      try {
+        await fs.mkdir(dirPath, { recursive: true });
+        return { success: true };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to create directory',
+        };
+      }
+    });
 
     // RAML import handlers
     ipcMain.handle('raml:scan', async (_event, directoryPath: string) => {

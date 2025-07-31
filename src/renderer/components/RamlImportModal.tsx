@@ -16,7 +16,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Switch } from './ui/switch';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent } from './ui/card';
 import { Progress } from './ui/progress';
 import { ScrollArea } from './ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -42,8 +42,8 @@ export function RamlImportModal({
   const [config, setConfig] = useState<RamlImportConfig>({
     sourcePath: '',
     destinationPath: '',
-    clearDestination: false,
-    createBackup: true,
+    clearDestination: true,
+    createBackup: false,
     transformationOptions: {
       preserveStructure: true,
       generateExamples: false,
@@ -129,8 +129,11 @@ export function RamlImportModal({
   const handleBrowseSource = async () => {
     try {
       const result = await window.api.selectFolder('Select RAML Source Directory');
-      if (result.success && result.data) {
-        handleSourcePathChange(result.data);
+      if (result.success && result.data && typeof result.data === 'string') {
+        setConfig((prev) => ({
+          ...prev,
+          sourcePath: result.data as string,
+        }));
       }
     } catch (_error) {
       toast.error('Failed to select source directory');
@@ -140,8 +143,17 @@ export function RamlImportModal({
   const handleBrowseDestination = async () => {
     try {
       const result = await window.api.selectFolder('Select Destination Directory');
-      if (result.success && result.data) {
-        handleDestinationPathChange(result.data);
+      if (result.success && result.data && typeof result.data === 'string') {
+        // Create the directory if it doesn't exist
+        const createResult = await window.api.createDirectory(result.data);
+        if (createResult.success) {
+          setConfig((prev) => ({
+            ...prev,
+            destinationPath: result.data as string,
+          }));
+        } else {
+          toast.error('Failed to create destination directory');
+        }
       }
     } catch (_error) {
       toast.error('Failed to select destination directory');
@@ -161,16 +173,14 @@ export function RamlImportModal({
 
         <div className="flex-1 min-h-0">
           <ScrollArea className="h-full">
-            <div className="space-y-6">
-              {/* Source Path */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2">
+            <Card className="h-full">
+              <CardContent className="p-6 space-y-6">
+                {/* Source Path */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
                     <FolderOpen className="h-5 w-5 text-primary" />
-                    Source Directory
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
+                    <Label className="text-base font-medium">Source Directory</Label>
+                  </div>
                   <div className="flex gap-2">
                     <Input
                       placeholder="Select source directory containing RAML files"
@@ -185,18 +195,14 @@ export function RamlImportModal({
                   {config.sourcePath && (
                     <p className="text-xs text-muted-foreground">Selected: {config.sourcePath}</p>
                   )}
-                </CardContent>
-              </Card>
+                </div>
 
-              {/* Destination Path */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2">
+                {/* Destination Path */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
                     <Folder className="h-5 w-5 text-primary" />
-                    Destination Directory
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
+                    <Label className="text-base font-medium">Destination Directory</Label>
+                  </div>
                   <div className="flex gap-2">
                     <Input
                       placeholder="Select destination directory for JSON Schema files"
@@ -213,18 +219,14 @@ export function RamlImportModal({
                       Selected: {config.destinationPath}
                     </p>
                   )}
-                </CardContent>
-              </Card>
+                </div>
 
-              {/* Import Options */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2">
+                {/* Import Options */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
                     <Settings className="h-5 w-5 text-primary" />
-                    Import Options
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+                    <Label className="text-base font-medium">Import Options</Label>
+                  </div>
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <Label htmlFor="clear-destination">Clear destination before import</Label>
@@ -240,141 +242,119 @@ export function RamlImportModal({
                       }
                     />
                   </div>
+                </div>
 
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="create-backup">Create backup</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Create backup of existing files before overwriting
-                      </p>
-                    </div>
-                    <Switch
-                      id="create-backup"
-                      checked={config.createBackup}
-                      onCheckedChange={(checked) =>
-                        setConfig((prev) => ({ ...prev, createBackup: checked }))
-                      }
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Transformation Options */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2">
+                {/* Transformation Options */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
                     <Code className="h-5 w-5 text-primary" />
-                    Transformation Options
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="preserve-structure">Preserve structure</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Preserve original RAML structure and hierarchy
-                      </p>
-                    </div>
-                    <Switch
-                      id="preserve-structure"
-                      checked={config.transformationOptions.preserveStructure}
-                      onCheckedChange={(checked) =>
-                        handleTransformationOptionChange('preserveStructure', checked)
-                      }
-                    />
+                    <Label className="text-base font-medium">Transformation Options</Label>
                   </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="generate-examples">Generate examples</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Convert RAML examples to JSON Schema examples
-                      </p>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="preserve-structure">Preserve structure</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Preserve original RAML structure and hierarchy
+                        </p>
+                      </div>
+                      <Switch
+                        id="preserve-structure"
+                        checked={config.transformationOptions.preserveStructure}
+                        onCheckedChange={(checked) =>
+                          handleTransformationOptionChange('preserveStructure', checked)
+                        }
+                      />
                     </div>
-                    <Switch
-                      id="generate-examples"
-                      checked={config.transformationOptions.generateExamples}
-                      onCheckedChange={(checked) =>
-                        handleTransformationOptionChange('generateExamples', checked)
-                      }
-                    />
-                  </div>
 
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="include-annotations">Include annotations</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Convert RAML annotations to JSON Schema descriptions
-                      </p>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="generate-examples">Generate examples</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Convert RAML examples to JSON Schema examples
+                        </p>
+                      </div>
+                      <Switch
+                        id="generate-examples"
+                        checked={config.transformationOptions.generateExamples}
+                        onCheckedChange={(checked) =>
+                          handleTransformationOptionChange('generateExamples', checked)
+                        }
+                      />
                     </div>
-                    <Switch
-                      id="include-annotations"
-                      checked={config.transformationOptions.includeAnnotations}
-                      onCheckedChange={(checked) =>
-                        handleTransformationOptionChange('includeAnnotations', checked)
-                      }
-                    />
-                  </div>
 
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="naming-convention">Naming convention</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Choose a naming convention for generated schemas
-                      </p>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="include-annotations">Include annotations</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Convert RAML annotations to JSON Schema descriptions
+                        </p>
+                      </div>
+                      <Switch
+                        id="include-annotations"
+                        checked={config.transformationOptions.includeAnnotations}
+                        onCheckedChange={(checked) =>
+                          handleTransformationOptionChange('includeAnnotations', checked)
+                        }
+                      />
                     </div>
-                    <Select
-                      value={config.transformationOptions.namingConvention}
-                      onValueChange={(value) =>
-                        handleTransformationOptionChange('namingConvention', value)
-                      }
-                    >
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Select a convention" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="kebab-case">Kebab Case (e.g., my-schema)</SelectItem>
-                        <SelectItem value="snake_case">Snake Case (e.g., my_schema)</SelectItem>
-                        <SelectItem value="camelCase">Camel Case (e.g., mySchema)</SelectItem>
-                        <SelectItem value="PascalCase">Pascal Case (e.g., MySchema)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
 
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="validate-output">Validate output</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Validate the generated JSON Schema against the RAML definition
-                      </p>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="naming-convention">Naming convention</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Choose a naming convention for generated schemas
+                        </p>
+                      </div>
+                      <Select
+                        value={config.transformationOptions.namingConvention}
+                        onValueChange={(value) =>
+                          handleTransformationOptionChange('namingConvention', value)
+                        }
+                      >
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue placeholder="Select a convention" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="kebab-case">Kebab Case (e.g., my-schema)</SelectItem>
+                          <SelectItem value="snake_case">Snake Case (e.g., my_schema)</SelectItem>
+                          <SelectItem value="camelCase">Camel Case (e.g., mySchema)</SelectItem>
+                          <SelectItem value="PascalCase">Pascal Case (e.g., MySchema)</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <Switch
-                      id="validate-output"
-                      checked={config.transformationOptions.validateOutput}
-                      onCheckedChange={(checked) =>
-                        handleTransformationOptionChange('validateOutput', checked)
-                      }
-                    />
-                  </div>
-                </CardContent>
-              </Card>
 
-              {/* Import Progress */}
-              {isImporting && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="validate-output">Validate output</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Validate the generated JSON Schema against the RAML definition
+                        </p>
+                      </div>
+                      <Switch
+                        id="validate-output"
+                        checked={config.transformationOptions.validateOutput}
+                        onCheckedChange={(checked) =>
+                          handleTransformationOptionChange('validateOutput', checked)
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Import Progress */}
+                {isImporting && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
                       <Upload className="h-5 w-5 text-primary" />
-                      Import Progress
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
+                      <Label className="text-base font-medium">Import Progress</Label>
+                    </div>
                     <Progress value={importProgress} className="w-full" />
                     <p className="text-sm text-muted-foreground">{importStatus}</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </ScrollArea>
         </div>
 

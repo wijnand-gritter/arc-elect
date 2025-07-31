@@ -271,4 +271,12 @@ contextBridge.exposeInMainWorld('api', {
    * @returns Promise resolving to selected folder path or error
    */
   selectFolder: (title: string) => ipcRenderer.invoke('dialog:selectFolder', title),
+
+  /**
+   * Creates a directory with recursive parent creation.
+   *
+   * @param dirPath - Path to the directory to create
+   * @returns Promise resolving to success status or error
+   */
+  createDirectory: (dirPath: string) => ipcRenderer.invoke('fs:createDirectory', dirPath),
 });

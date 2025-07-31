@@ -362,6 +362,17 @@ declare global {
         data?: string;
         error?: string;
       }>;
+
+      /**
+       * Creates a directory with recursive parent creation.
+       *
+       * @param dirPath - Path to the directory to create
+       * @returns Promise resolving to success status or error
+       */
+      createDirectory: (dirPath: string) => Promise<{
+        success: boolean;
+        error?: string;
+      }>;
     };
   }
 }

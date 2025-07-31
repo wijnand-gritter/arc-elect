@@ -21,8 +21,7 @@ import { FolderOpen, Plus, XCircle, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
 import type { Project } from '../../../types/schema-editor';
-import type { ImportResult } from '../../../types/raml-import';
-import type { RamlImportConfig } from '../../../types/raml-import';
+import type { ImportResult, RamlImportConfig } from '../../../types/raml-import';
 
 /**
  * Project overview component props.
@@ -144,7 +143,13 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
           processedFiles: 0,
           convertedFiles: 0,
           failedFiles: 0,
-          errors: [{ filePath: 'unknown', message: result.error || 'Unknown error', type: 'filesystem' as const }],
+          errors: [
+            {
+              filePath: 'unknown',
+              message: result.error || 'Unknown error',
+              type: 'filesystem' as const,
+            },
+          ],
           warnings: [],
           duration: 0,
           timestamp: new Date(),
@@ -156,7 +161,13 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
         processedFiles: 0,
         convertedFiles: 0,
         failedFiles: 0,
-        errors: [{ filePath: 'unknown', message: error instanceof Error ? error.message : 'Unknown error', type: 'filesystem' as const }],
+        errors: [
+          {
+            filePath: 'unknown',
+            message: error instanceof Error ? error.message : 'Unknown error',
+            type: 'filesystem' as const,
+          },
+        ],
         warnings: [],
         duration: 0,
         timestamp: new Date(),
@@ -187,7 +198,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
                   containing JSON schema files, or open one of your recent projects to continue
                   working.
                 </p>
-                <div className="flex justify-center">
+                <div className="flex justify-center gap-3">
                   <Button
                     onClick={handleCreateProject}
                     className="border-gradient hover-lift hover:gradient-accent transition-all duration-200 text-foreground"
@@ -195,6 +206,15 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Create New Project
+                  </Button>
+                  <Button
+                    onClick={handleRamlImport}
+                    variant="outline"
+                    size="lg"
+                    className="border-gradient hover-lift transition-all duration-200"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Import RAML
                   </Button>
                 </div>
               </div>
@@ -387,11 +407,10 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
                 {recentProjects.slice(0, 5).map((recentProject) => (
                   <div
                     key={recentProject.id}
-                    className={`flex items-center justify-between p-4 rounded-lg border transition-all duration-200 cursor-pointer hover-lift ${
-                      recentProject.id === project.id
+                    className={`flex items-center justify-between p-4 rounded-lg border transition-all duration-200 cursor-pointer hover-lift ${recentProject.id === project.id
                         ? 'border-primary bg-primary/5'
                         : 'border-border/50 hover:bg-muted/50'
-                    }`}
+                      }`}
                     onClick={() => handleOpenProject(recentProject.path)}
                   >
                     <div className="flex-1 min-w-0">
