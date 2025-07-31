@@ -20,6 +20,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { FolderOpen, Loader2, AlertTriangle } from 'lucide-react';
@@ -160,6 +161,10 @@ export function CreateProjectModal({
       <DialogContent size="lg">
         <DialogHeader>
           <DialogTitle>Create New Project</DialogTitle>
+          <DialogDescription>
+            Select a folder to create a new project. The application will scan this folder and its
+            subdirectories for JSON files and load them as schemas.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
