@@ -279,15 +279,12 @@ export function SchemaDetailModal({
                             <label className="text-sm font-medium text-muted-foreground">
                               Validation Status
                             </label>
-                            <p className="text-sm">
-                              <Badge
-                                variant={validationStatus.variant}
-                                className="flex items-center gap-1"
-                              >
+                            <div className="flex items-center gap-2">
+                              <Badge variant={validationStatus.variant} className="flex items-center gap-1">
                                 {validationStatus.icon}
                                 {validationStatus.text}
                               </Badge>
-                            </p>
+                            </div>
                           </div>
                           <div>
                             <label className="text-sm font-medium text-muted-foreground">
