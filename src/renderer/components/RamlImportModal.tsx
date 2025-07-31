@@ -21,10 +21,7 @@ import { Progress } from './ui/progress';
 import { ScrollArea } from './ui/scroll-area';
 import { Upload, FolderOpen, Settings, Loader2, Folder } from 'lucide-react';
 import { toast } from 'sonner';
-import type {
-  RamlImportConfig,
-  ImportResult,
-} from '../../types/raml-import';
+import type { RamlImportConfig, ImportResult } from '../../types/raml-import';
 
 interface RamlImportModalProps {
   isOpen: boolean;
@@ -68,8 +65,6 @@ export function RamlImportModal({
       destinationPath: path,
     }));
   };
-
-
 
   const handleImport = async () => {
     if (!config.sourcePath || !config.destinationPath) {
@@ -230,8 +225,6 @@ export function RamlImportModal({
                     />
                   </div>
                 </div>
-
-
 
                 {/* Import Progress */}
                 {isImporting && (

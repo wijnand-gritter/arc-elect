@@ -153,7 +153,12 @@ class ProjectManager {
 
     // Folder dialog
     ipcMain.handle('dialog:selectFolder', async (_event, title: string) => {
-      return this.showFolderDialog({ title });
+      const result = await this.showFolderDialog({ title });
+      return {
+        success: result.success,
+        data: result.path,
+        error: result.error,
+      };
     });
 
     // Create directory
