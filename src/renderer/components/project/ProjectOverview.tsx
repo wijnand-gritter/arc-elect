@@ -112,7 +112,10 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
     setIsRamlImportOpen(true);
   };
 
-  const handleRamlImportConfig = async (config: RamlImportConfig, projectName?: string): Promise<ImportResult> => {
+  const handleRamlImportConfig = async (
+    config: RamlImportConfig,
+    projectName?: string,
+  ): Promise<ImportResult> => {
     try {
       // Use the RAML batch conversion API
       const result = await window.api.convertRamlBatch({

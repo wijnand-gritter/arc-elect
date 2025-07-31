@@ -161,6 +161,16 @@ class ProjectManager {
       };
     });
 
+    // Destination folder dialog (allows creating new folders)
+    ipcMain.handle('dialog:selectDestinationFolder', async (_event, title: string) => {
+      const result = await this.showDestinationFolderDialog({ title });
+      return {
+        success: result.success,
+        data: result.path,
+        error: result.error,
+      };
+    });
+
     // Create directory
     ipcMain.handle('fs:createDirectory', async (_event, dirPath: string) => {
       try {
@@ -703,6 +713,43 @@ class ProjectManager {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('ProjectManager: Failed to show folder dialog', { error });
       return { success: false, error: `Failed to show folder dialog: ${errorMessage}` };
+    }
+  }
+
+  /**
+   * Shows a folder selection dialog that allows creating new folders.
+   */
+  private async showDestinationFolderDialog(options?: { title?: string; defaultPath?: string }): Promise<{
+    success: boolean;
+    path?: string;
+    error?: string;
+  }> {
+    try {
+      const result = await dialog.showOpenDialog({
+        title: options?.title || 'Select Destination Folder',
+        ...(options?.defaultPath && { defaultPath: options.defaultPath }),
+        properties: ['openDirectory', 'createDirectory'],
+      });
+
+      // Handle both old and new dialog result formats
+      if (Array.isArray(result)) {
+        // Old format: returns string[]
+        if (result.length === 0) {
+          return { success: false, error: 'No folder selected' };
+        }
+        return { success: true, path: result[0] };
+      } else {
+        // New format: returns OpenDialogReturnValue
+        const dialogResult = result as Electron.OpenDialogReturnValue;
+        if (dialogResult.canceled) {
+          return { success: false, error: 'Dialog cancelled' };
+        }
+        return { success: true, path: dialogResult.filePaths[0] };
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('ProjectManager: Failed to show destination folder dialog', { error });
+      return { success: false, error: `Failed to show destination folder dialog: ${errorMessage}` };
     }
   }
 

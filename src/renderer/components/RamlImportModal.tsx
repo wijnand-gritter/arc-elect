@@ -126,18 +126,12 @@ export function RamlImportModal({
 
   const handleBrowseDestination = async () => {
     try {
-      const result = await window.api.selectFolder('Select Destination Directory');
+      const result = await window.api.selectDestinationFolder('Select Destination Directory');
       if (result.success && result.data && typeof result.data === 'string') {
-        // Create the directory if it doesn't exist
-        const createResult = await window.api.createDirectory(result.data);
-        if (createResult.success) {
-          setConfig((prev) => ({
-            ...prev,
-            destinationPath: result.data as string,
-          }));
-        } else {
-          toast.error('Failed to create destination directory');
-        }
+        setConfig((prev) => ({
+          ...prev,
+          destinationPath: result.data as string,
+        }));
       }
     } catch (_error) {
       toast.error('Failed to select destination directory');

@@ -364,6 +364,18 @@ declare global {
       }>;
 
       /**
+       * Selects a destination folder using the system dialog (allows creating new folders).
+       *
+       * @param title - Dialog title
+       * @returns Promise resolving to selected folder path or error
+       */
+      selectDestinationFolder: (title: string) => Promise<{
+        success: boolean;
+        data?: string;
+        error?: string;
+      }>;
+
+      /**
        * Creates a directory with recursive parent creation.
        *
        * @param dirPath - Path to the directory to create
