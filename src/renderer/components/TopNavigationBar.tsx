@@ -10,7 +10,7 @@
  * @version 1.0.0
  */
 
-import { Menu, FolderOpen, Search, Edit, Settings, BarChart3 } from 'lucide-react';
+import { Menu, FolderOpen, Search, Edit, Settings, BarChart3, HelpCircle } from 'lucide-react';
 import { ArcElectLogo } from './ui/arc-elect-logo';
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
@@ -25,6 +25,7 @@ import {
   navigationMenuTriggerStyle,
 } from './ui/navigation-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 import { useAppStore } from '../stores/useAppStore';
 
@@ -196,14 +197,38 @@ const TopNavigationBar = ({
 
           {/* Right side - Settings and other actions */}
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handlePageChange('settings')}
-              className={`${currentPage === 'settings' ? 'bg-accent' : ''}`}
-            >
-              <Settings className="size-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handlePageChange('settings')}
+                  className={`${currentPage === 'settings' ? 'bg-accent' : ''}`}
+                >
+                  <Settings className="size-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Settings</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    document.dispatchEvent(new CustomEvent('show-help-modal'));
+                  }}
+                  title="Keyboard shortcuts help"
+                >
+                  <HelpCircle className="size-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Help</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </nav>
 
@@ -218,9 +243,16 @@ const TopNavigationBar = ({
 
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <Menu className="size-4" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <Menu className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Navigation menu</p>
+                </TooltipContent>
+              </Tooltip>
             </SheetTrigger>
             <SheetContent side="right">
               <SheetHeader>

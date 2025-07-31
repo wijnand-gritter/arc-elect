@@ -11,7 +11,7 @@
 
 import { useEffect, useCallback, useRef } from 'react';
 import { useAppStore } from '../stores/useAppStore';
-import logger from '../lib/renderer-logger';
+import { safeHandler } from '../lib/error-handling';
 
 /**
  * Keyboard shortcut definition.
@@ -103,10 +103,18 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}): {
   const isShortcutPressed = useCallback(
     (event: KeyboardEvent, shortcut: KeyboardShortcut): boolean => {
       const keyMatch = event.key.toLowerCase() === shortcut.key.toLowerCase();
-      const ctrlMatch = !!shortcut.ctrl === (event.ctrlKey || event.metaKey);
+      const ctrlMatch = !!shortcut.ctrl === event.ctrlKey;
       const altMatch = !!shortcut.alt === event.altKey;
       const shiftMatch = !!shortcut.shift === event.shiftKey;
       const metaMatch = !!shortcut.meta === event.metaKey;
+
+      // Special handling for macOS Cmd + ? combination
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      if (isMac && shortcut.key === '?' && shortcut.meta && !shortcut.shift) {
+        // On macOS, ? requires Shift, so Cmd + ? should be Cmd + Shift + ?
+        const adjustedShiftMatch = event.shiftKey;
+        return keyMatch && ctrlMatch && altMatch && adjustedShiftMatch && metaMatch;
+      }
 
       return keyMatch && ctrlMatch && altMatch && shiftMatch && metaMatch;
     },
@@ -134,23 +142,37 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}): {
     {
       key: '1',
       ctrl: true,
-      description: 'Navigate to Explore page',
+      description: 'Navigate to Projects page',
       category: 'navigation',
-      action: () => setPage('explore'),
+      action: safeHandler(() => setPage('project')),
     },
     {
       key: '2',
       ctrl: true,
-      description: 'Navigate to Build page',
+      description: 'Navigate to Explore page',
       category: 'navigation',
-      action: () => setPage('build'),
+      action: safeHandler(() => setPage('explore')),
     },
     {
       key: '3',
       ctrl: true,
       description: 'Navigate to Analytics page',
       category: 'navigation',
-      action: () => setPage('analytics'),
+      action: safeHandler(() => setPage('analytics')),
+    },
+    {
+      key: '4',
+      ctrl: true,
+      description: 'Navigate to Build page',
+      category: 'navigation',
+      action: safeHandler(() => setPage('build')),
+    },
+    {
+      key: '5',
+      ctrl: true,
+      description: 'Navigate to Settings page',
+      category: 'navigation',
+      action: safeHandler(() => setPage('settings')),
     },
 
     // Search shortcuts
@@ -159,7 +181,7 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}): {
       ctrl: true,
       description: 'Focus search',
       category: 'search',
-      action: () => {
+      action: safeHandler(() => {
         const searchInput = document.querySelector(
           'input[placeholder*="search" i]',
         ) as HTMLInputElement;
@@ -167,7 +189,7 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}): {
           searchInput.focus();
           searchInput.select();
         }
-      },
+      }),
       preventDefault: true,
     },
     {
@@ -175,7 +197,7 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}): {
       ctrl: true,
       description: 'Quick search (Command Palette)',
       category: 'search',
-      action: () => {
+      action: safeHandler(() => {
         // Focus search and clear current query
         setSearchQuery('');
         const searchInput = document.querySelector(
@@ -184,7 +206,7 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}): {
         if (searchInput) {
           searchInput.focus();
         }
-      },
+      }),
       preventDefault: true,
     },
 
@@ -193,7 +215,7 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}): {
       key: 'Escape',
       description: 'Close modals and overlays',
       category: 'general',
-      action: () => closeAllModals(),
+      action: safeHandler(() => closeAllModals()),
     },
 
     // Project shortcuts
@@ -202,11 +224,10 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}): {
       ctrl: true,
       description: 'Open project',
       category: 'project',
-      action: () => {
+      action: safeHandler(() => {
         // Trigger project creation modal
         // This would need to be implemented in the project overview
-        logger.info('Open project shortcut triggered');
-      },
+      }),
       preventDefault: true,
     },
     {
@@ -214,12 +235,11 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}): {
       ctrl: true,
       description: 'Save project',
       category: 'project',
-      action: () => {
+      action: safeHandler(() => {
         if (currentProject) {
           // Trigger project save
-          logger.info('Save project shortcut triggered', { projectId: currentProject.id });
         }
-      },
+      }),
       preventDefault: true,
     },
 
@@ -228,13 +248,13 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}): {
       key: 'Enter',
       description: 'Open selected schema',
       category: 'editor',
-      action: () => {
+      action: safeHandler(() => {
         // Find selected schema and open it
         const selectedCard = document.querySelector('[aria-selected="true"]');
         if (selectedCard) {
           selectedCard.dispatchEvent(new MouseEvent('click', { bubbles: true }));
         }
-      },
+      }),
     },
 
     // Accessibility shortcuts
@@ -242,22 +262,43 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}): {
       key: 'Tab',
       description: 'Navigate between elements',
       category: 'navigation',
-      action: () => {
-        // Tab navigation is handled by browser, just log for debugging
-        if (enableDebug) {
-          logger.debug('Tab navigation');
-        }
-      },
+      action: safeHandler(() => {
+        // Tab navigation is handled by browser
+      }),
     },
+    // Help shortcuts - universal and platform specific
     {
-      key: '?',
-      shift: true,
+      key: 'F1',
       description: 'Show keyboard shortcuts help',
       category: 'general',
-      action: () => {
+      action: safeHandler(() => {
         // Show help modal with shortcuts
-        logger.info('Keyboard shortcuts help requested');
-      },
+        // Dispatch custom event to trigger help modal
+        const event = new CustomEvent('show-help-modal');
+        document.dispatchEvent(event);
+      }),
+    },
+    // Alternative help shortcut for laptops with function keys disabled
+    {
+      key: 'F1',
+      ctrl: true,
+      description: 'Show keyboard shortcuts help (Ctrl + F1)',
+      category: 'general',
+      action: safeHandler(() => {
+        const event = new CustomEvent('show-help-modal');
+        document.dispatchEvent(event);
+      }),
+    },
+    // macOS alternative help shortcut for laptops
+    {
+      key: 'F1',
+      meta: true,
+      description: 'Show keyboard shortcuts help (Cmd + F1)',
+      category: 'general',
+      action: safeHandler(() => {
+        const event = new CustomEvent('show-help-modal');
+        document.dispatchEvent(event);
+      }),
     },
 
     // Quick actions
@@ -266,10 +307,9 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}): {
       ctrl: true,
       description: 'Create new schema',
       category: 'editor',
-      action: () => {
-        logger.info('New schema shortcut triggered');
+      action: safeHandler(() => {
         // This would trigger the new schema creation flow
-      },
+      }),
       preventDefault: true,
     },
     {
@@ -277,64 +317,40 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}): {
       ctrl: true,
       description: 'Duplicate selected schema',
       category: 'editor',
-      action: () => {
-        logger.info('Duplicate schema shortcut triggered');
-      },
+      action: safeHandler(() => {
+        // Duplicate schema functionality
+      }),
       preventDefault: true,
     },
     {
       key: 'Delete',
       description: 'Delete selected schema',
       category: 'editor',
-      action: () => {
-        logger.info('Delete schema shortcut triggered');
-      },
+      action: safeHandler(() => {
+        // Delete schema functionality
+      }),
     },
 
     // View shortcuts
-    {
-      key: 'g',
-      ctrl: true,
-      description: 'Toggle grid/list view',
-      category: 'navigation',
-      action: () => {
-        // Toggle view mode in schema list
-        const gridButton = document.querySelector(
-          'button[aria-label*="grid" i]',
-        ) as HTMLButtonElement;
-        const listButton = document.querySelector(
-          'button[aria-label*="list" i]',
-        ) as HTMLButtonElement;
-
-        if (gridButton?.getAttribute('aria-pressed') === 'true') {
-          listButton?.click();
-        } else {
-          gridButton?.click();
-        }
-      },
-    },
-
-    // Refresh shortcuts
     {
       key: 'r',
       ctrl: true,
       description: 'Refresh current view',
       category: 'general',
-      action: () => {
-        logger.info('Refresh shortcut triggered');
+      action: safeHandler(() => {
         // Trigger view refresh
-      },
+      }),
       preventDefault: true,
     },
     {
       key: 'F5',
       description: 'Reload application',
       category: 'general',
-      action: () => {
+      action: safeHandler(() => {
         if (enableDebug) {
           location.reload();
         }
-      },
+      }),
     },
   ];
 
@@ -345,27 +361,16 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}): {
     (shortcut: KeyboardShortcut): void => {
       const key = generateShortcutKey(shortcut);
       shortcutsRef.current.set(key, { ...shortcut, enabled: shortcut.enabled ?? true });
-
-      if (enableDebug) {
-        logger.debug('Registered keyboard shortcut', { key, shortcut });
-      }
     },
-    [generateShortcutKey, enableDebug],
+    [generateShortcutKey],
   );
 
   /**
    * Unregister a keyboard shortcut.
    */
-  const unregisterShortcut = useCallback(
-    (key: string): void => {
-      shortcutsRef.current.delete(key);
-
-      if (enableDebug) {
-        logger.debug('Unregistered keyboard shortcut', { key });
-      }
-    },
-    [enableDebug],
-  );
+  const unregisterShortcut = useCallback((key: string): void => {
+    shortcutsRef.current.delete(key);
+  }, []);
 
   /**
    * Handle keyboard events.
@@ -389,32 +394,24 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}): {
         if (!shortcut.enabled) continue;
 
         if (isShortcutPressed(event, shortcut)) {
-          if (enableDebug) {
-            logger.debug('Keyboard shortcut triggered', { key, shortcut });
+          // Check for custom handler first
+          const shortcutId = key.split('_').pop(); // Extract base key from compound key
+          if (customHandlers[shortcutId || key]) {
+            customHandlers[shortcutId || key]();
+          } else {
+            shortcut.action();
           }
 
-          try {
-            // Check for custom handler first
-            const shortcutId = key.split('_').pop(); // Extract base key from compound key
-            if (customHandlers[shortcutId || key]) {
-              customHandlers[shortcutId || key]();
-            } else {
-              shortcut.action();
-            }
-
-            if (shortcut.preventDefault) {
-              event.preventDefault();
-              event.stopPropagation();
-            }
-          } catch (error) {
-            logger.error('Error executing keyboard shortcut', { key, error });
+          if (shortcut.preventDefault) {
+            event.preventDefault();
+            event.stopPropagation();
           }
 
           break; // Only execute first matching shortcut
         }
       }
     },
-    [isShortcutPressed, enableDebug],
+    [isShortcutPressed],
   );
 
   /**
@@ -431,10 +428,10 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}): {
     if (!enableGlobal) return;
 
     const element = scope as HTMLElement | Document;
-    element.addEventListener('keydown', handleKeyDown);
+    element.addEventListener('keydown', handleKeyDown as EventListener);
 
     return () => {
-      element.removeEventListener('keydown', handleKeyDown);
+      element.removeEventListener('keydown', handleKeyDown as EventListener);
     };
   }, [enableGlobal, scope, handleKeyDown]);
 

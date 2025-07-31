@@ -41,13 +41,11 @@ export function PageContent(): React.JSX.Element {
   // Show loading state when project is being loaded
   if (isLoadingProject) {
     return (
-      <div className="flex flex-1 flex-col min-h-0">
-        <div className="container mx-auto flex flex-1 flex-col gap-4 p-6 max-w-7xl">
-          <div className="page-transition flex-1 flex items-center justify-center">
-            <div className="text-center space-y-4">
-              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-              <p className="text-muted-foreground">Loading project...</p>
-            </div>
+      <div className="h-full flex flex-col overflow-hidden">
+        <div className="flex flex-1 items-center justify-center overflow-y-auto">
+          <div className="text-center space-y-4">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="text-muted-foreground">Loading project...</p>
           </div>
         </div>
       </div>
@@ -57,8 +55,8 @@ export function PageContent(): React.JSX.Element {
   // Show project setup if no project is loaded and we're not on settings
   if (!currentProject && currentPage !== 'settings') {
     return (
-      <div className="flex flex-1 flex-col min-h-0">
-        <div className="container mx-auto flex flex-1 flex-col gap-4 p-6 max-w-7xl">
+      <div className="h-full flex flex-col overflow-hidden">
+        <div className="flex flex-1 overflow-y-auto">
           <div className="page-transition flex-1">
             <Project />
           </div>
@@ -68,8 +66,8 @@ export function PageContent(): React.JSX.Element {
   }
 
   return (
-    <div className="flex flex-1 flex-col min-h-0">
-      <div className="container mx-auto flex flex-1 flex-col gap-4 p-6 max-w-7xl">
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className="flex flex-1 overflow-y-auto">
         <div className="page-transition flex-1">
           {currentPage === 'project' && (
             <ErrorBoundary>

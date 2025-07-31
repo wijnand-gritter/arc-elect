@@ -13,6 +13,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { useAppStore } from '../../stores/useAppStore';
 import { CreateProjectModal } from '../CreateProjectModal';
 import { RamlImportModal } from '../RamlImportModal';
@@ -27,7 +28,7 @@ import type { ImportResult } from '../../../types/raml-import';
  */
 interface ProjectOverviewProps {
   /** The project to display (optional - if not provided, shows setup view) */
-  project?: Project;
+  project?: Project | null;
 }
 
 /**
@@ -128,95 +129,98 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
   if (!project) {
     return (
       <>
-        <div className="px-4 lg:px-6 space-y-6">
+        <div className="h-full flex flex-col space-y-4">
           {/* Welcome Card */}
-          <Card className="glass-blue border-0">
-            <CardHeader className="gradient-accent rounded-t-lg border-b border-primary/20">
-              <CardTitle className="text-foreground flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-primary animate-pulse-blue"></div>
-                JSON Schema Editor
+          <Card className="glass-blue border-0 flex-1">
+            <CardHeader className="gradient-accent rounded-t-lg border-b border-primary/20 py-4">
+              <CardTitle className="text-foreground flex items-center gap-2 text-lg">
+                <FolderOpen className="w-4 h-4" />
+                Welcome to Arc Elect
               </CardTitle>
-              <CardDescription className="text-muted-foreground">
-                Create a new project or open an existing one to start working with JSON schemas
+              <CardDescription className="text-muted-foreground text-sm">
+                Create your first project to get started with JSON schema management
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4 p-6">
+            <CardContent className="p-4">
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   Welcome to the JSON Schema Editor. Create a new project by selecting a folder
                   containing JSON schema files, or open one of your recent projects to continue
                   working.
                 </p>
+                <div className="flex justify-center">
+                  <Button
+                    onClick={handleCreateProject}
+                    className="border-gradient hover-lift hover:gradient-accent transition-all duration-200 text-foreground"
+                    size="lg"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create New Project
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Recent Projects Card */}
           <Card className="glass-blue border-0">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Recent Projects</CardTitle>
-                <CardDescription>
-                  Quickly open recently used projects or create a new one
-                </CardDescription>
-              </div>
-              <Button
-                onClick={handleCreateProject}
-                className="border-gradient hover-lift hover:gradient-accent transition-all duration-200 text-foreground"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                New Project
-              </Button>
+            <CardHeader>
+              <CardTitle>Recent Projects</CardTitle>
+              <CardDescription>Quickly open recently used projects</CardDescription>
             </CardHeader>
             <CardContent>
               {recentProjects.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <FolderOpen className="h-16 w-16 mx-auto mb-4 opacity-50" />
                   <h3 className="text-lg font-medium mb-2">No projects yet</h3>
-                  <p className="text-sm mb-4">
+                  <p className="text-sm">
                     Create your first project to start working with JSON schemas
                   </p>
-                  <Button
-                    onClick={handleCreateProject}
-                    className="border-gradient hover-lift hover:gradient-accent transition-all duration-200 text-foreground"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create First Project
-                  </Button>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {recentProjects.map((recentProject) => (
                     <div
                       key={recentProject.id}
-                      className="flex items-center justify-between p-3 rounded-lg border border-border/50 hover:bg-muted/50 transition-colors cursor-pointer"
+                      className="flex items-center justify-between p-4 rounded-lg border border-border/50 hover:bg-muted/50 transition-all duration-200 cursor-pointer hover-lift"
                       onClick={() => handleOpenProject(recentProject.path)}
                     >
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm truncate">{recentProject.name}</h4>
+                        <div className="flex items-center gap-2 mb-1">
+                          <FolderOpen className="w-4 h-4 text-primary" />
+                          <h4 className="font-medium text-sm truncate">{recentProject.name}</h4>
+                        </div>
                         <p className="text-xs text-muted-foreground truncate">
                           {recentProject.path}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          Last opened: {new Date(recentProject.lastModified).toLocaleDateString()}
-                        </p>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0 ml-2">
-                        <Button variant="outline" size="sm">
+                      <div className="flex items-center gap-2 shrink-0 ml-4">
+                        <div className="text-right text-xs text-muted-foreground">
+                          <p>
+                            Last opened: {new Date(recentProject.lastModified).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Button variant="outline" size="sm" className="hover-lift">
                           <FolderOpen className="h-4 w-4 mr-1" />
                           Open
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                          onClick={(e) =>
-                            handleDeleteClick(recentProject.id, recentProject.name, e)
-                          }
-                          title="Delete project from recent list"
-                        >
-                          <XCircle className="h-4 w-4" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover-lift"
+                              onClick={(e) =>
+                                handleDeleteClick(recentProject.id, recentProject.name, e)
+                              }
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Delete project from recent list</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                     </div>
                   ))}
@@ -265,75 +269,57 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
   // Show project overview when project is provided
   return (
     <>
-      <div className="px-4 lg:px-6 space-y-6">
-        {/* Project Status */}
+      <div className="h-full flex flex-col space-y-4">
+        {/* Project Status Card */}
         <Card className="glass-blue border-0">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>{project.name}</CardTitle>
-              <CardDescription>Current status and validation information</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <FolderOpen className="w-5 h-5" />
+                {project.name}
+              </CardTitle>
+              <CardDescription>
+                Last updated:{' '}
+                {project.status.lastScanTime
+                  ? new Date(project.status.lastScanTime).toLocaleString()
+                  : 'Never'}
+              </CardDescription>
             </div>
             <div className="flex gap-2">
               <Button
                 onClick={handleRamlImport}
                 variant="outline"
-                className="border-gradient hover-lift hover:gradient-accent transition-all duration-200"
+                size="sm"
+                className="border-gradient hover-lift"
               >
                 <Upload className="w-4 h-4 mr-2" />
                 Import RAML
               </Button>
-              <Button
-                onClick={handleCreateProject}
-                className="border-gradient hover-lift hover:gradient-accent transition-all duration-200 text-foreground"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                New Project
-              </Button>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Total Schemas:</span>
-                  <Badge variant="secondary">{project.status.totalSchemas}</Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Valid Schemas:</span>
-                  <Badge variant="default">{project.status.validSchemas}</Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Invalid Schemas:</span>
-                  <Badge variant="destructive">{project.status.invalidSchemas}</Badge>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <div className="text-2xl font-bold text-primary">{project.status.totalSchemas}</div>
+                <div className="text-sm text-muted-foreground">Total Schemas</div>
               </div>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Last Scan:</span>
-                  <span className="text-sm">
-                    {project.status.lastScanTime
-                      ? new Date(project.status.lastScanTime).toLocaleString()
-                      : 'Never'}
-                  </span>
+              <div className="text-center p-4 rounded-lg bg-green-500/5 border border-green-500/20">
+                <div className="text-2xl font-bold text-green-600">
+                  {project.status.validSchemas}
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Auto Validate:</span>
-                  <Badge variant={project.settings.autoValidate ? 'default' : 'secondary'}>
-                    {project.settings.autoValidate ? 'Enabled' : 'Disabled'}
-                  </Badge>
+                <div className="text-sm text-muted-foreground">Valid</div>
+              </div>
+              <div className="text-center p-4 rounded-lg bg-red-500/5 border border-red-500/20">
+                <div className="text-2xl font-bold text-red-600">
+                  {project.status.invalidSchemas}
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Watch Changes:</span>
-                  <Badge variant={project.settings.watchForChanges ? 'default' : 'secondary'}>
-                    {project.settings.watchForChanges ? 'Enabled' : 'Disabled'}
-                  </Badge>
-                </div>
+                <div className="text-sm text-muted-foreground">Invalid</div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Recent Projects */}
+        {/* Recent Projects Card */}
         <Card className="glass-blue border-0">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -342,7 +328,9 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
             </div>
             <Button
               onClick={handleCreateProject}
-              className="border-gradient hover-lift hover:gradient-accent transition-all duration-200 text-foreground"
+              variant="outline"
+              size="sm"
+              className="border-gradient hover-lift"
             >
               <Plus className="w-4 h-4 mr-2" />
               New Project
@@ -356,11 +344,11 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
                 <p className="text-xs">Create your first project to get started</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {recentProjects.slice(0, 5).map((recentProject) => (
                   <div
                     key={recentProject.id}
-                    className={`flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer ${
+                    className={`flex items-center justify-between p-4 rounded-lg border transition-all duration-200 cursor-pointer hover-lift ${
                       recentProject.id === project.id
                         ? 'border-primary bg-primary/5'
                         : 'border-border/50 hover:bg-muted/50'
@@ -368,23 +356,38 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
                     onClick={() => handleOpenProject(recentProject.path)}
                   >
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-sm truncate">{recentProject.name}</h4>
+                      <div className="flex items-center gap-2 mb-1">
+                        <FolderOpen className="w-4 h-4 text-primary" />
+                        <h4 className="font-medium text-sm truncate">{recentProject.name}</h4>
+                        {recentProject.id === project.id && (
+                          <Badge variant="default" className="text-xs">
+                            Current
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground truncate">{recentProject.path}</p>
                       <p className="text-xs text-muted-foreground">
                         Last opened: {new Date(recentProject.lastModified).toLocaleDateString()}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0 ml-2">
-                      {recentProject.id === project.id && <Badge variant="default">Current</Badge>}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                        onClick={(e) => handleDeleteClick(recentProject.id, recentProject.name, e)}
-                        title="Delete project from recent list"
-                      >
-                        <XCircle className="h-4 w-4" />
-                      </Button>
+                    <div className="flex items-center gap-2 shrink-0 ml-4">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover-lift"
+                            onClick={(e) =>
+                              handleDeleteClick(recentProject.id, recentProject.name, e)
+                            }
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Delete project from recent list</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                   </div>
                 ))}

@@ -18,10 +18,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { FolderOpen, Loader2, AlertTriangle } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
@@ -158,13 +157,9 @@ export function CreateProjectModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent size="lg">
         <DialogHeader>
           <DialogTitle>Create New Project</DialogTitle>
-          <DialogDescription>
-            Create a new project by selecting a folder containing JSON schema files. The application
-            will scan the folder and its subdirectories for JSON files.
-          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">

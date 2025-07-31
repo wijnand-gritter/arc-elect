@@ -29,18 +29,18 @@ import { Loader2 } from 'lucide-react';
  */
 export function ProjectLoading(): React.JSX.Element {
   return (
-    <div className="px-4 lg:px-6">
-      <Card className="glass-blue border-0">
-        <CardHeader className="gradient-accent rounded-t-lg border-b border-primary/20">
-          <CardTitle className="text-foreground flex items-center gap-2">
-            <Loader2 className="w-5 h-5 animate-spin" />
+    <div className="h-full flex flex-col">
+      <Card className="glass-blue border-0 flex-1">
+        <CardHeader className="gradient-accent rounded-t-lg border-b border-primary/20 py-4">
+          <CardTitle className="text-foreground flex items-center gap-2 text-lg">
+            <Loader2 className="w-4 h-4 animate-spin" />
             Loading Project
           </CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Please wait while we load your project
+          <CardDescription className="text-muted-foreground text-sm">
+            Please wait while we load your project files
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4 p-6">
+        <CardContent className="p-4">
           <div className="space-y-4">
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />

@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -230,13 +230,12 @@ export const RamlImportModal: React.FC<RamlImportModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+      <DialogContent size="lg" className="max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
-            RAML Import
+            Import RAML
           </DialogTitle>
-          <DialogDescription>Import and convert RAML files to JSON Schema format</DialogDescription>
         </DialogHeader>
 
         <Tabs

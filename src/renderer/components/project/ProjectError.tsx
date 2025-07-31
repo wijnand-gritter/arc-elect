@@ -48,19 +48,22 @@ export function ProjectError({ error }: ProjectErrorProps): React.JSX.Element {
     clearProjectError();
   };
 
+  const errorTitle = 'Project Error';
+  const errorDescription = 'Something went wrong while loading your project';
+
   return (
-    <div className="px-4 lg:px-6">
-      <Card className="glass-blue border-0">
-        <CardHeader className="gradient-accent rounded-t-lg border-b border-primary/20">
-          <CardTitle className="text-foreground flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-destructive" />
-            Project Error
+    <div className="h-full flex flex-col">
+      <Card className="glass-blue border-0 flex-1">
+        <CardHeader className="gradient-accent rounded-t-lg border-b border-primary/20 py-4">
+          <CardTitle className="text-foreground flex items-center gap-2 text-lg">
+            <AlertTriangle className="w-4 h-4" />
+            {errorTitle}
           </CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Something went wrong while loading your project
+          <CardDescription className="text-muted-foreground text-sm">
+            {errorDescription}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4 p-6">
+        <CardContent className="p-4">
           <div className="space-y-4">
             <div className="flex items-center justify-center py-4">
               <AlertTriangle className="w-12 h-12 text-destructive opacity-50" />

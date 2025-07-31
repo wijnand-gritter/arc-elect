@@ -11,7 +11,7 @@
  */
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Progress } from '../components/ui/progress';
 import { Button } from '../components/ui/button';
@@ -156,21 +156,12 @@ export function Analytics(): React.JSX.Element {
   // No project loaded state
   if (!currentProject) {
     return (
-      <div className="px-4 lg:px-6">
-        <Card className="glass-blue border-0">
-          <CardHeader className="gradient-accent rounded-t-lg border-b border-primary/20">
-            <CardTitle className="text-foreground flex items-center gap-2">
-              <BarChart3 className="w-5 h-5" />
-              Schema Analytics
-            </CardTitle>
-            <CardDescription className="text-muted-foreground">
-              Comprehensive project-wide schema analysis and insights
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 p-6">
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center space-y-4">
-                <BarChart3 className="w-16 h-16 mx-auto text-muted-foreground opacity-50" />
+      <div className="h-full flex flex-col">
+        <Card className="glass-blue border-0 flex-1">
+          <CardContent className="space-y-4 p-4">
+            <div className="flex items-center justify-center py-8">
+              <div className="text-center space-y-3">
+                <BarChart3 className="w-12 h-12 mx-auto text-muted-foreground opacity-50" />
                 <div>
                   <h3 className="text-lg font-medium">No Project Loaded</h3>
                   <p className="text-sm text-muted-foreground">
@@ -227,20 +218,11 @@ export function Analytics(): React.JSX.Element {
   }, [analytics?.complexityMetrics]);
 
   return (
-    <div className="px-4 lg:px-6 space-y-6">
+    <div className="h-full flex flex-col space-y-4">
       {/* Analytics Header */}
       <Card className="glass-blue border-0">
-        <CardHeader className="gradient-accent rounded-t-lg border-b border-primary/20">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-foreground flex items-center gap-2">
-                <BarChart3 className="w-5 h-5" />
-                Schema Analytics
-              </CardTitle>
-              <CardDescription className="text-muted-foreground">
-                Comprehensive analysis for {currentProject.name} ({totalSchemas} schemas)
-              </CardDescription>
-            </div>
+        <CardContent className="p-4">
+          <div className="flex justify-end">
             <Button
               onClick={handleManualRefresh}
               disabled={isLoading || totalSchemas === 0}
@@ -252,7 +234,7 @@ export function Analytics(): React.JSX.Element {
               {isLoading ? 'Analyzing...' : 'Refresh'}
             </Button>
           </div>
-        </CardHeader>
+        </CardContent>
       </Card>
 
       {/* Error State */}
@@ -358,7 +340,9 @@ export function Analytics(): React.JSX.Element {
                     <CheckCircle className="w-5 h-5" />
                     Validation Status
                   </CardTitle>
-                  <CardDescription>Distribution of schema validation results</CardDescription>
+                  <p className="text-sm text-muted-foreground">
+                    Distribution of schema validation results
+                  </p>
                 </CardHeader>
                 <CardContent>
                   <div className="h-[300px]">
@@ -370,7 +354,7 @@ export function Analytics(): React.JSX.Element {
                           cy="50%"
                           labelLine={false}
                           label={({ name, value, percent }) =>
-                            `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
+                            `${name}: ${value} (${((percent || 0) * 100).toFixed(0)}%)`
                           }
                           outerRadius={80}
                           fill="#8884d8"
@@ -394,7 +378,7 @@ export function Analytics(): React.JSX.Element {
                     <BarChart3 className="w-5 h-5" />
                     Complexity Distribution
                   </CardTitle>
-                  <CardDescription>Schema complexity score ranges</CardDescription>
+                  <p className="text-sm text-muted-foreground">Schema complexity score ranges</p>
                 </CardHeader>
                 <CardContent>
                   <div className="h-[300px]">
@@ -419,7 +403,9 @@ export function Analytics(): React.JSX.Element {
                   <Activity className="w-5 h-5" />
                   Project Health
                 </CardTitle>
-                <CardDescription>Key metrics and indicators for project quality</CardDescription>
+                <p className="text-sm text-muted-foreground">
+                  Key metrics and indicators for project quality
+                </p>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -509,7 +495,9 @@ export function Analytics(): React.JSX.Element {
                     <Target className="w-5 h-5" />
                     Complexity vs Size
                   </CardTitle>
-                  <CardDescription>Schema complexity plotted against file size</CardDescription>
+                  <p className="text-sm text-muted-foreground">
+                    Schema complexity plotted against file size
+                  </p>
                 </CardHeader>
                 <CardContent>
                   <div className="h-[300px]">
@@ -558,7 +546,9 @@ export function Analytics(): React.JSX.Element {
                     <Zap className="w-5 h-5" />
                     Most Complex Schemas
                   </CardTitle>
-                  <CardDescription>Schemas with highest complexity scores</CardDescription>
+                  <p className="text-sm text-muted-foreground">
+                    Schemas with highest complexity scores
+                  </p>
                 </CardHeader>
                 <CardContent>
                   <ScrollArea className="h-[300px]">
@@ -620,9 +610,9 @@ export function Analytics(): React.JSX.Element {
                           <AlertTriangle className="w-5 h-5 text-destructive" />
                           Circular References
                         </CardTitle>
-                        <CardDescription>
+                        <p className="text-sm text-muted-foreground">
                           {analytics.circularReferences.length} circular dependencies detected
-                        </CardDescription>
+                        </p>
                       </div>
                       <Button variant="outline" size="sm">
                         <Download className="w-4 h-4 mr-2" />
@@ -694,9 +684,9 @@ export function Analytics(): React.JSX.Element {
                       <Network className="w-5 h-5" />
                       Reference Flow
                     </CardTitle>
-                    <CardDescription>
+                    <p className="text-sm text-muted-foreground">
                       Visual representation of circular dependencies
-                    </CardDescription>
+                    </p>
                   </CardHeader>
                   <CardContent>
                     <div className="h-[400px] flex items-center justify-center">
@@ -778,7 +768,9 @@ export function Analytics(): React.JSX.Element {
                       <Network className="w-5 h-5" />
                       Interactive Reference Graph
                     </CardTitle>
-                    <CardDescription>Explore schema relationships and dependencies</CardDescription>
+                    <p className="text-sm text-muted-foreground">
+                      Explore schema relationships and dependencies
+                    </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button variant="outline" size="sm">
@@ -902,7 +894,9 @@ export function Analytics(): React.JSX.Element {
                     <BarChart3 className="w-5 h-5" />
                     Graph Metrics
                   </CardTitle>
-                  <CardDescription>Network analysis of schema references</CardDescription>
+                  <p className="text-sm text-muted-foreground">
+                    Network analysis of schema references
+                  </p>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -974,7 +968,9 @@ export function Analytics(): React.JSX.Element {
                         <GitBranch className="w-5 h-5" />
                         Most Referenced
                       </CardTitle>
-                      <CardDescription>Schemas with highest reference counts</CardDescription>
+                      <p className="text-sm text-muted-foreground">
+                        Schemas with highest reference counts
+                      </p>
                     </div>
                     <Button variant="outline" size="sm">
                       <Eye className="w-4 h-4 mr-2" />
@@ -1082,7 +1078,9 @@ export function Analytics(): React.JSX.Element {
                     <Clock className="w-5 h-5" />
                     Analysis Performance
                   </CardTitle>
-                  <CardDescription>Performance metrics from the last analysis run</CardDescription>
+                  <p className="text-sm text-muted-foreground">
+                    Performance metrics from the last analysis run
+                  </p>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -1130,7 +1128,7 @@ export function Analytics(): React.JSX.Element {
                     <FileText className="w-5 h-5" />
                     File Size Distribution
                   </CardTitle>
-                  <CardDescription>Distribution of schema file sizes</CardDescription>
+                  <p className="text-sm text-muted-foreground">Distribution of schema file sizes</p>
                 </CardHeader>
                 <CardContent>
                   <div className="h-[250px]">
@@ -1172,7 +1170,7 @@ export function Analytics(): React.JSX.Element {
                   <Eye className="w-5 h-5" />
                   Cache Statistics
                 </CardTitle>
-                <CardDescription>Analytics service cache performance</CardDescription>
+                <p className="text-sm text-muted-foreground">Analytics service cache performance</p>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

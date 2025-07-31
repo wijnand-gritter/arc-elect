@@ -11,10 +11,10 @@
  */
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ModeToggle } from '@/components/ModeToggle';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { ModeToggle } from '@/components/ModeToggle';
 import { toast } from 'sonner';
 
 /**
@@ -100,18 +100,9 @@ export function Settings(): React.JSX.Element {
   };
 
   return (
-    <div className="px-4 lg:px-6">
-      <Card className="glass-blue border-0">
-        <CardHeader className="gradient-accent rounded-t-lg border-b border-primary/20">
-          <CardTitle className="text-foreground flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-primary animate-pulse-blue"></div>
-            Settings
-          </CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Manage your application preferences and data
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6 p-6">
+    <div className="h-full flex flex-col">
+      <Card className="glass-blue border-0 flex-1">
+        <CardContent className="p-4">
           {/* Theme Settings Section */}
           <div className="space-y-4">
             <div>

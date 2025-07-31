@@ -45,7 +45,7 @@ export const AppLayout: React.FC = () => {
   const { setPage } = useAppStore();
 
   // Initialize accessibility features
-  const { announce, addSkipLink } = useAccessibility({
+  const { announce } = useAccessibility({
     enableFocusManagement: true,
     enableScreenReaderSupport: true,
     enableKeyboardNavigation: true,
@@ -55,6 +55,7 @@ export const AppLayout: React.FC = () => {
   // Initialize keyboard shortcuts with custom handlers
   useKeyboardShortcuts({
     enableGlobal: true,
+    enableDebug: true,
     customHandlers: {
       help: () => {
         setIsHelpModalOpen(true);
@@ -81,25 +82,38 @@ export const AppLayout: React.FC = () => {
     },
   });
 
-  // Add skip links for accessibility
+  // Listen for help modal events
   React.useEffect(() => {
-    addSkipLink('main-content', 'Skip to main content');
-    addSkipLink('navigation', 'Skip to navigation');
-  }, [addSkipLink]);
+    const handleHelpModal = () => {
+      console.log('Help modal event received');
+      setIsHelpModalOpen(true);
+      announce('Keyboard shortcuts help opened');
+    };
+
+    document.addEventListener('show-help-modal', handleHelpModal);
+    return () => {
+      document.removeEventListener('show-help-modal', handleHelpModal);
+    };
+  }, [announce]);
 
   return (
-    <div className="app-background min-h-screen flex flex-col p-3">
+    <div className="app-background h-screen flex flex-col p-3">
       {/* Main app container */}
       <div className="flex flex-col flex-1 bg-background/95 backdrop-blur-sm rounded-lg shadow-2xl border border-border/20 overflow-hidden">
         {/* Navigation */}
-        <nav id="navigation" role="navigation" aria-label="Main navigation">
+        <nav
+          id="navigation"
+          role="navigation"
+          aria-label="Main navigation"
+          className="flex-shrink-0"
+        >
           <TopNavigationBar />
         </nav>
 
         {/* Main content area */}
         <main
           id="main-content"
-          className="flex-1 flex flex-col"
+          className="flex-1 flex flex-col min-h-0 overflow-hidden"
           role="main"
           aria-label="Main content"
         >
@@ -107,7 +121,9 @@ export const AppLayout: React.FC = () => {
         </main>
 
         {/* Footer */}
-        <Footer />
+        <div className="flex-shrink-0">
+          <Footer />
+        </div>
       </div>
 
       {/* Keyboard shortcuts help modal */}

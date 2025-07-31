@@ -10,18 +10,12 @@
  */
 
 import React, { useMemo } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Keyboard, Navigation, Search, FileText, Settings, Zap } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Badge } from './ui/badge';
+import { ScrollArea } from './ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Keyboard, Navigation, Search, Edit, FolderOpen, Settings } from 'lucide-react';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 
 /**
@@ -35,29 +29,18 @@ interface KeyboardShortcutsModalProps {
 }
 
 /**
- * Category icon mapping.
+ * Category icons mapping.
  */
 const categoryIcons = {
   navigation: Navigation,
   search: Search,
-  editor: FileText,
-  project: Settings,
-  general: Zap,
+  editor: Edit,
+  project: FolderOpen,
+  general: Settings,
 };
 
 /**
- * Category descriptions.
- */
-const categoryDescriptions = {
-  navigation: 'Navigate between pages and sections',
-  search: 'Search and filter functionality',
-  editor: 'Schema editing and management',
-  project: 'Project-level operations',
-  general: 'General application shortcuts',
-};
-
-/**
- * Format shortcut key combination for display.
+ * Format shortcut key for display.
  */
 function formatShortcutKey(shortcut: {
   key: string;
@@ -68,35 +51,17 @@ function formatShortcutKey(shortcut: {
 }): string {
   const parts: string[] = [];
 
+  // Detect platform for modifier key display
+  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+
   // Add modifiers in consistent order
-  if (shortcut.ctrl) parts.push('Ctrl');
+  if (shortcut.ctrl && !shortcut.meta) parts.push(isMac ? 'Ctrl' : 'Ctrl');
   if (shortcut.alt) parts.push('Alt');
   if (shortcut.shift) parts.push('Shift');
-  if (shortcut.meta) parts.push('Cmd');
+  if (shortcut.meta) parts.push(isMac ? 'Cmd' : 'Ctrl');
 
   // Add the main key
-  let key = shortcut.key;
-
-  // Format special keys for better readability
-  const keyMappings: Record<string, string> = {
-    Escape: 'Esc',
-    Enter: '↵',
-    Tab: '⇥',
-    Delete: 'Del',
-    ArrowUp: '↑',
-    ArrowDown: '↓',
-    ArrowLeft: '←',
-    ArrowRight: '→',
-    ' ': 'Space',
-  };
-
-  if (keyMappings[key]) {
-    key = keyMappings[key];
-  } else if (key.length === 1) {
-    key = key.toUpperCase();
-  }
-
-  parts.push(key);
+  parts.push(shortcut.key.toUpperCase());
 
   return parts.join(' + ');
 }
@@ -104,17 +69,17 @@ function formatShortcutKey(shortcut: {
 /**
  * Keyboard shortcuts help modal component.
  *
- * Displays all available keyboard shortcuts organized by category
- * with clear visual indicators and descriptions.
+ * This component displays all available keyboard shortcuts
+ * organized by category in a tabbed interface.
  *
  * @param props - Component props
- * @returns JSX element representing the shortcuts modal
+ * @returns JSX element representing the keyboard shortcuts modal
  *
  * @example
  * ```tsx
  * <KeyboardShortcutsModal
- *   isOpen={isHelpOpen}
- *   onClose={() => setIsHelpOpen(false)}
+ *   isOpen={isHelpModalOpen}
+ *   onClose={() => setIsHelpModalOpen(false)}
  * />
  * ```
  */
@@ -125,26 +90,49 @@ export function KeyboardShortcutsModal({
   const { shortcuts } = useKeyboardShortcuts({ enableGlobal: false });
 
   /**
+   * Filter shortcuts by OS and remove duplicates.
+   */
+  const filteredShortcuts = useMemo(() => {
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+
+    return shortcuts.filter((shortcut: any) => {
+      // Skip disabled shortcuts
+      if (shortcut.enabled === false) return false;
+
+      // For help shortcuts, only show OS-relevant ones
+      if (shortcut.description.includes('Show keyboard shortcuts help')) {
+        if (isMac) {
+          // On macOS, only show F1 and Cmd + F1
+          return shortcut.key === 'F1' && (!shortcut.ctrl || shortcut.meta);
+        } else {
+          // On Windows/Linux, only show F1 and Ctrl + F1
+          return shortcut.key === 'F1' && (!shortcut.meta || shortcut.ctrl);
+        }
+      }
+
+      return true;
+    });
+  }, [shortcuts]);
+
+  /**
    * Group shortcuts by category.
    */
   const shortcutsByCategory = useMemo(() => {
-    const grouped = shortcuts
-      .filter((shortcut) => shortcut.enabled !== false)
-      .reduce(
-        (acc, shortcut) => {
-          const category = shortcut.category;
-          if (!acc[category]) {
-            acc[category] = [];
-          }
-          acc[category].push(shortcut);
-          return acc;
-        },
-        {} as Record<string, typeof shortcuts>,
-      );
+    const grouped = filteredShortcuts.reduce(
+      (acc: any, shortcut: any) => {
+        const category = shortcut.category;
+        if (!acc[category]) {
+          acc[category] = [];
+        }
+        acc[category].push(shortcut);
+        return acc;
+      },
+      {} as Record<string, typeof shortcuts>,
+    );
 
     // Sort each category by key combination
     Object.keys(grouped).forEach((category) => {
-      grouped[category].sort((a, b) => {
+      grouped[category].sort((a: any, b: any) => {
         const aKey = formatShortcutKey(a);
         const bKey = formatShortcutKey(b);
         return aKey.localeCompare(bKey);
@@ -152,7 +140,7 @@ export function KeyboardShortcutsModal({
     });
 
     return grouped;
-  }, [shortcuts]);
+  }, [filteredShortcuts]);
 
   /**
    * Get category order for consistent display.
@@ -162,120 +150,81 @@ export function KeyboardShortcutsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
-        <DialogHeader>
+      <DialogContent size="lg" layout="flex" className="max-h-[90vh] overflow-hidden w-[800px]">
+        <DialogHeader className="flex-shrink-0 pb-4">
           <DialogTitle className="flex items-center space-x-2">
             <Keyboard className="h-5 w-5" />
             <span>Keyboard Shortcuts</span>
           </DialogTitle>
           <DialogDescription>
-            Discover keyboard shortcuts to boost your productivity while working with JSON schemas.
+            Use these shortcuts to navigate, search, edit, and manage your JSON Schema.
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-6">
-            {sortedCategories.map((category) => {
-              const Icon = categoryIcons[category as keyof typeof categoryIcons];
-              const shortcuts = shortcutsByCategory[category];
+        <div className="flex-1 min-h-0">
+          <Tabs defaultValue={sortedCategories[0]} className="h-full flex flex-col">
+            <TabsList className="grid w-full grid-cols-5 mb-4">
+              {sortedCategories.map((category) => {
+                const Icon = categoryIcons[category as keyof typeof categoryIcons];
+                return (
+                  <TabsTrigger key={category} value={category} className="flex items-center gap-2">
+                    <Icon className="h-4 w-4" />
+                    <span className="capitalize">{category}</span>
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
 
-              return (
-                <Card key={category}>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center space-x-2 text-lg">
-                      <Icon className="h-5 w-5 text-primary" />
-                      <span className="capitalize">{category}</span>
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      {categoryDescriptions[category as keyof typeof categoryDescriptions]}
-                    </p>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {shortcuts.map((shortcut, index) => (
-                      <div
-                        key={`${category}-${index}`}
-                        className="flex items-center justify-between py-2"
-                      >
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">{shortcut.description}</p>
-                        </div>
-                        <Badge variant="outline" className="font-mono text-xs font-semibold">
-                          {formatShortcutKey(shortcut)}
-                        </Badge>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              );
-            })}
-
-            {/* Tips section */}
-            <Card className="bg-muted/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center space-x-2 text-lg">
-                  <Zap className="h-5 w-5 text-yellow-500" />
-                  <span>Pro Tips</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2">
-                  <p className="text-sm">
-                    <strong>Focus Management:</strong> Most shortcuts work globally, but some are
-                    disabled when typing in input fields.
-                  </p>
-                  <Separator />
-                  <p className="text-sm">
-                    <strong>Search Shortcuts:</strong> Use{' '}
-                    <Badge variant="outline" className="font-mono text-xs">
-                      Ctrl + F
-                    </Badge>{' '}
-                    to focus search anywhere, or{' '}
-                    <Badge variant="outline" className="font-mono text-xs">
-                      Ctrl + K
-                    </Badge>{' '}
-                    for quick search.
-                  </p>
-                  <Separator />
-                  <p className="text-sm">
-                    <strong>Navigation:</strong> Use{' '}
-                    <Badge variant="outline" className="font-mono text-xs">
-                      Ctrl + 1/2/3
-                    </Badge>{' '}
-                    to quickly switch between Explore, Build, and Analytics.
-                  </p>
-                  <Separator />
-                  <p className="text-sm">
-                    <strong>Accessibility:</strong> All shortcuts respect accessibility guidelines
-                    and work with screen readers.
-                  </p>
-                  <Separator />
-                  <p className="text-sm">
-                    <strong>Platform Notes:</strong> On macOS,{' '}
-                    <Badge variant="outline" className="font-mono text-xs">
-                      Ctrl
-                    </Badge>{' '}
-                    shortcuts may use{' '}
-                    <Badge variant="outline" className="font-mono text-xs">
-                      Cmd
-                    </Badge>{' '}
-                    instead.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Footer info */}
-            <div className="text-center text-xs text-muted-foreground">
-              <p>
-                Press{' '}
-                <Badge variant="outline" className="font-mono text-xs">
-                  Shift + ?
-                </Badge>{' '}
-                to show this help anytime
-              </p>
+            <div className="flex-1 min-h-0 h-[500px]">
+              <ScrollArea className="h-full">
+                {sortedCategories.map((category) => {
+                  const shortcuts = shortcutsByCategory[category];
+                  return (
+                    <TabsContent key={category} value={category} className="h-full mt-0">
+                      <Card className="h-full">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="flex items-center space-x-2">
+                            {React.createElement(
+                              categoryIcons[category as keyof typeof categoryIcons],
+                              {
+                                className: 'h-5 w-5 text-primary',
+                              },
+                            )}
+                            <span className="capitalize">{category}</span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2 h-[400px] overflow-y-auto">
+                          {shortcuts.length > 0 ? (
+                            shortcuts.map((shortcut: any, index: number) => (
+                              <div
+                                key={`${category}-${index}`}
+                                className="flex items-center justify-between py-2 px-2 rounded-md hover:bg-muted/50 transition-colors"
+                              >
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium">{shortcut.description}</p>
+                                </div>
+                                <Badge
+                                  variant="outline"
+                                  className="font-mono text-xs font-semibold ml-4"
+                                >
+                                  {formatShortcutKey(shortcut)}
+                                </Badge>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-muted-foreground">
+                              <p className="text-sm">No shortcuts available for this category.</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  );
+                })}
+              </ScrollArea>
             </div>
-          </div>
-        </ScrollArea>
+          </Tabs>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -13,14 +13,13 @@
  */
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Badge } from '../components/ui/badge';
 
 import {
-  Edit,
   Code,
   FileText,
   Folder,
@@ -149,7 +148,6 @@ export function Build(): React.JSX.Element {
           path: folderPath,
           children: [],
           expanded: false, // Keep all folders collapsed initially
-          schema: undefined,
         };
 
         folderMap.set(folderPath, folderItem);
@@ -611,21 +609,12 @@ export function Build(): React.JSX.Element {
   // No project state
   if (!currentProject) {
     return (
-      <div className="px-4 lg:px-6">
-        <Card className="glass-blue border-0">
-          <CardHeader className="gradient-accent rounded-t-lg border-b border-primary/20">
-            <CardTitle className="text-foreground flex items-center gap-2">
-              <Edit className="w-5 h-5" />
-              Build & Edit Schemas
-            </CardTitle>
-            <CardDescription className="text-muted-foreground">
-              Edit, validate, and manage your JSON schemas
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 p-6">
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center space-y-4">
-                <Code className="w-16 h-16 mx-auto text-muted-foreground opacity-50" />
+      <div className="h-full flex flex-col">
+        <Card className="glass-blue border-0 flex-1">
+          <CardContent className="space-y-4 p-4">
+            <div className="flex items-center justify-center py-8">
+              <div className="text-center space-y-3">
+                <Code className="w-12 h-12 mx-auto text-muted-foreground opacity-50" />
                 <div>
                   <h3 className="text-lg font-medium">No Project Loaded</h3>
                   <p className="text-sm text-muted-foreground">
@@ -641,19 +630,15 @@ export function Build(): React.JSX.Element {
   }
 
   return (
-    <div className="px-4 lg:px-6 h-full flex flex-col">
+    <div className="h-full flex flex-col">
       {/* Header */}
-      <Card className="glass-blue border-0 mb-4">
-        <CardHeader className="gradient-accent rounded-t-lg border-b border-primary/20 pb-4">
+      <Card className="glass-blue border-0 mb-3 flex-shrink-0">
+        <CardContent className="py-4">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-foreground flex items-center gap-2">
-                <Edit className="w-5 h-5" />
-                Build & Edit Schemas
-              </CardTitle>
-              <CardDescription className="text-muted-foreground">
+              <h3 className="text-lg font-medium text-foreground">
                 {currentProject.name} ({currentProject.schemas?.length || 0} schemas)
-              </CardDescription>
+              </h3>
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -689,7 +674,7 @@ export function Build(): React.JSX.Element {
               </Badge>
             </div>
           </div>
-        </CardHeader>
+        </CardContent>
       </Card>
 
       {/* Main Content */}

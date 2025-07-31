@@ -11,13 +11,7 @@
  */
 
 import React from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -300,7 +294,7 @@ export function SchemaDetailModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden">
+      <DialogContent size="lg" className="max-h-[95vh] overflow-hidden">
         <DialogHeader className="flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -313,9 +307,6 @@ export function SchemaDetailModal({
                 <FileText className="w-5 h-5" />
                 <div>
                   <DialogTitle>{schema.metadata.title || schema.name}</DialogTitle>
-                  <DialogDescription>
-                    {schema.metadata.description || 'JSON Schema file'}
-                  </DialogDescription>
                 </div>
               </div>
             </div>
