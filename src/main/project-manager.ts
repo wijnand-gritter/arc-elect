@@ -1067,6 +1067,15 @@ class ProjectManager {
       if (schema.name.endsWith('.schema')) {
         schemaMap.set(schema.name.replace('.schema', ''), schema);
       }
+
+      // Add variations for schema names with .schema.json extension
+      if (schema.name.endsWith('.schema.json')) {
+        const nameWithoutExt = schema.name.replace('.schema.json', '');
+        schemaMap.set(nameWithoutExt, schema);
+      }
+
+      // Add the full path as a key for better matching
+      schemaMap.set(schema.relativePath, schema);
     });
 
     // Process references efficiently
@@ -1074,11 +1083,33 @@ class ProjectManager {
     let resolvedReferences = 0;
     let unresolvedReferences = 0;
 
+    // Debug: Log schema map keys for troubleshooting
+    if (process.env.NODE_ENV === 'development') {
+      logger.debug('Schema map keys:', Array.from(schemaMap.keys()));
+    }
+
     schemas.forEach((schema) => {
       totalReferences += schema.references.length;
 
       schema.references.forEach((ref) => {
-        const referencedSchema = schemaMap.get(ref.schemaName);
+        // Try multiple ways to find the referenced schema
+        let referencedSchema = schemaMap.get(ref.schemaName);
+        
+        // If not found, try to extract the filename from the $ref path
+        if (!referencedSchema && ref.$ref) {
+          const extractedName = this.extractSchemaNameFromRef(ref.$ref);
+          if (extractedName) {
+            referencedSchema = schemaMap.get(extractedName);
+          }
+        }
+
+        // If still not found, try to match by relative path
+        if (!referencedSchema && ref.$ref) {
+          // Remove leading ./ and trailing .schema.json
+          const cleanRef = ref.$ref.replace(/^\.\//, '').replace(/\.schema\.json$/, '');
+          referencedSchema = schemaMap.get(cleanRef);
+        }
+
         if (referencedSchema && referencedSchema.id !== schema.id) {
           referencedByMap.get(referencedSchema.id)!.add(schema.id);
           resolvedReferences++;
@@ -1086,7 +1117,8 @@ class ProjectManager {
           unresolvedReferences++;
           // Only log unresolved references in debug mode to avoid spam
           if (process.env.NODE_ENV === 'development') {
-            logger.debug(`Unresolved reference: ${schema.name} -> ${ref.schemaName}`);
+            logger.debug(`Unresolved reference: ${schema.name} -> ${ref.schemaName} (${ref.$ref})`);
+            logger.debug(`Available keys for ${ref.schemaName}:`, Array.from(schemaMap.keys()).filter(key => key.includes(ref.schemaName)));
           }
         }
       });
