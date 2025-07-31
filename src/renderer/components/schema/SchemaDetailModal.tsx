@@ -10,20 +10,24 @@
  * @version 1.0.0
  */
 
-import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import React, { useState, useCallback } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowLeft, FileText, AlertCircle, CheckCircle, Clock, Calendar, Copy } from 'lucide-react';
+import { ArrowLeft, FileText, AlertCircle, CheckCircle, Clock, Calendar, Copy, XCircle, HelpCircle, Info, Code, List, Shield, Edit } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
 import { toast } from 'sonner';
-import type { Schema, ValidationStatus, SchemaReference } from '../../../types/schema-editor';
-import type { SchemaDetailModal as SchemaDetailModalType } from '../../stores/useAppStore';
-import logger from '@/lib/renderer-logger';
+import type { Schema, SchemaReference, ValidationStatus } from '../../../types/schema-editor';
 
 /**
  * Schema detail modal props.
@@ -64,92 +68,80 @@ export function SchemaDetailModal({
   onClose,
   onEdit,
 }: SchemaDetailModalProps): React.JSX.Element {
-  const {
-    modalStack,
-    currentModalIndex,
-    currentProject,
-    navigateToSchema,
-    goBack,
-    setActiveModalTab,
-  } = useAppStore();
+  const { currentProject, modalStack, currentModalIndex, navigateToSchema, goBack } = useAppStore();
+  const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'properties' | 'validation'>('overview');
 
-  // Use schemas from current project, not the empty schemas array from store
-  const schemas = currentProject?.schemas || [];
-
+  // Get the current schema from the modal stack
   const currentModal = modalStack[currentModalIndex];
+  const schema = currentModal?.schema;
   const canGoBack = currentModalIndex > 0;
 
-  /**
-   * Handles copying schema content to clipboard.
-   */
+  const handleReferenceClick = useCallback((reference: SchemaReference) => {
+    if (schema) {
+      // Find the referenced schema in the current project
+      const referencedSchema = currentProject?.schemas.find((s) => s.name === reference.schemaName);
+      if (referencedSchema) {
+        navigateToSchema(referencedSchema, 'overview');
+      } else {
+        toast.error(`Referenced schema not found: ${reference.schemaName}`);
+      }
+    }
+  }, [schema, currentProject, navigateToSchema]);
+
   const handleCopyContent = async () => {
-    if (!currentModal) return;
+    if (!schema) return;
 
     try {
-      await navigator.clipboard.writeText(JSON.stringify(currentModal.schema.content, null, 2));
+      await navigator.clipboard.writeText(JSON.stringify(schema.content, null, 2));
       toast.success('Schema content copied to clipboard');
     } catch (_error) {
       toast.error('Failed to copy schema content');
     }
   };
 
-  /**
-   * Gets validation status display information.
-   */
   const getValidationStatus = (status: ValidationStatus) => {
     switch (status) {
       case 'valid':
         return {
-          icon: <CheckCircle className="w-4 h-4" />,
           text: 'Valid',
           variant: 'default' as const,
-          description: 'This schema is valid and follows JSON Schema specification.',
+          icon: <CheckCircle className="h-4 w-4" />,
         };
       case 'invalid':
         return {
-          icon: <AlertCircle className="w-4 h-4" />,
           text: 'Invalid',
           variant: 'destructive' as const,
-          description: 'This schema has validation errors that need to be fixed.',
-        };
-      case 'error':
-        return {
-          icon: <AlertCircle className="w-4 h-4" />,
-          text: 'Error',
-          variant: 'destructive' as const,
-          description: 'An error occurred during validation.',
+          icon: <XCircle className="h-4 w-4" />,
         };
       case 'pending':
         return {
-          icon: <Clock className="w-4 h-4" />,
           text: 'Pending',
           variant: 'secondary' as const,
-          description: 'This schema is waiting to be validated.',
+          icon: <Clock className="h-4 w-4" />,
+        };
+      case 'error':
+        return {
+          text: 'Error',
+          variant: 'destructive' as const,
+          icon: <AlertCircle className="h-4 w-4" />,
         };
       default:
         return {
-          icon: <Clock className="w-4 h-4" />,
           text: 'Unknown',
-          variant: 'secondary' as const,
-          description: 'Validation status is unknown.',
+          variant: 'outline' as const,
+          icon: <HelpCircle className="h-4 w-4" />,
         };
     }
   };
 
-  /**
-   * Formats file size in human-readable format.
-   */
   const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
+    if (bytes === 0) return '0 Bytes';
     const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  /**
-   * Formats a relative date for display.
-   */
   const formatRelativeDate = (date: Date): string => {
     const now = new Date();
     const diffInMs = now.getTime() - date.getTime();
@@ -159,143 +151,45 @@ export function SchemaDetailModal({
     if (diffInDays === 1) return 'Yesterday';
     if (diffInDays < 7) return `${diffInDays} days ago`;
     if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
-    return `${Math.floor(diffInDays / 30)} months ago`;
+    if (diffInDays < 365) return `${Math.floor(diffInDays / 30)} months ago`;
+    return `${Math.floor(diffInDays / 365)} years ago`;
   };
 
-  /**
-   * Gets the display type for a schema property.
-   */
   const getPropertyType = (property: unknown): string => {
-    if (typeof property !== 'object' || property === null) return 'any';
-
-    const prop = property as Record<string, unknown>;
-
-    // Check for enum
-    if (prop.enum && Array.isArray(prop.enum)) {
-      return 'Enum';
+    if (typeof property === 'object' && property !== null) {
+      if ('type' in property) {
+        return String(property.type);
+      }
+      if ('$ref' in property) {
+        return 'reference';
+      }
+      if ('enum' in property) {
+        return 'enum';
+      }
+      if ('oneOf' in property || 'anyOf' in property || 'allOf' in property) {
+        return 'union';
+      }
+      return 'object';
     }
-
-    // Check for type
-    if (prop.type && typeof prop.type === 'string') {
-      return prop.type;
-    }
-
-    // Check for $ref
-    if (prop.$ref && typeof prop.$ref === 'string') {
-      return 'Reference';
-    }
-
-    // Check for oneOf, anyOf, allOf
-    if (prop.oneOf || prop.anyOf || prop.allOf) {
-      return 'Union';
-    }
-
-    return 'any';
+    return typeof property;
   };
 
-  /**
-   * Handles clicking on a reference to navigate to that schema.
-   */
-  const handleReferenceClick = (reference: SchemaReference) => {
-    logger.info('SchemaDetailModal: Handling reference click', {
-      reference,
-      availableSchemas: schemas.map((s) => ({
-        name: s.name,
-        relativePath: s.relativePath,
-        id: s.id,
-      })),
-    });
-
-    // Try multiple matching strategies
-    let referencedSchema = schemas.find((schema) => schema.name === reference.schemaName);
-
-    if (!referencedSchema) {
-      // Try matching by relative path containing the schema name
-      referencedSchema = schemas.find((schema) =>
-        schema.relativePath.includes(reference.schemaName),
-      );
-    }
-
-    if (!referencedSchema) {
-      // Try matching by filename without extension
-      const schemaNameWithoutExt = reference.schemaName.replace(/\.(json|schema)$/, '');
-      referencedSchema = schemas.find((schema) => {
-        const schemaNameWithoutExt2 = schema.name.replace(/\.(json|schema)$/, '');
-        return schemaNameWithoutExt2 === schemaNameWithoutExt;
-      });
-    }
-
-    if (!referencedSchema) {
-      // Try matching by path basename
-      referencedSchema = schemas.find((schema) => {
-        const basename = schema.relativePath
-          .split('/')
-          .pop()
-          ?.replace(/\.(json|schema)$/, '');
-        return (
-          basename === reference.schemaName ||
-          basename === reference.schemaName.replace(/\.(json|schema)$/, '')
-        );
-      });
-    }
-
-    logger.info('SchemaDetailModal: Reference click result', {
-      reference,
-      found: !!referencedSchema,
-      foundSchema: referencedSchema
-        ? { name: referencedSchema.name, id: referencedSchema.id }
-        : null,
-    });
-
-    if (referencedSchema) {
-      navigateToSchema(referencedSchema, 'overview');
-    } else {
-      toast.error(`Referenced schema not found: ${reference.schemaName}`);
-      logger.warn('SchemaDetailModal: Could not find referenced schema', {
-        searchedFor: reference.schemaName,
-        availableNames: schemas.map((s) => s.name),
-      });
-    }
-  };
-
-  if (!currentModal) {
+  if (!schema || !currentProject) {
     return null;
   }
 
-  const { schema, activeTab } = currentModal;
   const validationStatus = getValidationStatus(schema.validationStatus);
-  const fileSize = formatFileSize(schema.metadata.fileSize);
   const lastModified = formatRelativeDate(schema.metadata.lastModified);
+  const fileSize = formatFileSize(schema.metadata.fileSize);
 
-  // Extract references and get schemas that reference this one
-  const references = schema.references;
-  const referencedBy = schema.referencedBy
-    ? schemas.filter((s) => schema.referencedBy.includes(s.id))
-    : [];
-
-  // Comprehensive debug logging
-  logger.info('SchemaDetailModal: Reference data', {
-    schemaName: schema.name,
-    schemaId: schema.id,
-    referencesCount: references.length,
-    referencedByCount: referencedBy.length,
-    references: references,
-    referencedByIds: schema.referencedBy,
-    // Debug: Show all schema IDs for comparison
-    allSchemaIds: schemas.map((s) => ({ name: s.name, id: s.id })),
-    // Debug: Check if any referencedBy IDs exist in schemas
-    referencedByMatches:
-      schema.referencedBy?.map((refId) => ({
-        refId,
-        found: schemas.find((s) => s.id === refId),
-        foundName: schemas.find((s) => s.id === refId)?.name,
-      })) || [],
-  });
+  // Get references and referenced by from the schema
+  const references = schema.references || [];
+  const referencedBy = currentProject.schemas.filter((s) => s.referencedBy?.includes(schema.id));
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent size="lg" className="max-h-[95vh] overflow-hidden">
-        <DialogHeader className="flex-shrink-0">
+      <DialogContent size="lg" layout="flex" className="max-h-[95vh] overflow-hidden w-[900px]">
+        <DialogHeader className="flex-shrink-0 pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               {canGoBack && (
@@ -308,7 +202,8 @@ export function SchemaDetailModal({
                 <div>
                   <DialogTitle>{schema.metadata.title || schema.name}</DialogTitle>
                   <DialogDescription>
-                    View detailed information about this JSON Schema including properties, validation, and references.
+                    View detailed information about this JSON Schema including properties,
+                    validation, and references.
                   </DialogDescription>
                 </div>
               </div>
@@ -322,31 +217,32 @@ export function SchemaDetailModal({
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 min-h-0">
           <Tabs
             value={activeTab}
-            onValueChange={(value) =>
-              setActiveModalTab(value as SchemaDetailModalType['activeTab'])
-            }
+            onValueChange={(value) => setActiveTab(value as 'overview' | 'content' | 'properties' | 'validation')}
+            className="h-full flex flex-col"
           >
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-4 mb-4">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="content">Content</TabsTrigger>
               <TabsTrigger value="properties">Properties</TabsTrigger>
               <TabsTrigger value="validation">Validation</TabsTrigger>
             </TabsList>
 
-            <div className="mt-4 h-[calc(95vh-200px)] overflow-hidden">
-              <TabsContent value="overview" className="h-full">
-                <ScrollArea className="h-full">
-                  <div className="space-y-4">
-                    {/* Basic Information */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Schema Information</CardTitle>
-                        <CardDescription>Basic details about this schema</CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
+            <div className="flex-1 min-h-0">
+              <ScrollArea className="h-full">
+                <TabsContent value="overview" className="h-full mt-0">
+                  <Card className="h-full">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2">
+                        <Info className="h-5 w-5 text-primary" />
+                        Schema Information
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6 h-[500px] overflow-y-auto">
+                      {/* Basic Information */}
+                      <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="text-sm font-medium text-muted-foreground">
@@ -377,15 +273,11 @@ export function SchemaDetailModal({
                             </div>
                           )}
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
 
-                    {/* Metadata */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>File Information</CardTitle>
-                      </CardHeader>
-                      <CardContent>
+                      {/* File Information */}
+                      <div className="space-y-4">
+                        <h4 className="font-medium">File Information</h4>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="flex items-center gap-2">
                             <Calendar className="w-4 h-4 text-muted-foreground" />
@@ -396,207 +288,210 @@ export function SchemaDetailModal({
                             <span className="text-sm">{fileSize}</span>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
 
-                    {/* Quick Actions */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Quick Actions</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex gap-2">
-                          <Button onClick={() => onEdit(schema)}>
-                            <FileText className="w-4 h-4 mr-2" />
-                            Edit Schema
-                          </Button>
-                          <Button variant="outline" onClick={handleCopyContent}>
-                            <Copy className="w-4 h-4 mr-2" />
-                            Copy Content
+                      {/* References */}
+                      {references.length > 0 && (
+                        <div className="space-y-4">
+                          <h4 className="font-medium">References</h4>
+                          <div className="space-y-2">
+                            {references.map((ref, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-accent"
+                                onClick={() => handleReferenceClick(ref)}
+                              >
+                                <FileText className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-sm">{ref.schemaName}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Referenced By */}
+                      {referencedBy.length > 0 && (
+                        <div className="space-y-4">
+                          <h4 className="font-medium">Referenced By</h4>
+                          <div className="space-y-2">
+                            {referencedBy.map((schema) => (
+                              <div
+                                key={schema.id}
+                                className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-accent"
+                                onClick={() => navigateToSchema(schema, 'overview')}
+                              >
+                                <FileText className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-sm">
+                                  {schema.metadata.title || schema.name}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {references.length === 0 && referencedBy.length === 0 && (
+                        <div className="text-sm text-muted-foreground">No references found</div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="content" className="h-full mt-0">
+                  <Card className="h-full">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2">
+                        <Code className="h-5 w-5 text-primary" />
+                        Schema Content
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="h-[500px] overflow-y-auto">
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <p className="text-sm text-muted-foreground">
+                            JSON Schema content and structure
+                          </p>
+                          <Button variant="outline" size="sm" onClick={handleCopyContent}>
+                            <Copy className="h-4 w-4 mr-2" />
+                            Copy
                           </Button>
                         </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </ScrollArea>
-              </TabsContent>
-
-              <TabsContent value="content" className="h-full">
-                <ScrollArea className="h-full">
-                  <Card className="h-full">
-                    <CardHeader>
-                      <CardTitle>Schema Content</CardTitle>
-                      <CardDescription>JSON content of the schema</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="bg-muted p-4 rounded-lg">
-                        <pre className="text-sm overflow-auto max-h-[500px]">
+                        <pre className="bg-muted p-4 rounded text-sm overflow-x-auto">
                           <code>{JSON.stringify(schema.content, null, 2)}</code>
                         </pre>
                       </div>
                     </CardContent>
                   </Card>
-                </ScrollArea>
-              </TabsContent>
+                </TabsContent>
 
-              <TabsContent value="properties" className="h-full">
-                <ScrollArea className="h-full">
-                  <div className="space-y-4">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Schema Properties</CardTitle>
-                        <CardDescription>Properties and structure of this schema</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          {/* Schema Type */}
-                          <div>
-                            <h4 className="font-medium mb-2">Schema Type</h4>
-                            <Badge variant="outline">
-                              {(schema.content.type as string) || 'object'}
-                            </Badge>
-                          </div>
-
-                          {/* Root-level Enum Values */}
-                          {schema.content.enum && Array.isArray(schema.content.enum) && (
-                            <div>
-                              <h4 className="font-medium mb-2">Enum Values</h4>
-                              <div className="flex flex-wrap gap-1">
-                                {(schema.content.enum as unknown[]).map((enumValue, index) => (
-                                  <Badge key={index} variant="outline" className="text-xs">
-                                    {String(enumValue)}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Properties */}
-                          {schema.content.properties && (
-                            <div>
-                              <h4 className="font-medium mb-2">Properties</h4>
-                              <div className="space-y-2">
-                                {Object.entries(
-                                  schema.content.properties as Record<string, unknown>,
-                                ).map(([key, value]) => {
-                                  const prop = value as Record<string, unknown>;
-                                  const isEnum = prop.enum && Array.isArray(prop.enum);
-                                  const enumValues = isEnum ? (prop.enum as unknown[]) : [];
-                                  const propertyType = getPropertyType(value);
-                                  const displayType = isEnum
-                                    ? `${prop.type || 'string'} enum`
-                                    : propertyType;
-
-                                  return (
-                                    <div key={key} className="space-y-2">
-                                      <div className="flex items-center justify-between p-2 border rounded">
-                                        <span className="font-mono text-sm">{key}</span>
-                                        <Badge variant="secondary" className="text-xs">
-                                          {displayType}
-                                        </Badge>
-                                      </div>
-                                      {isEnum && enumValues.length > 0 && (
-                                        <div className="ml-4 p-2 bg-muted/50 rounded">
-                                          <p className="text-xs text-muted-foreground mb-1">
-                                            Enum values:
-                                          </p>
-                                          <div className="flex flex-wrap gap-1">
-                                            {enumValues.map((enumValue, index) => (
-                                              <Badge
-                                                key={index}
-                                                variant="outline"
-                                                className="text-xs"
-                                              >
-                                                {String(enumValue)}
-                                              </Badge>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Required Fields */}
-                          {schema.content.required && Array.isArray(schema.content.required) && (
-                            <div>
-                              <h4 className="font-medium mb-2">Required Fields</h4>
-                              <div className="flex flex-wrap gap-1">
-                                {(schema.content.required as string[]).map((field) => (
-                                  <Badge key={field} variant="destructive" className="text-xs">
-                                    {field}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          <Separator />
-
-                          {/* References */}
-                          {references.length > 0 && (
-                            <div>
-                              <h4 className="font-medium mb-2">References</h4>
-                              <div className="space-y-1">
-                                {references.map((ref, index) => (
-                                  <div
-                                    key={index}
-                                    className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-accent"
-                                    onClick={() => handleReferenceClick(ref)}
-                                  >
-                                    <FileText className="w-4 h-4 text-muted-foreground" />
-                                    <span className="text-sm">
-                                      {schemas.find((s) => s.name === ref.schemaName)?.metadata
-                                        .title || ref.schemaName}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Referenced By */}
-                          {referencedBy.length > 0 && (
-                            <div>
-                              <h4 className="font-medium mb-2">Referenced By</h4>
-                              <div className="space-y-1">
-                                {referencedBy.map((schema) => (
-                                  <div
-                                    key={schema.id}
-                                    className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-accent"
-                                    onClick={() => navigateToSchema(schema, 'overview')}
-                                  >
-                                    <FileText className="w-4 h-4 text-muted-foreground" />
-                                    <span className="text-sm">
-                                      {schema.metadata.title || schema.name}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {references.length === 0 && referencedBy.length === 0 && (
-                            <div className="text-sm text-muted-foreground">No references found</div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </ScrollArea>
-              </TabsContent>
-
-              <TabsContent value="validation" className="h-full">
-                <ScrollArea className="h-full">
+                <TabsContent value="properties" className="h-full mt-0">
                   <Card className="h-full">
-                    <CardHeader>
-                      <CardTitle>Validation Details</CardTitle>
-                      <CardDescription>{validationStatus.description}</CardDescription>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2">
+                        <List className="h-5 w-5 text-primary" />
+                        Properties
+                      </CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="h-[500px] overflow-y-auto">
+                      <div className="space-y-4">
+                        {schema.content.properties && (
+                          <div>
+                            <h4 className="font-medium mb-2">Properties</h4>
+                            <div className="space-y-2">
+                              {Object.entries(schema.content.properties).map(([key, prop]) => {
+                                const propertyType = getPropertyType(prop);
+                                const isEnum = propertyType === 'enum' && Array.isArray(prop.enum);
+                                const enumValues = isEnum ? prop.enum : [];
+                                const displayType = isEnum
+                                  ? `${prop.type || 'string'} enum`
+                                  : propertyType;
+
+                                return (
+                                  <div key={key} className="space-y-2">
+                                    <div className="flex items-center justify-between p-2 border rounded">
+                                      <span className="font-mono text-sm">{key}</span>
+                                      <Badge variant="secondary" className="text-xs">
+                                        {displayType}
+                                      </Badge>
+                                    </div>
+                                    {isEnum && enumValues.length > 0 && (
+                                      <div className="ml-4 p-2 bg-muted/50 rounded">
+                                        <p className="text-xs text-muted-foreground mb-1">
+                                          Enum values:
+                                        </p>
+                                        <div className="flex flex-wrap gap-1">
+                                          {enumValues.map((enumValue: unknown, index: number) => (
+                                            <Badge
+                                              key={index}
+                                              variant="outline"
+                                              className="text-xs"
+                                            >
+                                              {String(enumValue)}
+                                            </Badge>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Required Fields */}
+                        {schema.content.required && Array.isArray(schema.content.required) && (
+                          <div>
+                            <h4 className="font-medium mb-2">Required Fields</h4>
+                            <div className="flex flex-wrap gap-1">
+                              {(schema.content.required as string[]).map((field) => (
+                                <Badge key={field} variant="destructive" className="text-xs">
+                                  {field}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <Separator />
+
+                        {/* References */}
+                        {references.length > 0 && (
+                          <div>
+                            <h4 className="font-medium mb-2">References</h4>
+                            <div className="space-y-1">
+                              {references.map((ref, index) => (
+                                <div
+                                  key={index}
+                                  className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-accent"
+                                  onClick={() => handleReferenceClick(ref)}
+                                >
+                                  <FileText className="w-4 h-4 text-muted-foreground" />
+                                  <span className="text-sm">{ref.schemaName}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Referenced By */}
+                        {referencedBy.length > 0 && (
+                          <div>
+                            <h4 className="font-medium mb-2">Referenced By</h4>
+                            <div className="space-y-1">
+                              {referencedBy.map((schema) => (
+                                <div
+                                  key={schema.id}
+                                  className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-accent"
+                                  onClick={() => navigateToSchema(schema, 'overview')}
+                                >
+                                  <FileText className="w-4 h-4 text-muted-foreground" />
+                                  <span className="text-sm">
+                                    {schema.metadata.title || schema.name}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {references.length === 0 && referencedBy.length === 0 && (
+                          <div className="text-sm text-muted-foreground">No references found</div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="validation" className="h-full mt-0">
+                  <Card className="h-full">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2">
+                        <Shield className="h-5 w-5 text-primary" />
+                        Validation Details
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="h-[500px] overflow-y-auto">
                       <div className="space-y-4">
                         <div className="flex items-center gap-2">
                           {validationStatus.icon}
@@ -643,10 +538,22 @@ export function SchemaDetailModal({
                       </div>
                     </CardContent>
                   </Card>
-                </ScrollArea>
-              </TabsContent>
+                </TabsContent>
+              </ScrollArea>
             </div>
           </Tabs>
+        </div>
+
+        <div className="flex-shrink-0 pt-4 border-t">
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={onClose}>
+              Close
+            </Button>
+            <Button onClick={() => onEdit(schema)}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit Schema
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
