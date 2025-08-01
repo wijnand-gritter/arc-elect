@@ -97,7 +97,7 @@ export const MonacoEditor = React.forwardRef<
     wordWrap = false,
     fontSize = 14,
     tabSize = 2,
-    fontFamily = '"Monaspace Neon", "JetBrains Mono", Consolas, "Courier New", monospace',
+    fontFamily = '"Monaspace Neon", Consolas, "Courier New", monospace',
   },
   ref,
 ) {

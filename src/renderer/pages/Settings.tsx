@@ -14,9 +14,8 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ModeToggle } from '@/components/ModeToggle';
-import { MonaspaceDemo } from '@/components/ui/monaspace-demo';
 import { toast } from 'sonner';
-import { Palette, Database, Download, Upload, Trash2, Type } from 'lucide-react';
+import { Palette, Database, Download, Upload, Trash2 } from 'lucide-react';
 
 /**
  * Settings page component for application configuration.
@@ -133,28 +132,6 @@ export function Settings(): React.JSX.Element {
                 <ModeToggle />
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Font Settings Card */}
-      <Card className="glass-blue border-0">
-        <CardHeader className="gradient-accent rounded-t-lg border-b border-primary/20 py-4">
-          <CardTitle className="text-foreground flex items-center gap-2 text-lg">
-            <Type className="w-4 h-4" />
-            Font Settings
-          </CardTitle>
-          <CardDescription className="text-muted-foreground text-sm">
-            Customize the monospace font used in code editors
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              The application uses Monaspace fonts for code display. These fonts are designed
-              specifically for developers with features like ligatures and texture healing.
-            </p>
-            <MonaspaceDemo />
           </div>
         </CardContent>
       </Card>

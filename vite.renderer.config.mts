@@ -22,4 +22,5 @@ export default defineConfig({
   define: {
     'process.env': {},
   },
+  assetsInclude: ['**/*.otf', '**/*.ttf', '**/*.woff', '**/*.woff2'],
 });

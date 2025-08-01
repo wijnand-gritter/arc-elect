@@ -4,7 +4,7 @@
 /* Monaspace Neon - The default, most readable variant */
 @font-face {
   font-family: 'Monaspace Neon';
-  src: url('../assets/fonts/MonaspaceNeon-Regular.otf') format('opentype');
+  src: url('/assets/fonts/MonaspaceNeon-Regular.otf');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -12,7 +12,7 @@
 
 @font-face {
   font-family: 'Monaspace Neon';
-  src: url('../assets/fonts/MonaspaceNeon-Medium.otf') format('opentype');
+  src: url('/assets/fonts/MonaspaceNeon-Medium.otf');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
@@ -20,7 +20,7 @@
 
 @font-face {
   font-family: 'Monaspace Neon';
-  src: url('../assets/fonts/MonaspaceNeon-SemiBold.otf') format('opentype');
+  src: url('/assets/fonts/MonaspaceNeon-SemiBold.otf');
   font-weight: 600;
   font-style: normal;
   font-display: swap;
@@ -28,139 +28,7 @@
 
 @font-face {
   font-family: 'Monaspace Neon';
-  src: url('../assets/fonts/MonaspaceNeon-Bold.otf') format('opentype');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* Monaspace Argon - Alternative variant */
-@font-face {
-  font-family: 'Monaspace Argon';
-  src: url('../assets/fonts/MonaspaceArgon-Regular.otf') format('opentype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Monaspace Argon';
-  src: url('../assets/fonts/MonaspaceArgon-Medium.otf') format('opentype');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Monaspace Argon';
-  src: url('../assets/fonts/MonaspaceArgon-SemiBold.otf') format('opentype');
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Monaspace Argon';
-  src: url('../assets/fonts/MonaspaceArgon-Bold.otf') format('opentype');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* Monaspace Krypton - Alternative variant */
-@font-face {
-  font-family: 'Monaspace Krypton';
-  src: url('../assets/fonts/MonaspaceKrypton-Regular.otf') format('opentype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Monaspace Krypton';
-  src: url('../assets/fonts/MonaspaceKrypton-Medium.otf') format('opentype');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Monaspace Krypton';
-  src: url('../assets/fonts/MonaspaceKrypton-SemiBold.otf') format('opentype');
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Monaspace Krypton';
-  src: url('../assets/fonts/MonaspaceKrypton-Bold.otf') format('opentype');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* Monaspace Xenon - Alternative variant */
-@font-face {
-  font-family: 'Monaspace Xenon';
-  src: url('../assets/fonts/MonaspaceXenon-Regular.otf') format('opentype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Monaspace Xenon';
-  src: url('../assets/fonts/MonaspaceXenon-Medium.otf') format('opentype');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Monaspace Xenon';
-  src: url('../assets/fonts/MonaspaceXenon-SemiBold.otf') format('opentype');
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Monaspace Xenon';
-  src: url('../assets/fonts/MonaspaceXenon-Bold.otf') format('opentype');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* Monaspace Radon - Alternative variant */
-@font-face {
-  font-family: 'Monaspace Radon';
-  src: url('../assets/fonts/MonaspaceRadon-Regular.otf') format('opentype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Monaspace Radon';
-  src: url('../assets/fonts/MonaspaceRadon-Medium.otf') format('opentype');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Monaspace Radon';
-  src: url('../assets/fonts/MonaspaceRadon-SemiBold.otf') format('opentype');
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Monaspace Radon';
-  src: url('../assets/fonts/MonaspaceRadon-Bold.otf') format('opentype');
+  src: url('/assets/fonts/MonaspaceNeon-Bold.otf');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -169,27 +37,4 @@
 /* CSS Variables for easy font switching */
 :root {
   --font-mono-primary: 'Monaspace Neon', 'Consolas', 'Courier New', monospace;
-  --font-mono-secondary: 'Monaspace Argon', 'Consolas', 'Courier New', monospace;
-  --font-mono-alternative: 'Monaspace Krypton', 'Consolas', 'Courier New', monospace;
-}
-
-/* Utility classes for different Monaspace variants */
-.font-mono-neon {
-  font-family: 'Monaspace Neon', 'Consolas', 'Courier New', monospace;
-}
-
-.font-mono-argon {
-  font-family: 'Monaspace Argon', 'Consolas', 'Courier New', monospace;
-}
-
-.font-mono-krypton {
-  font-family: 'Monaspace Krypton', 'Consolas', 'Courier New', monospace;
-}
-
-.font-mono-xenon {
-  font-family: 'Monaspace Xenon', 'Consolas', 'Courier New', monospace;
-}
-
-.font-mono-radon {
-  font-family: 'Monaspace Radon', 'Consolas', 'Courier New', monospace;
 }
