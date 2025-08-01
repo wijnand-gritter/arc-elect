@@ -99,11 +99,11 @@ class ProjectManager {
     try {
       const timestamp = new Date().toISOString();
       const logEntry = `[${timestamp}] ${message}${data ? `\n${JSON.stringify(data, null, 2)}` : ''}\n\n`;
-      
+
       // Ensure the directory exists
       const logDir = path.dirname(this.referenceDebugLogPath);
       await fs.mkdir(logDir, { recursive: true });
-      
+
       // Append to the log file
       await fs.appendFile(this.referenceDebugLogPath, logEntry);
     } catch (error) {
@@ -1079,7 +1079,7 @@ class ProjectManager {
       schemas: schemas.map((s) => ({ id: s.id, name: s.name, relativePath: s.relativePath })),
     });
 
-    schemas.forEach((schema) => {
+    for (const schema of schemas) {
       // Initialize referencedBy tracking
       referencedByMap.set(schema.id, new Set());
 
@@ -1125,7 +1125,7 @@ class ProjectManager {
       keys.push(schema.relativePath);
 
       await this.writeDebugLog(`Schema map keys for ${schema.name}:`, keys);
-    });
+    }
 
     // Log all available schema map keys
     await this.writeDebugLog('=== SCHEMA MAP KEYS ===', {
@@ -1206,18 +1206,21 @@ class ProjectManager {
           );
         } else {
           unresolvedReferences++;
-          await this.writeDebugLog(`Unresolved reference: ${schema.name} -> ${ref.schemaName} (${ref.$ref})`, {
-            schemaId: schema.id,
-            refSchemaName: ref.schemaName,
-            refPath: ref.$ref,
-            availableKeys: Array.from(schemaMap.keys()).filter(
-              (key) =>
-                key.toLowerCase().includes(ref.schemaName.toLowerCase()) ||
-                key
-                  .toLowerCase()
-                  .includes(ref.schemaName.toLowerCase().replace(/\.schema\.json$/, '')),
-            ),
-          });
+          await this.writeDebugLog(
+            `Unresolved reference: ${schema.name} -> ${ref.schemaName} (${ref.$ref})`,
+            {
+              schemaId: schema.id,
+              refSchemaName: ref.schemaName,
+              refPath: ref.$ref,
+              availableKeys: Array.from(schemaMap.keys()).filter(
+                (key) =>
+                  key.toLowerCase().includes(ref.schemaName.toLowerCase()) ||
+                  key
+                    .toLowerCase()
+                    .includes(ref.schemaName.toLowerCase().replace(/\.schema\.json$/, '')),
+              ),
+            },
+          );
         }
       }
     }
@@ -1335,9 +1338,7 @@ class ProjectManager {
    * Generates a unique schema ID from path.
    */
   private generateSchemaId(schemaPath: string): string {
-    return Buffer.from(schemaPath)
-      .toString('base64')
-      .replace(/[^a-zA-Z0-9]/g, '');
+    return Buffer.from(schemaPath).toString('base64');
   }
 
   /**
