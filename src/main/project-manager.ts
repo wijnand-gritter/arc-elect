@@ -388,8 +388,11 @@ class ProjectManager {
       const projectId = this.generateProjectId(projectPath);
       const existingProject = this.projects.get(projectId);
       if (existingProject) {
-        logger.info('ProjectManager: Project already loaded', { projectId });
-        return { success: true, project: existingProject };
+        logger.info('ProjectManager: Project already loaded, but reloading to ensure fresh data', {
+          projectId,
+        });
+        // Remove from cache to force reload
+        this.projects.delete(projectId);
       }
 
       // Load project metadata if it exists
@@ -1199,6 +1202,8 @@ class ProjectManager {
         }
 
         if (referencedSchema && referencedSchema.id !== schema.id) {
+          // Add the current schema to the referenced schema's referencedBy array
+          // This means: if Address references CountryEnum, then CountryEnum.referencedBy should contain Address.id
           referencedByMap.get(referencedSchema.id)!.add(schema.id);
           resolvedReferences++;
           await this.writeDebugLog(
@@ -1229,6 +1234,20 @@ class ProjectManager {
     for (const schema of schemas) {
       schema.referencedBy = Array.from(referencedByMap.get(schema.id) || []);
       await this.writeDebugLog(`Final referencedBy for ${schema.name}:`, schema.referencedBy);
+
+      // Debug: Check if this schema should be referenced by others
+      if (schema.name === 'CountryEnum') {
+        await this.writeDebugLog(`CountryEnum schema ID: ${schema.id}`);
+        await this.writeDebugLog(`CountryEnum referencedBy: ${schema.referencedBy.length} items`);
+        await this.writeDebugLog(`CountryEnum referencedBy details:`, schema.referencedBy);
+      }
+
+      // Debug: Check Address schema
+      if (schema.name === 'Address') {
+        await this.writeDebugLog(`Address schema ID: ${schema.id}`);
+        await this.writeDebugLog(`Address referencedBy: ${schema.referencedBy.length} items`);
+        await this.writeDebugLog(`Address referencedBy details:`, schema.referencedBy);
+      }
     }
 
     const duration = Date.now() - startTime;

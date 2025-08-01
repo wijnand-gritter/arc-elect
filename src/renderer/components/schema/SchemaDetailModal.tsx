@@ -42,6 +42,7 @@ import { useAppStore } from '../../stores/useAppStore';
 import { toast } from 'sonner';
 import type { Schema, SchemaReference, ValidationStatus } from '../../../types/schema-editor';
 
+
 /**
  * Schema detail modal props.
  */
@@ -200,13 +201,23 @@ export function SchemaDetailModal({
     }).format(date);
   };
 
+  // Check if schema is an enum
+  const isEnumSchema = (schema: Schema): boolean => {
+    return schema.content.type === 'string' && Array.isArray(schema.content.enum);
+  };
+
   const lastModifiedDateTime = schema.metadata.lastModified
     ? formatDateTime(new Date(schema.metadata.lastModified))
     : 'Unknown';
 
   // Get references and referenced by from the schema
   const references = schema.references || [];
-  const referencedBy = currentProject.schemas.filter((s) => s.referencedBy?.includes(schema.id));
+  // Find schemas that reference this schema by looking up the IDs in this schema's referencedBy array
+  const referencedBy = schema.referencedBy
+    ?.map(referencedById => currentProject.schemas.find(s => s.id === referencedById))
+    .filter((s): s is Schema => s !== undefined) || [];
+
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -280,7 +291,10 @@ export function SchemaDetailModal({
                               Validation Status
                             </label>
                             <div className="flex items-center gap-2">
-                              <Badge variant={validationStatus.variant} className="flex items-center gap-1">
+                              <Badge
+                                variant={validationStatus.variant}
+                                className="flex items-center gap-1"
+                              >
                                 {validationStatus.icon}
                                 {validationStatus.text}
                               </Badge>
@@ -321,49 +335,7 @@ export function SchemaDetailModal({
                         </div>
                       </div>
 
-                      {/* References */}
-                      {references.length > 0 && (
-                        <div className="space-y-4">
-                          <h4 className="font-medium">References</h4>
-                          <div className="space-y-2">
-                            {references.map((ref, index) => (
-                              <div
-                                key={index}
-                                className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-accent"
-                                onClick={() => handleReferenceClick(ref)}
-                              >
-                                <FileText className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm">{ref.schemaName}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
 
-                      {/* Referenced By */}
-                      {referencedBy.length > 0 && (
-                        <div className="space-y-4">
-                          <h4 className="font-medium">Referenced By</h4>
-                          <div className="space-y-2">
-                            {referencedBy.map((schema) => (
-                              <div
-                                key={schema.id}
-                                className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-accent"
-                                onClick={() => navigateToSchema(schema, 'overview')}
-                              >
-                                <FileText className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm">
-                                  {schema.metadata.title || schema.name}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {references.length === 0 && referencedBy.length === 0 && (
-                        <div className="text-sm text-muted-foreground">No references found</div>
-                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -406,7 +378,39 @@ export function SchemaDetailModal({
                     </CardHeader>
                     <CardContent className="h-[500px] overflow-y-auto">
                       <div className="space-y-4">
-                        {schema.content.properties && (
+                        {/* Enum Schema Display */}
+                        {isEnumSchema(schema) && (
+                          <div>
+                            <h4 className="font-medium mb-2">Enum Values</h4>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between p-2 border rounded">
+                                <span className="font-mono text-sm">enum</span>
+                                <Badge variant="secondary" className="text-xs">
+                                  string enum
+                                </Badge>
+                              </div>
+                              <div className="ml-4 p-2 bg-muted/50 rounded">
+                                <p className="text-xs text-muted-foreground mb-1">
+                                  Enum values:
+                                </p>
+                                <div className="flex flex-wrap gap-1">
+                                  {(schema.content.enum as unknown[]).map((enumValue: unknown, index: number) => (
+                                    <Badge
+                                      key={index}
+                                      variant="outline"
+                                      className="text-xs"
+                                    >
+                                      {String(enumValue)}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Regular Schema Properties */}
+                        {!isEnumSchema(schema) && schema.content.properties && (
                           <div>
                             <h4 className="font-medium mb-2">Properties</h4>
                             <div className="space-y-2">
