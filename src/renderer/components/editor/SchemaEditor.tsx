@@ -297,9 +297,9 @@ export function SchemaEditor({
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col min-h-0">
       {/* Editor Toolbar */}
-      <div className="flex items-center justify-between p-3 border-b border-border/50 bg-muted/20">
+      <div className="flex items-center justify-between p-3 border-b border-border/50 bg-muted/20 flex-shrink-0">
         <div className="flex items-center gap-2">
           <FileText className="w-4 h-4 text-muted-foreground" />
           <Badge variant="outline">{schema.metadata.title || schema.name}</Badge>
@@ -371,7 +371,7 @@ export function SchemaEditor({
       </div>
 
       {/* Editor Content */}
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 relative">
         <MonacoEditor
           ref={editorRef}
           value={content}
@@ -380,7 +380,7 @@ export function SchemaEditor({
           language="json"
           jsonSchema={jsonSchema}
           height="100%"
-          fontSize={14}
+          fontSize={12}
           tabSize={2}
           minimap={true}
           wordWrap={false}
@@ -389,14 +389,14 @@ export function SchemaEditor({
 
       {/* Error Panel */}
       {errors.length > 0 && (
-        <div className="border-t border-border/50 bg-muted/10">
+        <div className="border-t border-border/50 bg-muted/10 flex-shrink-0">
           <div className="flex items-center gap-2 p-2 border-b border-border/30">
             <AlertTriangle className="w-4 h-4 text-destructive" />
             <span className="text-sm font-medium">
               {errors.length} validation error{errors.length !== 1 ? 's' : ''}
             </span>
           </div>
-          <ScrollArea className="h-32">
+          <ScrollArea className="h-32 max-h-32">
             <div className="p-3 space-y-2">
               {errors.map((error, index) => (
                 <Alert

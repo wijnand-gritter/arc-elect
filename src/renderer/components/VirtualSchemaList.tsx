@@ -74,8 +74,9 @@ const VirtualSchemaListItem = React.memo<{
     return (
       <div style={style} className="w-full">
         <Card
-          className={`transition-all duration-200 hover:shadow-md cursor-pointer ${isSelected ? 'ring-2 ring-primary' : ''
-            }`}
+          className={`transition-all duration-200 hover:shadow-md cursor-pointer ${
+            isSelected ? 'ring-2 ring-primary' : ''
+          }`}
           onClick={handleClick}
         >
           <CardContent className="flex items-center space-x-4 p-4">

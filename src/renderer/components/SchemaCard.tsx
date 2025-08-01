@@ -129,8 +129,9 @@ export function SchemaCard({
 
   return (
     <Card
-      className={`cursor-pointer transition-all duration-200 hover:shadow-md ${selected ? 'ring-2 ring-primary' : 'hover:border-primary/50'
-        }`}
+      className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
+        selected ? 'ring-2 ring-primary' : 'hover:border-primary/50'
+      }`}
       onClick={() => onClick?.(schema)}
     >
       <CardHeader className="pb-3">

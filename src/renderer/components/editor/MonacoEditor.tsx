@@ -69,6 +69,8 @@ interface MonacoEditorProps {
   fontSize?: number;
   /** Tab size */
   tabSize?: number;
+  /** Font family */
+  fontFamily?: string;
 }
 
 /**
@@ -95,6 +97,7 @@ export const MonacoEditor = React.forwardRef<
     wordWrap = false,
     fontSize = 14,
     tabSize = 2,
+    fontFamily = '"Monaspace Neon", "JetBrains Mono", Consolas, "Courier New", monospace',
   },
   ref,
 ) {
@@ -209,6 +212,7 @@ export const MonacoEditor = React.forwardRef<
       // Configure editor options
       editor.updateOptions({
         fontSize,
+        fontFamily,
         tabSize,
         insertSpaces: true,
         detectIndentation: false,
@@ -278,7 +282,7 @@ export const MonacoEditor = React.forwardRef<
 
       return cleanup;
     }),
-    [language, jsonSchema, fontSize, tabSize, wordWrap, minimap],
+    [language, jsonSchema, fontSize, fontFamily, tabSize, wordWrap, minimap],
   );
 
   /**
@@ -381,7 +385,7 @@ export const MonacoEditor = React.forwardRef<
   }, [jsonSchema, isReady, language]);
 
   return (
-    <div className="relative w-full" style={{ height }}>
+    <div className="relative w-full h-full" style={{ height }}>
       <ErrorBoundary>
         <MonacoEditorReact
           value={value}
@@ -392,6 +396,7 @@ export const MonacoEditor = React.forwardRef<
           options={{
             readOnly,
             fontSize,
+            fontFamily,
             tabSize,
             insertSpaces: true,
             detectIndentation: false,

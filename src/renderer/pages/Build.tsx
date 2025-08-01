@@ -13,7 +13,7 @@
  */
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { ScrollArea } from '../components/ui/scroll-area';
@@ -631,59 +631,57 @@ export function Build(): React.JSX.Element {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
-      <Card className="glass-blue border-0 mb-3 flex-shrink-0">
-        <CardContent className="py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-medium text-foreground">
-                {currentProject.name} ({currentProject.schemas?.length || 0} schemas)
-              </h3>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={runBatchValidation}
-                disabled={isBatchValidating || !currentProject.schemas?.length}
-              >
-                {isBatchValidating ? (
-                  <PlayCircle className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                )}
-                {isBatchValidating ? 'Validating...' : 'Batch Validate'}
-              </Button>
-              <Button
-                variant={showPreview ? 'default' : 'outline'}
-                size="sm"
-                disabled={!activeTab}
-                onClick={() => setShowPreview(!showPreview)}
-              >
-                <Eye className="w-4 h-4 mr-2" />
-                {showPreview ? 'Hide Preview' : 'Show Preview'}
-              </Button>
-              {batchValidationResults && (
-                <Button variant="outline" size="sm" onClick={() => setBatchValidationResults(null)}>
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Results ({batchValidationResults.valid}/{batchValidationResults.total})
-                </Button>
-              )}
-              <Badge variant="outline" className="text-xs">
-                {editorTabs.length} tab{editorTabs.length !== 1 ? 's' : ''} open
-              </Badge>
-            </div>
+      {/* Header - no card wrapper */}
+      <div className="bg-muted/20 border-b border-border/50 px-4 py-2 flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-medium text-foreground">
+              {currentProject.name} ({currentProject.schemas?.length || 0} schemas)
+            </h3>
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={runBatchValidation}
+              disabled={isBatchValidating || !currentProject.schemas?.length}
+            >
+              {isBatchValidating ? (
+                <PlayCircle className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <CheckCircle className="w-4 h-4 mr-2" />
+              )}
+              {isBatchValidating ? 'Validating...' : 'Batch Validate'}
+            </Button>
+            <Button
+              variant={showPreview ? 'default' : 'outline'}
+              size="sm"
+              disabled={!activeTab}
+              onClick={() => setShowPreview(!showPreview)}
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              {showPreview ? 'Hide Preview' : 'Show Preview'}
+            </Button>
+            {batchValidationResults && (
+              <Button variant="outline" size="sm" onClick={() => setBatchValidationResults(null)}>
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Results ({batchValidationResults.valid}/{batchValidationResults.total})
+              </Button>
+            )}
+            <Badge variant="outline" className="text-xs">
+              {editorTabs.length} tab{editorTabs.length !== 1 ? 's' : ''} open
+            </Badge>
+          </div>
+        </div>
+      </div>
 
-      {/* Main Content */}
-      <div className="flex-1 grid grid-cols-12 gap-4 min-h-0">
+      {/* Main Content - no card wrappers */}
+      <div className="flex-1 grid grid-cols-12 gap-2 min-h-0 overflow-hidden">
         {/* Tree View Sidebar */}
-        <Card className="col-span-3 glass-blue border-0">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium">Schema Explorer</CardTitle>
+        <div className="col-span-3 bg-muted/10 border-r border-border/50 flex flex-col">
+          <div className="p-3 border-b border-border/50 flex-shrink-0">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-medium">Schema Explorer</h4>
               <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
                 <Settings className="h-3 w-3" />
               </Button>
@@ -698,9 +696,9 @@ export function Build(): React.JSX.Element {
                 className="w-full pl-8 pr-4 py-2 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <ScrollArea className="h-[600px] px-3">
+          </div>
+          <div className="flex-1 min-h-0 p-0">
+            <ScrollArea className="h-full px-3">
               {filteredTreeItems.length > 0 ? (
                 <div className="space-y-1">
                   {filteredTreeItems.map((item) => renderTreeItem(item))}
@@ -716,15 +714,19 @@ export function Build(): React.JSX.Element {
                 </div>
               )}
             </ScrollArea>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Editor Area */}
-        <Card className="col-span-9 glass-blue border-0">
+        <div className="col-span-9 flex flex-col">
           {editorTabs.length > 0 ? (
-            <Tabs value={activeTabId || ''} onValueChange={setActiveTabId}>
+            <Tabs
+              value={activeTabId || ''}
+              onValueChange={setActiveTabId}
+              className="flex flex-col h-full"
+            >
               {/* Tab Headers */}
-              <div className="border-b border-border/50">
+              <div className="border-b border-border/50 flex-shrink-0">
                 <TabsList className="h-auto p-0 bg-transparent">
                   <div className="flex items-center">
                     {/* Left scroll arrow */}
@@ -790,11 +792,11 @@ export function Build(): React.JSX.Element {
 
               {/* Tab Content */}
               {editorTabs.map((tab) => (
-                <TabsContent key={tab.id} value={tab.id} className="mt-0">
-                  <div className="h-[600px] flex flex-col">
+                <TabsContent key={tab.id} value={tab.id} className="mt-0 flex-1 min-h-0">
+                  <div className="h-full flex flex-col">
                     <div className={`flex-1 ${showPreview ? 'grid grid-cols-2 gap-4' : ''}`}>
                       {/* Monaco Editor */}
-                      <div className="flex flex-col">
+                      <div className="flex flex-col h-full">
                         <SchemaEditor
                           schema={tab.schema}
                           content={tab.content}
@@ -808,7 +810,7 @@ export function Build(): React.JSX.Element {
 
                       {/* Live Preview */}
                       {showPreview && (
-                        <div className="flex flex-col">
+                        <div className="flex flex-col h-full">
                           <LivePreview
                             schemaContent={tab.content}
                             schemaName={tab.schema.name}
@@ -827,7 +829,7 @@ export function Build(): React.JSX.Element {
               ))}
             </Tabs>
           ) : (
-            <CardContent className="flex items-center justify-center h-[600px]">
+            <div className="flex items-center justify-center flex-1">
               <div className="text-center space-y-4">
                 <Code className="w-16 h-16 mx-auto text-muted-foreground opacity-50" />
                 <div>
@@ -841,9 +843,9 @@ export function Build(): React.JSX.Element {
                   Create New Schema
                 </Button>
               </div>
-            </CardContent>
+            </div>
           )}
-        </Card>
+        </div>
       </div>
     </div>
   );
