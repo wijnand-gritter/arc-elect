@@ -516,7 +516,13 @@ export class AnalyticsService {
       .map((s) => s.id)
       .sort()
       .join(',');
-    const lastModified = Math.max(...schemas.map((s) => s.metadata.lastModified?.getTime() || 0));
+    const lastModified = Math.max(
+      ...schemas.map((s) => {
+        if (!s.metadata.lastModified) return 0;
+        const date = new Date(s.metadata.lastModified);
+        return isNaN(date.getTime()) ? 0 : date.getTime();
+      }),
+    );
     return `${ids}-${lastModified}`;
   }
 

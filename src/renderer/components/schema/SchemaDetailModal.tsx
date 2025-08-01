@@ -42,7 +42,6 @@ import { useAppStore } from '../../stores/useAppStore';
 import { toast } from 'sonner';
 import type { Schema, SchemaReference, ValidationStatus } from '../../../types/schema-editor';
 
-
 /**
  * Schema detail modal props.
  */
@@ -213,11 +212,10 @@ export function SchemaDetailModal({
   // Get references and referenced by from the schema
   const references = schema.references || [];
   // Find schemas that reference this schema by looking up the IDs in this schema's referencedBy array
-  const referencedBy = schema.referencedBy
-    ?.map(referencedById => currentProject.schemas.find(s => s.id === referencedById))
-    .filter((s): s is Schema => s !== undefined) || [];
-
-
+  const referencedBy =
+    schema.referencedBy
+      ?.map((referencedById) => currentProject.schemas.find((s) => s.id === referencedById))
+      .filter((s): s is Schema => s !== undefined) || [];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -334,8 +332,6 @@ export function SchemaDetailModal({
                           </div>
                         </div>
                       </div>
-
-
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -390,19 +386,15 @@ export function SchemaDetailModal({
                                 </Badge>
                               </div>
                               <div className="ml-4 p-2 bg-muted/50 rounded">
-                                <p className="text-xs text-muted-foreground mb-1">
-                                  Enum values:
-                                </p>
+                                <p className="text-xs text-muted-foreground mb-1">Enum values:</p>
                                 <div className="flex flex-wrap gap-1">
-                                  {(schema.content.enum as unknown[]).map((enumValue: unknown, index: number) => (
-                                    <Badge
-                                      key={index}
-                                      variant="outline"
-                                      className="text-xs"
-                                    >
-                                      {String(enumValue)}
-                                    </Badge>
-                                  ))}
+                                  {(schema.content.enum as unknown[]).map(
+                                    (enumValue: unknown, index: number) => (
+                                      <Badge key={index} variant="outline" className="text-xs">
+                                        {String(enumValue)}
+                                      </Badge>
+                                    ),
+                                  )}
                                 </div>
                               </div>
                             </div>

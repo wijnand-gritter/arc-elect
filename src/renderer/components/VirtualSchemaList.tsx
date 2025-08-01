@@ -74,9 +74,8 @@ const VirtualSchemaListItem = React.memo<{
     return (
       <div style={style} className="w-full">
         <Card
-          className={`transition-all duration-200 hover:shadow-md cursor-pointer ${
-            isSelected ? 'ring-2 ring-primary' : ''
-          }`}
+          className={`transition-all duration-200 hover:shadow-md cursor-pointer ${isSelected ? 'ring-2 ring-primary' : ''
+            }`}
           onClick={handleClick}
         >
           <CardContent className="flex items-center space-x-4 p-4">
@@ -242,8 +241,8 @@ export function VirtualSchemaList({
           bValue = b.name.toLowerCase();
           break;
         case 'lastModified':
-          aValue = a.metadata.lastModified?.getTime() || 0;
-          bValue = b.metadata.lastModified?.getTime() || 0;
+          aValue = a.metadata.lastModified ? new Date(a.metadata.lastModified).getTime() : 0;
+          bValue = b.metadata.lastModified ? new Date(b.metadata.lastModified).getTime() : 0;
           break;
         case 'fileSize':
           aValue = a.metadata.fileSize || 0;

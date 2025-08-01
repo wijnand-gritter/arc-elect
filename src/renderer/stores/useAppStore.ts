@@ -115,6 +115,8 @@ interface AppState {
   loadLastProject: () => Promise<void>;
   /** Function to delete a project from recent projects */
   deleteProject: (projectId: string) => Promise<void>;
+  /** Function to force clear a corrupted project from recent projects */
+  forceClearProject: (projectId: string) => void;
 
   // Search actions
   /** Function to set search query */
@@ -462,29 +464,66 @@ export const useAppStore = create<AppState>()(
           logger.info('Store: Deleting project - START', { projectId });
 
           try {
+            // Try to delete from main process first
             const result = await window.api.deleteProject(projectId);
+
+            // Always remove from recent projects list, even if main process fails
+            const state = get();
+            const updatedRecentProjects = state.recentProjects.filter((p) => p.id !== projectId);
+
+            // If the deleted project was the current project, clear it
+            const shouldClearCurrent = state.currentProject?.id === projectId;
+
+            set({
+              recentProjects: updatedRecentProjects,
+              ...(shouldClearCurrent && { currentProject: null, currentPage: 'home' }),
+            });
+
             if (result.success) {
-              const state = get();
-              const updatedRecentProjects = state.recentProjects.filter((p) => p.id !== projectId);
-
-              // If the deleted project was the current project, clear it
-              const shouldClearCurrent = state.currentProject?.id === projectId;
-
-              set({
-                recentProjects: updatedRecentProjects,
-                ...(shouldClearCurrent && { currentProject: null, currentPage: 'home' }),
-              });
-
               logger.info(`Store: Project deleted in ${Date.now() - startTime}ms`, { projectId });
             } else {
-              logger.error('Store: Failed to delete project', { error: result.error });
-              throw new Error(result.error || 'Failed to delete project');
+              // Log warning but don't throw error - project was removed from UI anyway
+              logger.warn('Store: Project removed from UI but main process deletion failed', {
+                projectId,
+                error: result.error,
+              });
             }
           } catch (error) {
+            // Even if main process fails, remove from UI
+            const state = get();
+            const updatedRecentProjects = state.recentProjects.filter((p) => p.id !== projectId);
+            const shouldClearCurrent = state.currentProject?.id === projectId;
+
+            set({
+              recentProjects: updatedRecentProjects,
+              ...(shouldClearCurrent && { currentProject: null, currentPage: 'home' }),
+            });
+
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            logger.error('Store: Exception deleting project', { projectId, error });
-            throw new Error(`Failed to delete project: ${errorMessage}`);
+            logger.warn('Store: Project removed from UI despite main process error', {
+              projectId,
+              error: errorMessage,
+            });
           }
+        },
+
+        /**
+         * Force clears a corrupted project from the recent projects list.
+         * This is used when a project exists in the UI but is corrupted/broken.
+         *
+         * @param projectId - ID of the project to force clear
+         */
+        forceClearProject: (projectId: string) => {
+          const state = get();
+          const updatedRecentProjects = state.recentProjects.filter((p) => p.id !== projectId);
+          const shouldClearCurrent = state.currentProject?.id === projectId;
+
+          set({
+            recentProjects: updatedRecentProjects,
+            ...(shouldClearCurrent && { currentProject: null, currentPage: 'home' }),
+          });
+
+          logger.info('Store: Force cleared corrupted project', { projectId });
         },
 
         // Search actions

@@ -58,6 +58,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
   const recentProjects = useAppStore((state) => state.recentProjects);
   const loadProject = useAppStore((state) => state.loadProject);
   const deleteProject = useAppStore((state) => state.deleteProject);
+  const forceClearProject = useAppStore((state) => state.forceClearProject);
   const createProject = useAppStore((state) => state.createProject);
 
   /**
@@ -434,11 +435,10 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
                 {recentProjects.slice(0, 5).map((recentProject) => (
                   <div
                     key={recentProject.id}
-                    className={`flex items-center justify-between p-4 rounded-lg border transition-all duration-200 cursor-pointer hover-lift ${
-                      recentProject.id === project.id
+                    className={`flex items-center justify-between p-4 rounded-lg border transition-all duration-200 cursor-pointer hover-lift ${recentProject.id === project.id
                         ? 'border-primary bg-primary/5'
                         : 'border-border/50 hover:bg-muted/50'
-                    }`}
+                      }`}
                     onClick={() => handleOpenProject(recentProject.path)}
                   >
                     <div className="flex-1 min-w-0">
@@ -504,6 +504,18 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={handleCancelDelete}>
                 Cancel
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  forceClearProject(projectToDelete.id);
+                  toast.success('Project cleared', {
+                    description: `${projectToDelete.name} has been force cleared from recent projects`,
+                  });
+                  setProjectToDelete(null);
+                }}
+              >
+                Force Clear
               </Button>
               <Button variant="destructive" onClick={handleConfirmDelete}>
                 Delete
