@@ -123,7 +123,6 @@ ipcMain.handle(
     }
 
     const data = await fs.readFile(filePath, 'utf-8');
-    logger.info('File read successfully', { filePath, size: data.length });
     return data;
   }, 'file:read'),
 );

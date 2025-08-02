@@ -65,10 +65,13 @@ export function withErrorHandling<T extends unknown[], R>(
 
       const result = await handler(...args);
 
-      logger.info(`${context} - SUCCESS`, {
-        duration: Date.now() - startTime,
-        resultType: typeof result,
-      });
+      // Only log for non-file operations to reduce noise
+      if (!context.startsWith('file:')) {
+        logger.info(`${context} - SUCCESS`, {
+          duration: Date.now() - startTime,
+          resultType: typeof result,
+        });
+      }
 
       return { success: true, data: result };
     } catch (error) {
