@@ -254,7 +254,15 @@ export const MonacoEditor = React.forwardRef<
 
                     let schemaContent;
                     try {
-                      schemaContent = await (window as any).api?.readFile(schema.path);
+                      const fileResult = await (window as any).api?.readFile(schema.path);
+                      console.log('Hover Debug - File Result:', fileResult);
+                      
+                      // Extract the data from the response object
+                      if (fileResult && typeof fileResult === 'object' && fileResult.success) {
+                        schemaContent = fileResult.data;
+                      } else {
+                        schemaContent = fileResult; // Fallback for direct string response
+                      }
                     } catch (fileError) {
                       console.error('Hover Debug - File Read Error:', fileError);
                       schemaContent = null;
