@@ -1,18 +1,3 @@
-/**
- * Monaco Editor component for JSON Schema editing.
- *
- * This component provides a full-featured JSON editor with:
- * - Syntax highlighting and validation
- * - Auto-completion and IntelliSense
- * - Error detection and reporting
- * - Format and validation actions
- * - Theme integration
- *
- * @module MonacoEditor
- * @author Wijnand Gritter
- * @version 1.0.0
- */
-
 import React, { useEffect, useRef } from 'react';
 import MonacoEditorReact, { Monaco } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
@@ -25,61 +10,33 @@ import { ErrorBoundary } from '../ErrorBoundary';
  * Interface for validation errors.
  */
 export interface ValidationError {
-  /** Line number where error occurs (1-based) */
   line: number;
-  /** Column number where error occurs (1-based) */
   column: number;
-  /** Error message */
   message: string;
-  /** Error severity */
   severity: 'error' | 'warning' | 'info';
-  /** Start position in editor */
   startLineNumber: number;
-  /** Start column in editor */
   startColumn: number;
-  /** End line number in editor */
   endLineNumber: number;
-  /** End column in editor */
   endColumn: number;
 }
 
-/**
- * Props for the Monaco Editor component.
- */
 interface MonacoEditorProps {
-  /** Initial content of the editor */
   value: string;
-  /** Callback when content changes */
   onChange: (value: string) => void;
-  /** Callback when validation errors change */
   onValidationChange?: (errors: ValidationError[]) => void;
-  /** Whether the editor is read-only */
   readOnly?: boolean;
-  /** Height of the editor */
   height?: string;
-  /** Language mode (default: json) */
   language?: string;
-  /** Schema for JSON validation */
   jsonSchema?: object;
-  /** Whether to show minimap */
   minimap?: boolean;
-  /** Whether to enable word wrap */
   wordWrap?: boolean;
-  /** Font size */
   fontSize?: number;
-  /** Tab size */
   tabSize?: number;
-  /** Font family */
   fontFamily?: string;
-  /** Available schemas for ref navigation */
   availableSchemas?: Array<{ id: string; name: string; path: string }>;
-  /** Callback when a ref is clicked */
   onRefClick?: (refPath: string) => void;
 }
 
-/**
- * Monaco Editor component with JSON Schema validation.
- */
 export const MonacoEditor = React.forwardRef<
   {
     formatDocument: () => void;
@@ -117,22 +74,16 @@ export const MonacoEditor = React.forwardRef<
   const { theme } = useTheme();
   const [isReady, setIsReady] = React.useState(false);
 
-  // Update refs when props change
   onValidationChangeRef.current = onValidationChange;
   onChangeRef.current = onChange;
 
-  /**
-   * Handle editor mount.
-   */
   const handleEditorDidMount = React.useCallback(
     safeHandler((editor: monaco.editor.IStandaloneCodeEditor, monacoInstance: Monaco) => {
       editorRef.current = editor;
       monacoRef.current = monacoInstance;
       setIsReady(true);
 
-      // Configure JSON language features
       if (language === 'json') {
-        // Set JSON schema if provided
         if (jsonSchema) {
           monacoInstance.languages.json.jsonDefaults.setDiagnosticsOptions({
             validate: true,
@@ -147,17 +98,15 @@ export const MonacoEditor = React.forwardRef<
           });
         }
 
-        // Enable JSON validation with disabled external schema requests
         monacoInstance.languages.json.jsonDefaults.setDiagnosticsOptions({
           validate: true,
           allowComments: false,
           schemaValidation: 'error',
-          schemaRequest: 'ignore', // Disable external schema requests to prevent network errors
+          schemaRequest: 'ignore',
         });
 
-        // Add ref auto-completion
+        // --- FIXED SUGGESTION PROVIDER WITH DYNAMIC RANGE ---
         if (onRefClick && availableSchemas.length > 0) {
-          // Dispose of existing completion provider to prevent duplicates
           if (completionProviderRef.current) {
             completionProviderRef.current.dispose();
           }
@@ -165,81 +114,74 @@ export const MonacoEditor = React.forwardRef<
           completionProviderRef.current = monacoInstance.languages.registerCompletionItemProvider(
             'json',
             {
+              triggerCharacters: ['"', '/', '.', '\\', ' '],
               provideCompletionItems: (model, position) => {
-                const textUntilPosition = model.getValueInRange({
-                  startLineNumber: position.lineNumber,
-                  startColumn: 1,
-                  endLineNumber: position.lineNumber,
-                  endColumn: position.column,
-                });
-
-                // Check if we're in a $ref field - more flexible matching
-                const isInRefField = textUntilPosition.match(/"\$ref"\s*:\s*"?$/);
-                if (!isInRefField) return { suggestions: [] };
-
-                // Get the full line content to analyze the context
                 const lineContent = model.getLineContent(position.lineNumber);
+                const colonIndex = lineContent.indexOf(':');
+                if (colonIndex === -1) return { suggestions: [] };
 
-                // Find the position of the $ref field
-                const refMatch = lineContent.match(/"\$ref"\s*:\s*/);
-                if (!refMatch) return { suggestions: [] };
+                const firstQuoteIndex = lineContent.indexOf('"', colonIndex);
+                const closingQuoteIndex = lineContent.indexOf('"', firstQuoteIndex + 1);
 
-                              const refStartIndex = refMatch.index! + refMatch[0].length;
-
-              // Check if we're inside quotes or not
-              const textAfterRef = lineContent.substring(refStartIndex);
-              const isInsideQuotes = textAfterRef.startsWith('"');
-
-                // Find the start and end of the current value
-                let valueStart = refStartIndex;
-                let valueEnd = position.column;
-
-                if (isInsideQuotes) {
-                  // We're inside quotes, find the closing quote
-                  const closingQuoteIndex = lineContent.indexOf('"', refStartIndex + 1);
-                  if (closingQuoteIndex !== -1) {
-                    valueEnd = closingQuoteIndex + 1;
-                  }
+                // Only show if cursor is inside the quotes!
+                if (
+                  firstQuoteIndex === -1 ||
+                  position.column <= firstQuoteIndex + 1 ||
+                  (closingQuoteIndex !== -1 && position.column > closingQuoteIndex + 1)
+                ) {
+                  return { suggestions: [] };
                 }
 
-                // Convert absolute paths to relative paths
-                const suggestions = availableSchemas.map((schema) => {
-                  // Convert absolute path to relative path
-                  const relativePath = schema.path.replace(/^.*\/schemas\//, './');
+                const quoteContentStart = firstQuoteIndex + 1;
+                const cursorOffset = position.column - 1;
+                const valueSoFar = lineContent.substring(quoteContentStart, cursorOffset);
 
-                  // Determine insert text and range based on context
-                  let insertText: string;
-                  let range: monaco.IRange;
+                // everything user typed so far
+                const typedPrefix = valueSoFar;
 
-                  if (isInsideQuotes) {
-                    // We're inside quotes, replace the entire quoted value
-                    insertText = relativePath;
-                    range = {
-                      startLineNumber: position.lineNumber,
-                      startColumn: valueStart + 1, // +1 to skip the opening quote
-                      endLineNumber: position.lineNumber,
-                      endColumn: valueEnd - 1, // -1 to exclude the closing quote
+                // Always relative, always prefixed with ./
+                function toRelativePath(fullPath: string) {
+                  const idx = fullPath.indexOf('schemas/');
+                  const rel =
+                    idx !== -1
+                      ? fullPath.substring(idx + 'schemas/'.length)
+                      : fullPath.replace(/^\.?\//, '');
+                  return './' + rel.replace(/^(\.\/)+/, '');
+                }
+
+                // === FIX: Case-insensitive, match on full typed prefix (e.g., "./b" matches "./business-objects/Address.schema.json") ===
+                const typedPrefixLower = typedPrefix.toLowerCase();
+
+                const suggestions = availableSchemas
+                  .map((schema) => {
+                    const relPath = toRelativePath(schema.path);
+                    // Only insert the part the user hasn't typed yet
+                    const insertText = typedPrefix
+                      ? relPath.substring(typedPrefix.length)
+                      : relPath;
+                    return {
+                      label: relPath,
+                      kind: monacoInstance.languages.CompletionItemKind.Reference,
+                      insertText,
+                      detail: `Schema: ${schema.name}`,
+                      documentation: `Reference to ${relPath}`,
+                      range: {
+                        startLineNumber: position.lineNumber,
+                        startColumn: typedPrefix
+                          ? quoteContentStart +
+                            typedPrefix.length +
+                            1 -
+                            (typedPrefix.length ? 0 : 1)
+                          : quoteContentStart + 1,
+                        endLineNumber: position.lineNumber,
+                        endColumn: position.column,
+                      },
+                      filterText: relPath, // Helps Monaco match the suggestion even if prefix is incomplete
                     };
-                  } else {
-                    // We're not inside quotes, add quotes around the path
-                    insertText = `"${relativePath}"`;
-                    range = {
-                      startLineNumber: position.lineNumber,
-                      startColumn: valueStart,
-                      endLineNumber: position.lineNumber,
-                      endColumn: valueEnd,
-                    };
-                  }
-
-                  return {
-                    label: schema.name,
-                    kind: monacoInstance.languages.CompletionItemKind.Reference,
-                    insertText,
-                    detail: `Schema: ${schema.name}`,
-                    documentation: `Reference to ${schema.name} schema`,
-                    range,
-                  };
-                });
+                  })
+                  .filter(
+                    (s) => !typedPrefix || s.label.toLowerCase().startsWith(typedPrefixLower),
+                  );
 
                 return { suggestions };
               },
@@ -247,7 +189,7 @@ export const MonacoEditor = React.forwardRef<
           );
         }
 
-        // Add ref navigation (F12)
+        // Navigation (F12)
         if (onRefClick) {
           editor.addAction({
             id: 'navigate-to-ref',
@@ -257,14 +199,11 @@ export const MonacoEditor = React.forwardRef<
             run: () => {
               const position = editor.getPosition();
               if (!position) return;
-
               const model = editor.getModel();
               if (!model) return;
-
               const word = model.getWordAtPosition(position);
               if (!word) return;
 
-              // Check if we're on a $ref value
               const lineContent = model.getLineContent(position.lineNumber);
               const refMatch = lineContent.match(/"\$ref"\s*:\s*"([^"]+)"/);
               if (refMatch) {
@@ -276,29 +215,21 @@ export const MonacoEditor = React.forwardRef<
         }
       }
 
-      // Set up debounced validation to prevent infinite loops
+      // Validation
       const setupValidation = () => {
         if (!onValidationChangeRef.current) return;
-
         const model = editor.getModel();
         if (!model) return;
 
         const checkValidation = () => {
           const currentContent = model.getValue();
-
-          // Only process if content actually changed
           if (currentContent === lastValidationRef.current) {
             return;
           }
-
           lastValidationRef.current = currentContent;
-
-          // Clear existing timeout
           if (validationTimeoutRef.current) {
             clearTimeout(validationTimeoutRef.current);
           }
-
-          // Debounce validation check
           validationTimeoutRef.current = setTimeout(() => {
             try {
               const markers = monacoInstance.editor.getModelMarkers({ resource: model.uri });
@@ -317,26 +248,20 @@ export const MonacoEditor = React.forwardRef<
                 endLineNumber: marker.endLineNumber,
                 endColumn: marker.endColumn,
               }));
-
               onValidationChangeRef.current?.(errors);
             } catch (error) {
               logger.error('Validation check failed', { error });
             }
-          }, 500); // 500ms debounce
+          }, 500);
         };
 
-        // Initial validation check
         setTimeout(checkValidation, 100);
-
-        // Listen for content changes only
         const disposable = model.onDidChangeContent(() => {
           checkValidation();
         });
-
         return disposable;
       };
 
-      // Configure editor options
       editor.updateOptions({
         fontSize,
         fontFamily,
@@ -356,7 +281,6 @@ export const MonacoEditor = React.forwardRef<
           bracketPairs: true,
           indentation: true,
         },
-        // Ensure proper cursor positioning
         cursorBlinking: 'smooth',
         cursorSmoothCaretAnimation: 'on',
         cursorStyle: 'line',
@@ -372,7 +296,6 @@ export const MonacoEditor = React.forwardRef<
         fastScrollSensitivity: 5,
       });
 
-      // Add custom actions
       editor.addAction({
         id: 'format-document',
         label: 'Format Document',
@@ -399,9 +322,7 @@ export const MonacoEditor = React.forwardRef<
             logger.info('JSON validation successful');
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Invalid JSON syntax';
-            logger.error('JSON validation failed', {
-              error: errorMessage,
-            });
+            logger.error('JSON validation failed', { error: errorMessage });
           }
         },
       });
@@ -414,7 +335,6 @@ export const MonacoEditor = React.forwardRef<
 
       const validationDisposable = setupValidation();
 
-      // Cleanup function
       const cleanup = () => {
         if (validationTimeoutRef.current) {
           clearTimeout(validationTimeoutRef.current);
@@ -430,9 +350,6 @@ export const MonacoEditor = React.forwardRef<
     [language, jsonSchema, fontSize, fontFamily, tabSize, wordWrap, minimap],
   );
 
-  /**
-   * Handle content change.
-   */
   const handleChange = React.useCallback(
     safeHandler((newValue: string | undefined) => {
       if (newValue !== undefined) {
@@ -442,18 +359,12 @@ export const MonacoEditor = React.forwardRef<
     [],
   );
 
-  /**
-   * Format the document.
-   */
   const formatDocument = React.useCallback(() => {
     if (editorRef.current) {
       editorRef.current.getAction('editor.action.formatDocument')?.run();
     }
   }, []);
 
-  /**
-   * Validate JSON content.
-   */
   const validateJson = React.useCallback(() => {
     if (editorRef.current) {
       try {
@@ -470,9 +381,6 @@ export const MonacoEditor = React.forwardRef<
     return { valid: false, error: 'Editor not ready' };
   }, []);
 
-  /**
-   * Get current cursor position.
-   */
   const getCursorPosition = React.useCallback(() => {
     if (editorRef.current) {
       const position = editorRef.current.getPosition();
@@ -481,9 +389,6 @@ export const MonacoEditor = React.forwardRef<
     return null;
   }, []);
 
-  /**
-   * Go to specific line and column.
-   */
   const goToPosition = React.useCallback((line: number, column: number) => {
     if (editorRef.current) {
       editorRef.current.setPosition({ lineNumber: line, column });
@@ -492,7 +397,6 @@ export const MonacoEditor = React.forwardRef<
     }
   }, []);
 
-  // Expose methods to parent component
   React.useImperativeHandle(
     ref,
     () => ({
@@ -504,7 +408,6 @@ export const MonacoEditor = React.forwardRef<
     [formatDocument, validateJson, getCursorPosition, goToPosition],
   );
 
-  // Update theme when it changes
   useEffect(() => {
     if (monacoRef.current && isReady) {
       const monacoTheme = theme === 'dark' ? 'vs-dark' : 'vs';
@@ -512,13 +415,12 @@ export const MonacoEditor = React.forwardRef<
     }
   }, [theme, isReady]);
 
-  // Update JSON schema when it changes
   useEffect(() => {
     if (monacoRef.current && isReady && language === 'json' && jsonSchema) {
       monacoRef.current.languages.json.jsonDefaults.setDiagnosticsOptions({
         validate: true,
         allowComments: false,
-        schemaRequest: 'ignore', // Disable external schema requests
+        schemaRequest: 'ignore',
         schemas: [
           {
             uri: 'http://json-schema.org/draft-07/schema#',
