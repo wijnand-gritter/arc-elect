@@ -79,6 +79,19 @@ contextBridge.exposeInMainWorld('api', {
    */
   writeFile: (filePath: string, data: string) => ipcRenderer.invoke('file:write', filePath, data),
 
+  /**
+   * Creates a new schema file from a template.
+   *
+   * @param filePath - Path where to create the schema file
+   * @param templateType - Type of template to use ('basic', 'simple-object', 'simple-array', 'complex-object', 'complex-array', 'enum')
+   * @returns Promise resolving to success status or error
+   */
+  createSchema: (filePath: string, templateType?: string) =>
+    ipcRenderer.invoke('file:createSchema', filePath, templateType),
+  createFolder: (folderPath: string) => ipcRenderer.invoke('file:createFolder', folderPath),
+  rename: (oldPath: string, newPath: string) => ipcRenderer.invoke('file:rename', oldPath, newPath),
+  delete: (filePath: string) => ipcRenderer.invoke('file:delete', filePath),
+
   // Settings API
 
   /**

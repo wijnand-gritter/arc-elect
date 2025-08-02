@@ -25,6 +25,174 @@ import { withErrorHandling, validateInput } from './error-handler';
 // Import project manager to initialize IPC handlers
 import './project-manager';
 
+/**
+ * Generates a JSON Schema template based on the specified type.
+ *
+ * @param templateType - The type of template to generate ('basic', 'user', 'product', 'api')
+ * @param schemaName - The name of the schema (used for title and description)
+ * @returns The JSON Schema content as a string
+ */
+function getSchemaTemplate(templateType: string, schemaName: string): string {
+  const baseSchema = {
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    title: schemaName,
+    description: `${schemaName} schema`,
+  };
+
+  switch (templateType) {
+    case 'simple-object':
+      return JSON.stringify(
+        {
+          ...baseSchema,
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              description: 'Unique identifier',
+            },
+            name: {
+              type: 'string',
+              description: 'Name of the item',
+            },
+            description: {
+              type: 'string',
+              description: 'Description of the item',
+            },
+            dateCreated: {
+              type: 'string',
+              description: 'Creation timestamp',
+              format: 'date-time',
+            },
+          },
+          additionalProperties: false,
+        },
+        null,
+        2,
+      );
+
+    case 'simple-array':
+      return JSON.stringify(
+        {
+          ...baseSchema,
+          type: 'array',
+          items: {
+            type: 'string',
+            description: 'Array item',
+          },
+          minItems: 0,
+          uniqueItems: true,
+          additionalProperties: false,
+        },
+        null,
+        2,
+      );
+
+    case 'complex-object':
+      return JSON.stringify(
+        {
+          ...baseSchema,
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              description: 'Unique identifier',
+            },
+            name: {
+              type: 'string',
+              description: 'Name of the item',
+            },
+            description: {
+              type: 'string',
+              description: 'Description of the item',
+            },
+            externalId: {
+              type: 'string',
+              description: 'External system identifier',
+            },
+            dateCreated: {
+              type: 'string',
+              description: 'Creation timestamp',
+              format: 'date-time',
+            },
+            dateUpdated: {
+              type: 'string',
+              description: 'Last update timestamp',
+              format: 'date-time',
+            },
+            status: {
+              type: 'string',
+              description: 'Current status',
+              enum: ['ACTIVE', 'INACTIVE', 'PENDING', 'ARCHIVED'],
+            },
+          },
+          additionalProperties: false,
+        },
+        null,
+        2,
+      );
+
+    case 'complex-array':
+      return JSON.stringify(
+        {
+          ...baseSchema,
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: {
+                type: 'string',
+                description: 'Item identifier',
+              },
+              name: {
+                type: 'string',
+                description: 'Item name',
+              },
+              value: {
+                type: 'number',
+                description: 'Numeric value',
+              },
+              dateCreated: {
+                type: 'string',
+                description: 'Creation timestamp',
+                format: 'date-time',
+              },
+            },
+            additionalProperties: false,
+          },
+          minItems: 0,
+          uniqueItems: false,
+        },
+        null,
+        2,
+      );
+
+    case 'enum':
+      return JSON.stringify(
+        {
+          ...baseSchema,
+          type: 'string',
+          description: 'Enumeration of possible values',
+          enum: ['OPTION_ONE', 'OPTION_TWO', 'OPTION_THREE', 'OPTION_FOUR'],
+        },
+        null,
+        2,
+      );
+
+    case 'basic':
+    default:
+      return JSON.stringify(
+        {
+          ...baseSchema,
+          type: 'object',
+          properties: {},
+          additionalProperties: false,
+        },
+        null,
+        2,
+      );
+  }
+}
+
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
   app.quit();
@@ -158,6 +326,146 @@ ipcMain.handle(
     logger.info('File written successfully', { filePath, size: data.length });
     return { success: true };
   }, 'file:write'),
+);
+
+/**
+ * IPC handler for creating schema files from templates.
+ *
+ * @param _event - The IPC event object (unused)
+ * @param filePath - The path where to create the schema file
+ * @param templateType - The type of template to use ('basic', 'simple-object', 'simple-array', 'complex-object', 'complex-array', 'enum')
+ * @returns Promise resolving to success status or error
+ */
+ipcMain.handle(
+  'file:createSchema',
+  withErrorHandling(async (_event, filePath: string, templateType: string = 'basic') => {
+    // Validate inputs
+    const pathValidation = validateInput(filePath, 'string', 512);
+    if (!pathValidation.valid) {
+      throw new Error(pathValidation.error);
+    }
+
+    const templateValidation = validateInput(templateType, 'string', 50);
+    if (!templateValidation.valid) {
+      throw new Error(templateValidation.error);
+    }
+
+    // Basic security check - prevent directory traversal
+    if (filePath.includes('..') || filePath.includes('//')) {
+      throw new Error('Invalid file path');
+    }
+
+    // Ensure the file has .schema.json extension
+    if (!filePath.endsWith('.schema.json')) {
+      filePath = `${filePath}.schema.json`;
+    }
+
+    // Get schema template based on type
+    const schemaContent = getSchemaTemplate(templateType, path.basename(filePath, '.schema.json'));
+
+    await fs.writeFile(filePath, schemaContent, 'utf-8');
+    logger.info('Schema file created successfully', { filePath, templateType });
+    return { success: true, filePath };
+  }, 'file:createSchema'),
+);
+
+/**
+ * IPC handler for creating folders.
+ *
+ * @param _event - The IPC event object (unused)
+ * @param folderPath - The path where to create the folder
+ * @returns Promise resolving to success status or error
+ */
+ipcMain.handle(
+  'file:createFolder',
+  withErrorHandling(async (_event, folderPath: string) => {
+    // Validate input
+    const validation = validateInput(folderPath, 'string', 512);
+    if (!validation.valid) {
+      throw new Error(validation.error);
+    }
+
+    // Basic security check - prevent directory traversal
+    if (folderPath.includes('..') || folderPath.includes('//')) {
+      throw new Error('Invalid folder path');
+    }
+
+    await fs.mkdir(folderPath, { recursive: true });
+    logger.info('Folder created successfully', { folderPath });
+    return { success: true, folderPath };
+  }, 'file:createFolder'),
+);
+
+/**
+ * IPC handler for renaming files and folders.
+ *
+ * @param _event - The IPC event object (unused)
+ * @param oldPath - The current path of the file/folder
+ * @param newPath - The new path for the file/folder
+ * @returns Promise resolving to success status or error
+ */
+ipcMain.handle(
+  'file:rename',
+  withErrorHandling(async (_event, oldPath: string, newPath: string) => {
+    // Validate inputs
+    const oldPathValidation = validateInput(oldPath, 'string', 512);
+    if (!oldPathValidation.valid) {
+      throw new Error(oldPathValidation.error);
+    }
+
+    const newPathValidation = validateInput(newPath, 'string', 512);
+    if (!newPathValidation.valid) {
+      throw new Error(newPathValidation.error);
+    }
+
+    // Basic security check - prevent directory traversal
+    if (
+      oldPath.includes('..') ||
+      oldPath.includes('//') ||
+      newPath.includes('..') ||
+      newPath.includes('//')
+    ) {
+      throw new Error('Invalid file path');
+    }
+
+    await fs.rename(oldPath, newPath);
+    logger.info('File/folder renamed successfully', { oldPath, newPath });
+    return { success: true, oldPath, newPath };
+  }, 'file:rename'),
+);
+
+/**
+ * IPC handler for deleting files and folders.
+ *
+ * @param _event - The IPC event object (unused)
+ * @param path - The path of the file/folder to delete
+ * @returns Promise resolving to success status or error
+ */
+ipcMain.handle(
+  'file:delete',
+  withErrorHandling(async (_event, filePath: string) => {
+    // Validate input
+    const validation = validateInput(filePath, 'string', 512);
+    if (!validation.valid) {
+      throw new Error(validation.error);
+    }
+
+    // Basic security check - prevent directory traversal
+    if (filePath.includes('..') || filePath.includes('//')) {
+      throw new Error('Invalid file path');
+    }
+
+    const stats = await fs.stat(filePath);
+    if (stats.isDirectory()) {
+      await fs.rmdir(filePath, { recursive: true });
+      logger.info('Folder deleted successfully', { filePath });
+    } else {
+      await fs.unlink(filePath);
+      logger.info('File deleted successfully', { filePath });
+    }
+
+    return { success: true, filePath };
+  }, 'file:delete'),
 );
 
 /**

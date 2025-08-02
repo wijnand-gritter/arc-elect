@@ -13,12 +13,15 @@
  */
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { safeAsyncHandler, safeHandler } from '../lib/error-handling';
+
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -69,7 +72,6 @@ import { SchemaEditor } from '../components/editor/SchemaEditor';
 import { ValidationError } from '../components/editor/MonacoEditor';
 import { LivePreview } from '../components/preview/LivePreview';
 import logger from '../lib/renderer-logger';
-import { safeHandler } from '../lib/error-handling';
 import { toast } from 'sonner';
 
 /**
@@ -124,6 +126,7 @@ interface TreeItem {
  */
 export function Build(): React.JSX.Element {
   const currentProject = useAppStore((state) => state.currentProject);
+  const loadProject = useAppStore((state) => state.loadProject);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [editorTabs, setEditorTabs] = useState<EditorTab[]>([]);
   const [treeItems, setTreeItems] = useState<TreeItem[]>([]);
@@ -145,6 +148,7 @@ export function Build(): React.JSX.Element {
   const [rootSchemaName, setRootSchemaName] = useState('');
   const [rootFolderName, setRootFolderName] = useState('');
   const [templateSchemaName, setTemplateSchemaName] = useState('');
+  const [selectedTemplate, setSelectedTemplate] = useState('simple-object');
 
   // Build tree structure from schemas - file system approach
   const buildTreeStructure = useCallback((schemas: Schema[]): TreeItem[] => {
@@ -1096,34 +1100,58 @@ export function Build(): React.JSX.Element {
     [currentProject?.path],
   );
 
-  const handleRenameConfirm = useCallback(async () => {
-    if (!contextMenuItem || !currentProject) return;
+  const handleRenameConfirm = safeAsyncHandler(async () => {
+    if (!contextMenuItem || !currentProject || !renameValue.trim()) return;
 
-    try {
-      // TODO: Implement actual file rename operation
+    const oldPath = `${currentProject.path}/${contextMenuItem.path}`;
+    let newPath: string;
+
+    if (contextMenuItem.type === 'schema') {
+      // For files: replace the filename only
+      const parentDir = contextMenuItem.path.substring(0, contextMenuItem.path.lastIndexOf('/'));
+      newPath = parentDir
+        ? `${currentProject.path}/${parentDir}/${renameValue.trim()}.schema.json`
+        : `${currentProject.path}/${renameValue.trim()}.schema.json`;
+    } else {
+      // For folders: replace the last segment
+      const parentDir = contextMenuItem.path.substring(0, contextMenuItem.path.lastIndexOf('/'));
+      newPath = parentDir
+        ? `${currentProject.path}/${parentDir}/${renameValue.trim()}`
+        : `${currentProject.path}/${renameValue.trim()}`;
+    }
+
+    const result = await (window as any).api.rename(oldPath, newPath);
+
+    if (result.success) {
       setIsRenameDialogOpen(false);
       setContextMenuItem(null);
       setRenameValue('');
-    } catch (_error) {
-      toast.error('Rename failed', {
-        description: 'Could not rename the item',
-      });
+      // Refresh tree view to show renamed item
+      if (currentProject) {
+        await loadProject(currentProject.path);
+      }
+    } else {
+      throw new Error(result.error || 'Rename failed');
     }
-  }, [contextMenuItem, renameValue, currentProject]);
+  });
 
-  const handleDeleteConfirm = useCallback(async () => {
+  const handleDeleteConfirm = safeAsyncHandler(async () => {
     if (!contextMenuItem || !currentProject) return;
 
-    try {
-      // TODO: Implement actual file delete operation
+    const filePath = `${currentProject.path}/${contextMenuItem.path}`;
+    const result = await (window as any).api.delete(filePath);
+
+    if (result.success) {
       setIsDeleteDialogOpen(false);
       setContextMenuItem(null);
-    } catch (_error) {
-      toast.error('Delete failed', {
-        description: 'Could not delete the item',
-      });
+      // Refresh tree view to remove deleted item
+      if (currentProject) {
+        await loadProject(currentProject.path);
+      }
+    } else {
+      throw new Error(result.error || 'Delete failed');
     }
-  }, [contextMenuItem, currentProject]);
+  });
 
   // File creation handlers
   const handleContextMenuCreateSchema = useCallback((item: TreeItem) => {
@@ -1138,35 +1166,45 @@ export function Build(): React.JSX.Element {
     setIsCreateFolderDialogOpen(true);
   }, []);
 
-  const handleCreateSchemaConfirm = useCallback(async () => {
+  const handleCreateSchemaConfirm = safeAsyncHandler(async () => {
     if (!contextMenuItem || !currentProject || !newSchemaName.trim()) return;
 
-    try {
-      // TODO: Implement actual schema creation
+    const schemaFileName = `${newSchemaName.trim()}.schema.json`;
+    const fullPath = `${currentProject.path}/${contextMenuItem.path}/${schemaFileName}`;
+
+    const result = await (window as any).api.createSchema(fullPath, 'basic');
+
+    if (result.success) {
       setIsCreateSchemaDialogOpen(false);
       setContextMenuItem(null);
       setNewSchemaName('');
-    } catch (_error) {
-      toast.error('Create schema failed', {
-        description: 'Could not create the schema',
-      });
+      // Refresh tree view to show new schema
+      if (currentProject) {
+        await loadProject(currentProject.path);
+      }
+    } else {
+      throw new Error(result.error || 'Create schema failed');
     }
-  }, [contextMenuItem, newSchemaName, currentProject]);
+  });
 
-  const handleCreateFolderConfirm = useCallback(async () => {
+  const handleCreateFolderConfirm = safeAsyncHandler(async () => {
     if (!contextMenuItem || !currentProject || !newFolderName.trim()) return;
 
-    try {
-      // TODO: Implement actual folder creation
+    const folderPath = `${currentProject.path}/${contextMenuItem.path}/${newFolderName.trim()}`;
+    const result = await (window as any).api.createFolder(folderPath);
+
+    if (result.success) {
       setIsCreateFolderDialogOpen(false);
       setContextMenuItem(null);
       setNewFolderName('');
-    } catch (_error) {
-      toast.error('Create folder failed', {
-        description: 'Could not create the folder',
-      });
+      // Refresh tree view to show new folder
+      if (currentProject) {
+        await loadProject(currentProject.path);
+      }
+    } else {
+      throw new Error(result.error || 'Create folder failed');
     }
-  }, [contextMenuItem, newFolderName, currentProject]);
+  });
 
   // Root-level creation handlers
   const handleCreateRootSchema = useCallback(() => {
@@ -1184,47 +1222,143 @@ export function Build(): React.JSX.Element {
     setIsCreateTemplateDialogOpen(true);
   }, []);
 
-  const handleCreateRootSchemaConfirm = useCallback(async () => {
+  const handleCreateRootSchemaConfirm = safeAsyncHandler(async () => {
     if (!currentProject || !rootSchemaName.trim()) return;
 
-    try {
-      // TODO: Implement actual root schema creation
+    const schemaFileName = `${rootSchemaName.trim()}.schema.json`;
+    const fullPath = `${currentProject.path}/${schemaFileName}`;
+
+    const result = await (window as any).api.createSchema(fullPath, 'basic');
+
+    if (result.success) {
       setIsCreateRootSchemaDialogOpen(false);
       setRootSchemaName('');
-    } catch (_error) {
-      toast.error('Create schema failed', {
-        description: 'Could not create the schema',
-      });
+      // Refresh tree view to show new schema
+      if (currentProject) {
+        await loadProject(currentProject.path);
+      }
+    } else {
+      throw new Error(result.error || 'Create schema failed');
     }
-  }, [rootSchemaName, currentProject]);
+  });
 
-  const handleCreateRootFolderConfirm = useCallback(async () => {
+  const handleCreateRootFolderConfirm = safeAsyncHandler(async () => {
     if (!currentProject || !rootFolderName.trim()) return;
 
-    try {
-      // TODO: Implement actual root folder creation
+    const folderPath = `${currentProject.path}/${rootFolderName.trim()}`;
+    const result = await (window as any).api.createFolder(folderPath);
+
+    if (result.success) {
       setIsCreateRootFolderDialogOpen(false);
       setRootFolderName('');
-    } catch (_error) {
-      toast.error('Create folder failed', {
-        description: 'Could not create the folder',
-      });
+      // Refresh tree view to show new folder
+      if (currentProject) {
+        await loadProject(currentProject.path);
+      }
+    } else {
+      throw new Error(result.error || 'Create folder failed');
     }
-  }, [rootFolderName, currentProject]);
+  });
 
-  const handleCreateTemplateSchemaConfirm = useCallback(async () => {
+  const handleCreateTemplateSchemaConfirm = safeAsyncHandler(async () => {
     if (!currentProject || !templateSchemaName.trim()) return;
 
-    try {
-      // TODO: Implement actual template schema creation
+    const schemaFileName = `${templateSchemaName.trim()}.schema.json`;
+    const fullPath = `${currentProject.path}/${schemaFileName}`;
+
+    const result = await (window as any).api.createSchema(fullPath, selectedTemplate);
+
+    if (result.success) {
       setIsCreateTemplateDialogOpen(false);
       setTemplateSchemaName('');
-    } catch (_error) {
-      toast.error('Create template schema failed', {
-        description: 'Could not create the template schema',
-      });
+      // Refresh tree view to show new schema
+      if (currentProject) {
+        await loadProject(currentProject.path);
+      }
+    } else {
+      throw new Error('Failed to create schema');
     }
-  }, [templateSchemaName, currentProject]);
+  });
+
+  // Template preview function
+  const getTemplatePreview = (schemaName: string, templateType: string): string => {
+    const templates = {
+      'simple-object': {
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        title: schemaName,
+        description: `${schemaName} schema`,
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          name: { type: 'string' },
+          description: { type: 'string' },
+          dateCreated: { type: 'string', format: 'date-time' }
+        },
+        additionalProperties: false
+      },
+      'simple-array': {
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        title: schemaName,
+        description: `${schemaName} schema`,
+        type: 'array',
+        items: { type: 'string' },
+        minItems: 0,
+        uniqueItems: true
+      },
+      'complex-object': {
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        title: schemaName,
+        description: `${schemaName} schema`,
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          name: { type: 'string' },
+          description: { type: 'string' },
+          externalId: { type: 'string' },
+          dateCreated: { type: 'string', format: 'date-time' },
+          dateUpdated: { type: 'string', format: 'date-time' },
+          status: { type: 'string', enum: ['ACTIVE', 'INACTIVE', 'PENDING', 'ARCHIVED'] }
+        },
+        additionalProperties: false
+      },
+      'complex-array': {
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        title: schemaName,
+        description: `${schemaName} schema`,
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            name: { type: 'string' },
+            value: { type: 'number' },
+            dateCreated: { type: 'string', format: 'date-time' }
+          },
+          additionalProperties: false
+        },
+        minItems: 0,
+        uniqueItems: false
+      },
+      'enum': {
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        title: schemaName,
+        description: `${schemaName} schema`,
+        type: 'string',
+        enum: ['OPTION_ONE', 'OPTION_TWO', 'OPTION_THREE', 'OPTION_FOUR']
+      },
+
+      'basic': {
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        title: schemaName,
+        description: `${schemaName} schema`,
+        type: 'object',
+        properties: {},
+        additionalProperties: false
+      }
+    };
+
+    return JSON.stringify(templates[templateType as keyof typeof templates] || templates.basic, null, 2);
+  };
 
   // Render tree item
   const renderTreeItem = (item: TreeItem, depth = 0) => {
@@ -1734,15 +1868,24 @@ export function Build(): React.JSX.Element {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create New Schema</DialogTitle>
-            <DialogDescription>Create a new schema in "{contextMenuItem?.name}"</DialogDescription>
+            <DialogDescription>
+              Create a new schema in "{contextMenuItem?.name}". The .schema.json extension will be
+              added automatically.
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <Input
-              value={newSchemaName}
-              onChange={(e) => setNewSchemaName(e.target.value)}
-              placeholder="Enter schema name"
-              autoFocus
-            />
+            <div className="relative">
+              <Input
+                value={newSchemaName}
+                onChange={(e) => setNewSchemaName(e.target.value)}
+                placeholder="Enter schema name (e.g., User, Product, Order)"
+                autoFocus
+                className="pr-20"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+                .schema.json
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateSchemaDialogOpen(false)}>
@@ -1786,15 +1929,24 @@ export function Build(): React.JSX.Element {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create New Schema</DialogTitle>
-            <DialogDescription>Create a new schema in the root directory</DialogDescription>
+            <DialogDescription>
+              Create a new schema in the root directory. The .schema.json extension will be added
+              automatically.
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <Input
-              value={rootSchemaName}
-              onChange={(e) => setRootSchemaName(e.target.value)}
-              placeholder="Enter schema name"
-              autoFocus
-            />
+            <div className="relative">
+              <Input
+                value={rootSchemaName}
+                onChange={(e) => setRootSchemaName(e.target.value)}
+                placeholder="Enter schema name (e.g., User, Product, Order)"
+                autoFocus
+                className="pr-20"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+                .schema.json
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateRootSchemaDialogOpen(false)}>
@@ -1835,24 +1987,63 @@ export function Build(): React.JSX.Element {
 
       {/* Create Template Schema Dialog */}
       <Dialog open={isCreateTemplateDialogOpen} onOpenChange={setIsCreateTemplateDialogOpen}>
-        <DialogContent>
+        <DialogContent size="lg" className="max-h-[95vh] w-[900px]">
           <DialogHeader>
             <DialogTitle>Create Schema from Template</DialogTitle>
             <DialogDescription>Create a new schema using a predefined template</DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <Input
-              value={templateSchemaName}
-              onChange={(e) => setTemplateSchemaName(e.target.value)}
-              placeholder="Enter schema name"
-              autoFocus
-            />
+          <div className="py-4 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Schema Name</label>
+                <div className="relative">
+                  <Input
+                    value={templateSchemaName}
+                    onChange={(e) => setTemplateSchemaName(e.target.value)}
+                    placeholder="Enter schema name"
+                    autoFocus
+                    className="pr-20"
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+                    .schema.json
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Template Type</label>
+                <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="simple-object">Simple Object</SelectItem>
+                    <SelectItem value="simple-array">Simple Array</SelectItem>
+                    <SelectItem value="complex-object">Complex Object</SelectItem>
+                    <SelectItem value="complex-array">Complex Array</SelectItem>
+                    <SelectItem value="enum">Enum</SelectItem>
+                    <SelectItem value="basic">Basic (Empty)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Template Preview</label>
+              <div className="border rounded-md p-4 bg-muted/50 max-h-80 overflow-auto">
+                <pre className="text-xs">
+                  {templateSchemaName.trim() ? getTemplatePreview(templateSchemaName.trim(), selectedTemplate) : 'Enter a schema name to see preview'}
+                </pre>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateTemplateDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreateTemplateSchemaConfirm} disabled={!templateSchemaName.trim()}>
+            <Button
+              onClick={handleCreateTemplateSchemaConfirm}
+              disabled={!templateSchemaName.trim()}
+            >
               Create from Template
             </Button>
           </DialogFooter>
