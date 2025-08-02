@@ -371,4 +371,16 @@
   *:has(.monaco-editor) {
     overflow: visible !important;
   }
+
+  /* Prevent hover widget from disappearing when mouse moves to it */
+  .monaco-editor .monaco-hover:hover,
+  .monaco-editor .hoverWidget:hover {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  /* Ensure hover widget stays visible */
+  .monaco-editor .monaco-hover {
+    pointer-events: auto !important;
+  }
 }
