@@ -239,7 +239,7 @@ export const MonacoEditor = React.forwardRef<
                 const refPath = refMatch[1];
 
                 // Find the corresponding schema
-                const schema = availableSchemas.find(s => {
+                const schema = availableSchemas.find((s) => {
                   const relativePath = s.path.replace(/^.*\/schemas\//, './');
                   return relativePath === refPath || s.path === refPath;
                 });
@@ -374,7 +374,200 @@ export const MonacoEditor = React.forwardRef<
                 }
               }
 
-              // Check if we're on a property name
+              // Professional JSON Schema hover information
+                             const getJsonSchemaHoverInfo = (keyword: string, _value: string) => {
+                const hoverInfo: { [key: string]: any } = {
+                  type: {
+                    title: 'JSON Schema Type',
+                    description: 'Defines the data type of the schema',
+                    examples: {
+                      'string': 'Text values',
+                      'number': 'Numeric values (integer or float)',
+                      'integer': 'Whole numbers only',
+                      'boolean': 'True or false values',
+                      'object': 'Key-value pairs',
+                      'array': 'Ordered list of values',
+                      'null': 'Null value'
+                    }
+                  },
+                  title: {
+                    title: 'Schema Title',
+                    description: 'Human-readable title for the schema'
+                  },
+                  description: {
+                    title: 'Schema Description',
+                    description: 'Detailed description of the schema purpose'
+                  },
+                  required: {
+                    title: 'Required Properties',
+                    description: 'Array of property names that must be present'
+                  },
+                  properties: {
+                    title: 'Schema Properties',
+                    description: 'Defines the properties of an object schema'
+                  },
+                  items: {
+                    title: 'Array Items',
+                    description: 'Defines the schema for array elements'
+                  },
+                  enum: {
+                    title: 'Enumeration',
+                    description: 'Restricts values to a specific set of options'
+                  },
+                  const: {
+                    title: 'Constant Value',
+                    description: 'The value must exactly match this constant'
+                  },
+                  format: {
+                    title: 'String Format',
+                    description: 'Specifies the format of string values',
+                    examples: {
+                      'date': 'YYYY-MM-DD format',
+                      'date-time': 'ISO 8601 datetime format',
+                      'email': 'Valid email address',
+                      'uri': 'Valid URI/URL',
+                      'uuid': 'UUID format',
+                      'ipv4': 'IPv4 address',
+                      'ipv6': 'IPv6 address'
+                    }
+                  },
+                  pattern: {
+                    title: 'Regular Expression Pattern',
+                    description: 'String must match this regex pattern'
+                  },
+                  minimum: {
+                    title: 'Minimum Value',
+                    description: 'Numeric value must be >= this value'
+                  },
+                  maximum: {
+                    title: 'Maximum Value',
+                    description: 'Numeric value must be <= this value'
+                  },
+                  minLength: {
+                    title: 'Minimum Length',
+                    description: 'String must have at least this many characters'
+                  },
+                  maxLength: {
+                    title: 'Maximum Length',
+                    description: 'String must have at most this many characters'
+                  },
+                  minItems: {
+                    title: 'Minimum Items',
+                    description: 'Array must have at least this many elements'
+                  },
+                  maxItems: {
+                    title: 'Maximum Items',
+                    description: 'Array must have at most this many elements'
+                  },
+                  uniqueItems: {
+                    title: 'Unique Items',
+                    description: 'All array elements must be unique'
+                  },
+                  additionalProperties: {
+                    title: 'Additional Properties',
+                    description: 'Whether to allow properties not defined in schema'
+                  },
+                  allOf: {
+                    title: 'All Of',
+                    description: 'Value must validate against ALL of these schemas'
+                  },
+                  anyOf: {
+                    title: 'Any Of',
+                    description: 'Value must validate against AT LEAST ONE of these schemas'
+                  },
+                  oneOf: {
+                    title: 'One Of',
+                    description: 'Value must validate against EXACTLY ONE of these schemas'
+                  },
+                  not: {
+                    title: 'Not',
+                    description: 'Value must NOT validate against this schema'
+                  },
+                  if: {
+                    title: 'If Condition',
+                    description: 'Conditional validation - if this schema validates, then...'
+                  },
+                  then: {
+                    title: 'Then',
+                    description: 'If the "if" schema validates, then this schema must also validate'
+                  },
+                  else: {
+                    title: 'Else',
+                    description: 'If the "if" schema does not validate, then this schema must validate'
+                  },
+                  default: {
+                    title: 'Default Value',
+                    description: 'Default value when property is not provided'
+                  },
+                  examples: {
+                    title: 'Examples',
+                    description: 'Sample values that are valid for this schema'
+                  },
+                  deprecated: {
+                    title: 'Deprecated',
+                    description: 'Indicates this property is deprecated'
+                  },
+                  readOnly: {
+                    title: 'Read Only',
+                    description: 'Property should not be modified by clients'
+                  },
+                  writeOnly: {
+                    title: 'Write Only',
+                    description: 'Property should not be returned by servers'
+                  }
+                };
+
+                return hoverInfo[keyword] || null;
+              };
+
+              // Check for JSON Schema keywords
+              const keywordMatch = lineContent.match(/"([^"]+)"\s*:\s*([^,\s]+)/);
+              if (keywordMatch && word.word === keywordMatch[1]) {
+                const keyword = keywordMatch[1];
+                const info = getJsonSchemaHoverInfo(keyword, keywordMatch[2]);
+                
+                if (info) {
+                  const contents: any[] = [
+                    {
+                      value: `**${info.title}:** \`${keyword}\``,
+                      isTrusted: true,
+                    },
+                    {
+                      value: info.description,
+                      isTrusted: true,
+                    },
+                  ];
+
+                  if (info.examples) {
+                    contents.push({
+                      value: '---',
+                      isTrusted: true,
+                    });
+                    contents.push({
+                      value: '**Common Values:**',
+                      isTrusted: true,
+                    });
+                    Object.entries(info.examples).forEach(([example, description]) => {
+                      contents.push({
+                        value: `- \`${example}\`: ${description}`,
+                        isTrusted: true,
+                      });
+                    });
+                  }
+
+                  return {
+                    contents,
+                    range: {
+                      startLineNumber: position.lineNumber,
+                      startColumn: word.startColumn,
+                      endLineNumber: position.lineNumber,
+                      endColumn: word.endColumn,
+                    },
+                  };
+                }
+              }
+
+              // Check if we're on a property name (object property)
               const propertyMatch = lineContent.match(/"([^"]+)":\s*{/);
               if (propertyMatch && word.word === propertyMatch[1]) {
                 return {
@@ -385,6 +578,14 @@ export const MonacoEditor = React.forwardRef<
                     },
                     {
                       value: 'JSON Schema property definition',
+                      isTrusted: true,
+                    },
+                    {
+                      value: '---',
+                      isTrusted: true,
+                    },
+                    {
+                      value: '**Usage:** This property will be validated according to its nested schema definition.',
                       isTrusted: true,
                     },
                   ],
@@ -400,6 +601,9 @@ export const MonacoEditor = React.forwardRef<
               // Check if we're on a type value
               const typeMatch = lineContent.match(/"type"\s*:\s*"([^"]+)"/);
               if (typeMatch && word.word === typeMatch[1]) {
+                const typeInfo = getJsonSchemaHoverInfo('type', word.word);
+                const examples = typeInfo?.examples || {};
+                
                 return {
                   contents: [
                     {
@@ -407,7 +611,57 @@ export const MonacoEditor = React.forwardRef<
                       isTrusted: true,
                     },
                     {
-                      value: 'JSON Schema data type',
+                      value: typeInfo?.description || 'JSON Schema data type',
+                      isTrusted: true,
+                    },
+                    {
+                      value: '---',
+                      isTrusted: true,
+                    },
+                    {
+                      value: '**Description:**',
+                      isTrusted: true,
+                    },
+                    {
+                      value: examples[word.word] || 'Defines the data type for validation',
+                      isTrusted: true,
+                    },
+                  ],
+                  range: {
+                    startLineNumber: position.lineNumber,
+                    startColumn: word.startColumn,
+                    endLineNumber: position.lineNumber,
+                    endColumn: word.endColumn,
+                  },
+                };
+              }
+
+              // Check for format values
+              const formatMatch = lineContent.match(/"format"\s*:\s*"([^"]+)"/);
+              if (formatMatch && word.word === formatMatch[1]) {
+                const formatInfo = getJsonSchemaHoverInfo('format', word.word);
+                const examples = formatInfo?.examples || {};
+                
+                return {
+                  contents: [
+                    {
+                      value: `**Format:** \`${word.word}\``,
+                      isTrusted: true,
+                    },
+                    {
+                      value: formatInfo?.description || 'String format specification',
+                      isTrusted: true,
+                    },
+                    {
+                      value: '---',
+                      isTrusted: true,
+                    },
+                    {
+                      value: '**Description:**',
+                      isTrusted: true,
+                    },
+                    {
+                      value: examples[word.word] || 'Specifies the expected format of the string',
                       isTrusted: true,
                     },
                   ],
