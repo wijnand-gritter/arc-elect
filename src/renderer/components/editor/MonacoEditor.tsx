@@ -120,67 +120,88 @@ export const MonacoEditor = React.forwardRef<
                 const colonIndex = lineContent.indexOf(':');
                 if (colonIndex === -1) return { suggestions: [] };
 
+                // Find first quote after colon (start of value)
                 const firstQuoteIndex = lineContent.indexOf('"', colonIndex);
-                const closingQuoteIndex = lineContent.indexOf('"', firstQuoteIndex + 1);
+                const closingQuoteIndex = firstQuoteIndex !== -1 ? lineContent.indexOf('"', firstQuoteIndex + 1) : -1;
 
-                // Only show if cursor is inside the quotes!
-                if (
-                  firstQuoteIndex === -1 ||
-                  position.column <= firstQuoteIndex + 1 ||
-                  (closingQuoteIndex !== -1 && position.column > closingQuoteIndex + 1)
-                ) {
+                const quoteContentStart = firstQuoteIndex !== -1 ? firstQuoteIndex + 1 : -1;
+                const cursorOffset = position.column - 1;
+
+                // Get the value up to the cursor, if inside or after quotes
+                let valueSoFar = "";
+                let insideQuotes = false;
+                if (firstQuoteIndex !== -1 && position.column > firstQuoteIndex + 1 && (closingQuoteIndex === -1 || position.column <= closingQuoteIndex + 1)) {
+                  // Cursor inside quotes
+                  insideQuotes = true;
+                  valueSoFar = lineContent.substring(quoteContentStart, cursorOffset);
+                } else if (firstQuoteIndex === -1 && position.column > colonIndex + 1) {
+                  // No quotes yet, but after colon (bare value)
+                  valueSoFar = "";
+                } else if (firstQuoteIndex !== -1 && position.column <= firstQuoteIndex + 1) {
+                  // Cursor before opening quote
                   return { suggestions: [] };
                 }
 
-                const quoteContentStart = firstQuoteIndex + 1;
-                const cursorOffset = position.column - 1;
-                const valueSoFar = lineContent.substring(quoteContentStart, cursorOffset);
-
-                // everything user typed so far
+                // Path logic
+                const lastSlashIdx = valueSoFar.lastIndexOf('/');
+                const pathPrefix = lastSlashIdx !== -1 ? valueSoFar.substring(0, lastSlashIdx + 1) : '';
                 const typedPrefix = valueSoFar;
 
                 // Always relative, always prefixed with ./
                 function toRelativePath(fullPath: string) {
                   const idx = fullPath.indexOf('schemas/');
-                  const rel =
-                    idx !== -1
-                      ? fullPath.substring(idx + 'schemas/'.length)
-                      : fullPath.replace(/^\.?\//, '');
+                  const rel = idx !== -1 ? fullPath.substring(idx + 'schemas/'.length) : fullPath.replace(/^\.?\//, '');
                   return './' + rel.replace(/^(\.\/)+/, '');
                 }
 
-                // === FIX: Case-insensitive, match on full typed prefix (e.g., "./b" matches "./business-objects/Address.schema.json") ===
                 const typedPrefixLower = typedPrefix.toLowerCase();
 
                 const suggestions = availableSchemas
                   .map((schema) => {
                     const relPath = toRelativePath(schema.path);
-                    // Only insert the part the user hasn't typed yet
                     const insertText = typedPrefix
-                      ? relPath.substring(typedPrefix.length)
+                      ? relPath.substring(pathPrefix.length)
                       : relPath;
+
+                    // Determine range for replacement:
+                    let startColumn: number;
+                    let endColumn: number;
+                    if (insideQuotes) {
+                      startColumn = quoteContentStart + (lastSlashIdx !== -1 ? lastSlashIdx + 2 : 1);
+                      endColumn = position.column;
+                    } else {
+                      // Not inside quotes: find the first non-space after the colon, don't overwrite spaces
+                      let sc = colonIndex + 2;
+                      while (lineContent[sc - 1] === ' ' && sc <= lineContent.length) {
+                        sc++;
+                      }
+                      startColumn = sc;
+                      endColumn = position.column;
+                    }
+
+                    let finalInsertText = insertText;
+                    if (!insideQuotes) {
+                      // Ensure the value is quoted if user hasn't typed a quote
+                      finalInsertText = `"${relPath}"`;
+                    }
+
                     return {
                       label: relPath,
                       kind: monacoInstance.languages.CompletionItemKind.Reference,
-                      insertText,
+                      insertText: finalInsertText,
                       detail: `Schema: ${schema.name}`,
                       documentation: `Reference to ${relPath}`,
                       range: {
                         startLineNumber: position.lineNumber,
-                        startColumn: typedPrefix
-                          ? quoteContentStart +
-                            typedPrefix.length +
-                            1 -
-                            (typedPrefix.length ? 0 : 1)
-                          : quoteContentStart + 1,
+                        startColumn,
                         endLineNumber: position.lineNumber,
-                        endColumn: position.column,
+                        endColumn,
                       },
-                      filterText: relPath, // Helps Monaco match the suggestion even if prefix is incomplete
+                      filterText: relPath,
                     };
                   })
-                  .filter(
-                    (s) => !typedPrefix || s.label.toLowerCase().startsWith(typedPrefixLower),
+                  .filter(s =>
+                    !typedPrefix || s.label.toLowerCase().startsWith(typedPrefixLower)
                   );
 
                 return { suggestions };
