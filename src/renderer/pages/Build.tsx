@@ -48,7 +48,6 @@ import {
   ChevronRight,
   ChevronDown,
   ChevronLeft,
-  Settings,
   CheckCircle,
   PlayCircle,
   BarChart3,
@@ -140,6 +139,12 @@ export function Build(): React.JSX.Element {
   const [isCreateFolderDialogOpen, setIsCreateFolderDialogOpen] = useState(false);
   const [newSchemaName, setNewSchemaName] = useState('');
   const [newFolderName, setNewFolderName] = useState('');
+  const [isCreateRootSchemaDialogOpen, setIsCreateRootSchemaDialogOpen] = useState(false);
+  const [isCreateRootFolderDialogOpen, setIsCreateRootFolderDialogOpen] = useState(false);
+  const [isCreateTemplateDialogOpen, setIsCreateTemplateDialogOpen] = useState(false);
+  const [rootSchemaName, setRootSchemaName] = useState('');
+  const [rootFolderName, setRootFolderName] = useState('');
+  const [templateSchemaName, setTemplateSchemaName] = useState('');
 
   // Build tree structure from schemas - file system approach
   const buildTreeStructure = useCallback((schemas: Schema[]): TreeItem[] => {
@@ -1095,10 +1100,7 @@ export function Build(): React.JSX.Element {
     if (!contextMenuItem || !currentProject) return;
 
     try {
-      // For now, just show a toast - actual file operations will be implemented next
-      toast.info('Rename functionality coming soon', {
-        description: `Would rename "${contextMenuItem.name}" to "${renameValue}"`,
-      });
+      // TODO: Implement actual file rename operation
       setIsRenameDialogOpen(false);
       setContextMenuItem(null);
       setRenameValue('');
@@ -1113,10 +1115,7 @@ export function Build(): React.JSX.Element {
     if (!contextMenuItem || !currentProject) return;
 
     try {
-      // For now, just show a toast - actual file operations will be implemented next
-      toast.info('Delete functionality coming soon', {
-        description: `Would delete "${contextMenuItem.name}"`,
-      });
+      // TODO: Implement actual file delete operation
       setIsDeleteDialogOpen(false);
       setContextMenuItem(null);
     } catch (_error) {
@@ -1143,10 +1142,7 @@ export function Build(): React.JSX.Element {
     if (!contextMenuItem || !currentProject || !newSchemaName.trim()) return;
 
     try {
-      // For now, just show a toast - actual file operations will be implemented next
-      toast.info('Create schema functionality coming soon', {
-        description: `Would create schema "${newSchemaName}" in "${contextMenuItem.name}"`,
-      });
+      // TODO: Implement actual schema creation
       setIsCreateSchemaDialogOpen(false);
       setContextMenuItem(null);
       setNewSchemaName('');
@@ -1161,10 +1157,7 @@ export function Build(): React.JSX.Element {
     if (!contextMenuItem || !currentProject || !newFolderName.trim()) return;
 
     try {
-      // For now, just show a toast - actual file operations will be implemented next
-      toast.info('Create folder functionality coming soon', {
-        description: `Would create folder "${newFolderName}" in "${contextMenuItem.name}"`,
-      });
+      // TODO: Implement actual folder creation
       setIsCreateFolderDialogOpen(false);
       setContextMenuItem(null);
       setNewFolderName('');
@@ -1174,6 +1167,64 @@ export function Build(): React.JSX.Element {
       });
     }
   }, [contextMenuItem, newFolderName, currentProject]);
+
+  // Root-level creation handlers
+  const handleCreateRootSchema = useCallback(() => {
+    setRootSchemaName('');
+    setIsCreateRootSchemaDialogOpen(true);
+  }, []);
+
+  const handleCreateRootFolder = useCallback(() => {
+    setRootFolderName('');
+    setIsCreateRootFolderDialogOpen(true);
+  }, []);
+
+  const handleCreateTemplateSchema = useCallback(() => {
+    setTemplateSchemaName('');
+    setIsCreateTemplateDialogOpen(true);
+  }, []);
+
+  const handleCreateRootSchemaConfirm = useCallback(async () => {
+    if (!currentProject || !rootSchemaName.trim()) return;
+
+    try {
+      // TODO: Implement actual root schema creation
+      setIsCreateRootSchemaDialogOpen(false);
+      setRootSchemaName('');
+    } catch (_error) {
+      toast.error('Create schema failed', {
+        description: 'Could not create the schema',
+      });
+    }
+  }, [rootSchemaName, currentProject]);
+
+  const handleCreateRootFolderConfirm = useCallback(async () => {
+    if (!currentProject || !rootFolderName.trim()) return;
+
+    try {
+      // TODO: Implement actual root folder creation
+      setIsCreateRootFolderDialogOpen(false);
+      setRootFolderName('');
+    } catch (_error) {
+      toast.error('Create folder failed', {
+        description: 'Could not create the folder',
+      });
+    }
+  }, [rootFolderName, currentProject]);
+
+  const handleCreateTemplateSchemaConfirm = useCallback(async () => {
+    if (!currentProject || !templateSchemaName.trim()) return;
+
+    try {
+      // TODO: Implement actual template schema creation
+      setIsCreateTemplateDialogOpen(false);
+      setTemplateSchemaName('');
+    } catch (_error) {
+      toast.error('Create template schema failed', {
+        description: 'Could not create the template schema',
+      });
+    }
+  }, [templateSchemaName, currentProject]);
 
   // Render tree item
   const renderTreeItem = (item: TreeItem, depth = 0) => {
@@ -1227,7 +1278,7 @@ export function Build(): React.JSX.Element {
               )}
             </div>
           </ContextMenuTrigger>
-                    <ContextMenuContent className="w-56">
+          <ContextMenuContent className="w-56">
             {item.type === 'schema' && (
               <ContextMenuItem onClick={() => handleContextMenuOpen(item)}>
                 <ExternalLink className="w-4 h-4 mr-2" />
@@ -1245,6 +1296,11 @@ export function Build(): React.JSX.Element {
                   New Folder
                 </ContextMenuItem>
                 <ContextMenuSeparator />
+                <ContextMenuItem onClick={handleCreateTemplateSchema}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Create Schema from Template
+                </ContextMenuItem>
+                <ContextMenuSeparator />
               </>
             )}
             <ContextMenuItem onClick={() => handleContextMenuRename(item)}>
@@ -1257,7 +1313,7 @@ export function Build(): React.JSX.Element {
               Copy Path
             </ContextMenuItem>
             <ContextMenuSeparator />
-            <ContextMenuItem 
+            <ContextMenuItem
               onClick={() => handleContextMenuDelete(item)}
               className="text-destructive focus:text-destructive"
             >
@@ -1345,12 +1401,6 @@ export function Build(): React.JSX.Element {
         {/* Tree View Sidebar */}
         <div className="col-span-3 bg-muted/10 border-r border-border/50 flex flex-col">
           <div className="p-3 border-b border-border/50 flex-shrink-0">
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-sm font-medium">Schema Explorer</h4>
-              <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                <Settings className="h-3 w-3" />
-              </Button>
-            </div>
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <input
@@ -1363,22 +1413,41 @@ export function Build(): React.JSX.Element {
             </div>
           </div>
           <div className="flex-1 min-h-0 p-0">
-            <ScrollArea className="h-full px-3">
-              {filteredTreeItems.length > 0 ? (
-                <div className="space-y-1">
-                  {filteredTreeItems.map((item) => renderTreeItem(item))}
-                </div>
-              ) : (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-center">
-                    <FileText className="w-8 h-8 mx-auto text-muted-foreground opacity-50 mb-2" />
-                    <p className="text-sm text-muted-foreground">
-                      {searchQuery ? 'No schemas match your search' : 'No schemas found'}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </ScrollArea>
+            <ContextMenu>
+              <ContextMenuTrigger asChild>
+                <ScrollArea className="h-full px-3">
+                  {filteredTreeItems.length > 0 ? (
+                    <div className="space-y-1">
+                      {filteredTreeItems.map((item) => renderTreeItem(item))}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="text-center">
+                        <FileText className="w-8 h-8 mx-auto text-muted-foreground opacity-50 mb-2" />
+                        <p className="text-sm text-muted-foreground">
+                          {searchQuery ? 'No schemas match your search' : 'No schemas found'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </ScrollArea>
+              </ContextMenuTrigger>
+              <ContextMenuContent className="w-56">
+                <ContextMenuItem onClick={handleCreateRootSchema}>
+                  <FilePlus className="w-4 h-4 mr-2" />
+                  New Schema
+                </ContextMenuItem>
+                <ContextMenuItem onClick={handleCreateRootFolder}>
+                  <FolderPlus className="w-4 h-4 mr-2" />
+                  New Folder
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem onClick={handleCreateTemplateSchema}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Create Schema from Template
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
           </div>
         </div>
 
@@ -1484,7 +1553,7 @@ export function Build(): React.JSX.Element {
                           disabled={
                             !activeTabId ||
                             editorTabs.findIndex((t) => t.id === activeTabId) ===
-                              editorTabs.length - 1
+                            editorTabs.length - 1
                           }
                         >
                           <ArrowRight className="w-4 h-4 mr-2" />
@@ -1665,9 +1734,7 @@ export function Build(): React.JSX.Element {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create New Schema</DialogTitle>
-            <DialogDescription>
-              Create a new schema in "{contextMenuItem?.name}"
-            </DialogDescription>
+            <DialogDescription>Create a new schema in "{contextMenuItem?.name}"</DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Input
@@ -1693,9 +1760,7 @@ export function Build(): React.JSX.Element {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create New Folder</DialogTitle>
-            <DialogDescription>
-              Create a new folder in "{contextMenuItem?.name}"
-            </DialogDescription>
+            <DialogDescription>Create a new folder in "{contextMenuItem?.name}"</DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Input
@@ -1711,6 +1776,84 @@ export function Build(): React.JSX.Element {
             </Button>
             <Button onClick={handleCreateFolderConfirm} disabled={!newFolderName.trim()}>
               Create Folder
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Root Schema Dialog */}
+      <Dialog open={isCreateRootSchemaDialogOpen} onOpenChange={setIsCreateRootSchemaDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Schema</DialogTitle>
+            <DialogDescription>Create a new schema in the root directory</DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={rootSchemaName}
+              onChange={(e) => setRootSchemaName(e.target.value)}
+              placeholder="Enter schema name"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateRootSchemaDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateRootSchemaConfirm} disabled={!rootSchemaName.trim()}>
+              Create Schema
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Root Folder Dialog */}
+      <Dialog open={isCreateRootFolderDialogOpen} onOpenChange={setIsCreateRootFolderDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Folder</DialogTitle>
+            <DialogDescription>Create a new folder in the root directory</DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={rootFolderName}
+              onChange={(e) => setRootFolderName(e.target.value)}
+              placeholder="Enter folder name"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateRootFolderDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateRootFolderConfirm} disabled={!rootFolderName.trim()}>
+              Create Folder
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Template Schema Dialog */}
+      <Dialog open={isCreateTemplateDialogOpen} onOpenChange={setIsCreateTemplateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Schema from Template</DialogTitle>
+            <DialogDescription>Create a new schema using a predefined template</DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={templateSchemaName}
+              onChange={(e) => setTemplateSchemaName(e.target.value)}
+              placeholder="Enter schema name"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateTemplateDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateTemplateSchemaConfirm} disabled={!templateSchemaName.trim()}>
+              Create from Template
             </Button>
           </DialogFooter>
         </DialogContent>
