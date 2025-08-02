@@ -61,6 +61,8 @@ import {
   ExternalLink,
   Copy,
   Edit,
+  FilePlus,
+  FolderPlus,
 } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
 import type { Schema } from '../../types/schema-editor';
@@ -134,6 +136,10 @@ export function Build(): React.JSX.Element {
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [renameValue, setRenameValue] = useState('');
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isCreateSchemaDialogOpen, setIsCreateSchemaDialogOpen] = useState(false);
+  const [isCreateFolderDialogOpen, setIsCreateFolderDialogOpen] = useState(false);
+  const [newSchemaName, setNewSchemaName] = useState('');
+  const [newFolderName, setNewFolderName] = useState('');
 
   // Build tree structure from schemas - file system approach
   const buildTreeStructure = useCallback((schemas: Schema[]): TreeItem[] => {
@@ -1120,6 +1126,55 @@ export function Build(): React.JSX.Element {
     }
   }, [contextMenuItem, currentProject]);
 
+  // File creation handlers
+  const handleContextMenuCreateSchema = useCallback((item: TreeItem) => {
+    setContextMenuItem(item);
+    setNewSchemaName('');
+    setIsCreateSchemaDialogOpen(true);
+  }, []);
+
+  const handleContextMenuCreateFolder = useCallback((item: TreeItem) => {
+    setContextMenuItem(item);
+    setNewFolderName('');
+    setIsCreateFolderDialogOpen(true);
+  }, []);
+
+  const handleCreateSchemaConfirm = useCallback(async () => {
+    if (!contextMenuItem || !currentProject || !newSchemaName.trim()) return;
+
+    try {
+      // For now, just show a toast - actual file operations will be implemented next
+      toast.info('Create schema functionality coming soon', {
+        description: `Would create schema "${newSchemaName}" in "${contextMenuItem.name}"`,
+      });
+      setIsCreateSchemaDialogOpen(false);
+      setContextMenuItem(null);
+      setNewSchemaName('');
+    } catch (_error) {
+      toast.error('Create schema failed', {
+        description: 'Could not create the schema',
+      });
+    }
+  }, [contextMenuItem, newSchemaName, currentProject]);
+
+  const handleCreateFolderConfirm = useCallback(async () => {
+    if (!contextMenuItem || !currentProject || !newFolderName.trim()) return;
+
+    try {
+      // For now, just show a toast - actual file operations will be implemented next
+      toast.info('Create folder functionality coming soon', {
+        description: `Would create folder "${newFolderName}" in "${contextMenuItem.name}"`,
+      });
+      setIsCreateFolderDialogOpen(false);
+      setContextMenuItem(null);
+      setNewFolderName('');
+    } catch (_error) {
+      toast.error('Create folder failed', {
+        description: 'Could not create the folder',
+      });
+    }
+  }, [contextMenuItem, newFolderName, currentProject]);
+
   // Render tree item
   const renderTreeItem = (item: TreeItem, depth = 0) => {
     const Icon = item.type === 'folder' ? (item.expanded ? FolderOpen : Folder) : FileText;
@@ -1172,12 +1227,25 @@ export function Build(): React.JSX.Element {
               )}
             </div>
           </ContextMenuTrigger>
-          <ContextMenuContent className="w-56">
+                    <ContextMenuContent className="w-56">
             {item.type === 'schema' && (
               <ContextMenuItem onClick={() => handleContextMenuOpen(item)}>
                 <ExternalLink className="w-4 h-4 mr-2" />
                 Open in Editor
               </ContextMenuItem>
+            )}
+            {item.type === 'folder' && (
+              <>
+                <ContextMenuItem onClick={() => handleContextMenuCreateSchema(item)}>
+                  <FilePlus className="w-4 h-4 mr-2" />
+                  New Schema
+                </ContextMenuItem>
+                <ContextMenuItem onClick={() => handleContextMenuCreateFolder(item)}>
+                  <FolderPlus className="w-4 h-4 mr-2" />
+                  New Folder
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+              </>
             )}
             <ContextMenuItem onClick={() => handleContextMenuRename(item)}>
               <Edit className="w-4 h-4 mr-2" />
@@ -1189,7 +1257,7 @@ export function Build(): React.JSX.Element {
               Copy Path
             </ContextMenuItem>
             <ContextMenuSeparator />
-            <ContextMenuItem
+            <ContextMenuItem 
               onClick={() => handleContextMenuDelete(item)}
               className="text-destructive focus:text-destructive"
             >
@@ -1587,6 +1655,62 @@ export function Build(): React.JSX.Element {
             </Button>
             <Button variant="destructive" onClick={handleDeleteConfirm}>
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Schema Dialog */}
+      <Dialog open={isCreateSchemaDialogOpen} onOpenChange={setIsCreateSchemaDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Schema</DialogTitle>
+            <DialogDescription>
+              Create a new schema in "{contextMenuItem?.name}"
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={newSchemaName}
+              onChange={(e) => setNewSchemaName(e.target.value)}
+              placeholder="Enter schema name"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateSchemaDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateSchemaConfirm} disabled={!newSchemaName.trim()}>
+              Create Schema
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Folder Dialog */}
+      <Dialog open={isCreateFolderDialogOpen} onOpenChange={setIsCreateFolderDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Folder</DialogTitle>
+            <DialogDescription>
+              Create a new folder in "{contextMenuItem?.name}"
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              placeholder="Enter folder name"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateFolderDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateFolderConfirm} disabled={!newFolderName.trim()}>
+              Create Folder
             </Button>
           </DialogFooter>
         </DialogContent>
