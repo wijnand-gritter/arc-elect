@@ -247,11 +247,27 @@ export const MonacoEditor = React.forwardRef<
                 if (schema) {
                   try {
                     // Try to read the schema file content
-                    const schemaContent = await (window as any).electronAPI?.readFile(schema.path);
+                    // Debug logging
+                    console.log('Hover Debug - Schema:', schema);
+                    console.log('Hover Debug - Ref Path:', refPath);
+                    console.log('Hover Debug - Schema Path:', schema.path);
+                    
+                    let schemaContent;
+                    try {
+                      schemaContent = await (window as any).electronAPI?.readFile(schema.path);
+                    } catch (fileError) {
+                      console.error('Hover Debug - File Read Error:', fileError);
+                      schemaContent = null;
+                    }
+                    console.log('Hover Debug - File Content Length:', schemaContent?.length || 'No content');
+                    
                     let schemaJson;
                     try {
                       schemaJson = JSON.parse(schemaContent);
-                    } catch {
+                      console.log('Hover Debug - JSON Parse Success');
+                    } catch (parseError) {
+                      console.error('Hover Debug - JSON Parse Error:', parseError);
+                      console.error('Hover Debug - Raw Content:', schemaContent);
                       schemaJson = null;
                     }
 
@@ -322,6 +338,17 @@ export const MonacoEditor = React.forwardRef<
                         value: '**Note:** Unable to parse schema content',
                         isTrusted: true,
                       });
+                      if (schemaContent) {
+                        contents.push({
+                          value: `**Debug:** File content length: ${schemaContent.length} characters`,
+                          isTrusted: true,
+                        });
+                      } else {
+                        contents.push({
+                          value: '**Debug:** No file content received',
+                          isTrusted: true,
+                        });
+                      }
                     }
 
                     contents.push({
