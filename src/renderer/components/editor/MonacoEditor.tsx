@@ -71,6 +71,7 @@ export const MonacoEditor = React.forwardRef<
   const validationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastValidationRef = useRef<string>('');
   const completionProviderRef = useRef<monaco.IDisposable | null>(null);
+  const hoverProviderRef = useRef<monaco.IDisposable | null>(null);
   const { theme } = useTheme();
   const [isReady, setIsReady] = React.useState(false);
 
@@ -122,21 +123,26 @@ export const MonacoEditor = React.forwardRef<
 
                 // Find first quote after colon (start of value)
                 const firstQuoteIndex = lineContent.indexOf('"', colonIndex);
-                const closingQuoteIndex = firstQuoteIndex !== -1 ? lineContent.indexOf('"', firstQuoteIndex + 1) : -1;
+                const closingQuoteIndex =
+                  firstQuoteIndex !== -1 ? lineContent.indexOf('"', firstQuoteIndex + 1) : -1;
 
                 const quoteContentStart = firstQuoteIndex !== -1 ? firstQuoteIndex + 1 : -1;
                 const cursorOffset = position.column - 1;
 
                 // Get the value up to the cursor, if inside or after quotes
-                let valueSoFar = "";
+                let valueSoFar = '';
                 let insideQuotes = false;
-                if (firstQuoteIndex !== -1 && position.column > firstQuoteIndex + 1 && (closingQuoteIndex === -1 || position.column <= closingQuoteIndex + 1)) {
+                if (
+                  firstQuoteIndex !== -1 &&
+                  position.column > firstQuoteIndex + 1 &&
+                  (closingQuoteIndex === -1 || position.column <= closingQuoteIndex + 1)
+                ) {
                   // Cursor inside quotes
                   insideQuotes = true;
                   valueSoFar = lineContent.substring(quoteContentStart, cursorOffset);
                 } else if (firstQuoteIndex === -1 && position.column > colonIndex + 1) {
                   // No quotes yet, but after colon (bare value)
-                  valueSoFar = "";
+                  valueSoFar = '';
                 } else if (firstQuoteIndex !== -1 && position.column <= firstQuoteIndex + 1) {
                   // Cursor before opening quote
                   return { suggestions: [] };
@@ -144,13 +150,17 @@ export const MonacoEditor = React.forwardRef<
 
                 // Path logic
                 const lastSlashIdx = valueSoFar.lastIndexOf('/');
-                const pathPrefix = lastSlashIdx !== -1 ? valueSoFar.substring(0, lastSlashIdx + 1) : '';
+                const pathPrefix =
+                  lastSlashIdx !== -1 ? valueSoFar.substring(0, lastSlashIdx + 1) : '';
                 const typedPrefix = valueSoFar;
 
                 // Always relative, always prefixed with ./
                 function toRelativePath(fullPath: string) {
                   const idx = fullPath.indexOf('schemas/');
-                  const rel = idx !== -1 ? fullPath.substring(idx + 'schemas/'.length) : fullPath.replace(/^\.?\//, '');
+                  const rel =
+                    idx !== -1
+                      ? fullPath.substring(idx + 'schemas/'.length)
+                      : fullPath.replace(/^\.?\//, '');
                   return './' + rel.replace(/^(\.\/)+/, '');
                 }
 
@@ -159,15 +169,14 @@ export const MonacoEditor = React.forwardRef<
                 const suggestions = availableSchemas
                   .map((schema) => {
                     const relPath = toRelativePath(schema.path);
-                    const insertText = typedPrefix
-                      ? relPath.substring(pathPrefix.length)
-                      : relPath;
+                    const insertText = typedPrefix ? relPath.substring(pathPrefix.length) : relPath;
 
                     // Determine range for replacement:
                     let startColumn: number;
                     let endColumn: number;
                     if (insideQuotes) {
-                      startColumn = quoteContentStart + (lastSlashIdx !== -1 ? lastSlashIdx + 2 : 1);
+                      startColumn =
+                        quoteContentStart + (lastSlashIdx !== -1 ? lastSlashIdx + 2 : 1);
                       endColumn = position.column;
                     } else {
                       // Not inside quotes: find the first non-space after the colon, don't overwrite spaces
@@ -200,14 +209,220 @@ export const MonacoEditor = React.forwardRef<
                       filterText: relPath,
                     };
                   })
-                  .filter(s =>
-                    !typedPrefix || s.label.toLowerCase().startsWith(typedPrefixLower)
+                  .filter(
+                    (s) => !typedPrefix || s.label.toLowerCase().startsWith(typedPrefixLower),
                   );
 
                 return { suggestions };
               },
             },
           );
+        }
+
+        // Professional Hover Provider for Schema References
+        if (availableSchemas.length > 0) {
+          // Dispose of existing hover provider to prevent duplicates
+          if (hoverProviderRef.current) {
+            hoverProviderRef.current.dispose();
+          }
+
+          hoverProviderRef.current = monacoInstance.languages.registerHoverProvider('json', {
+            provideHover: async (model, position) => {
+              const word = model.getWordAtPosition(position);
+              if (!word) return null;
+
+              const lineContent = model.getLineContent(position.lineNumber);
+
+              // Check if we're on a $ref value
+              const refMatch = lineContent.match(/"\$ref"\s*:\s*"([^"]+)"/);
+              if (refMatch) {
+                const refPath = refMatch[1];
+
+                // Find the corresponding schema
+                const schema = availableSchemas.find(s => {
+                  const relativePath = s.path.replace(/^.*\/schemas\//, './');
+                  return relativePath === refPath || s.path === refPath;
+                });
+
+                if (schema) {
+                  try {
+                    // Try to read the schema file content
+                    const schemaContent = await (window as any).electronAPI?.readFile(schema.path);
+                    let schemaJson;
+                    try {
+                      schemaJson = JSON.parse(schemaContent);
+                    } catch {
+                      schemaJson = null;
+                    }
+
+                    const contents: any[] = [
+                      {
+                        value: `**Schema Reference:** \`${refPath}\``,
+                        isTrusted: true,
+                      },
+                      {
+                        value: `**Schema Name:** ${schema.name}`,
+                        isTrusted: true,
+                      },
+                      {
+                        value: `**Schema Path:** \`${schema.path}\``,
+                        isTrusted: true,
+                      },
+                    ];
+
+                    if (schemaJson) {
+                      // Add schema details
+                      if (schemaJson.title) {
+                        contents.push({
+                          value: `**Title:** ${schemaJson.title}`,
+                          isTrusted: true,
+                        });
+                      }
+                      if (schemaJson.description) {
+                        contents.push({
+                          value: `**Description:** ${schemaJson.description}`,
+                          isTrusted: true,
+                        });
+                      }
+                      if (schemaJson.type) {
+                        contents.push({
+                          value: `**Type:** \`${schemaJson.type}\``,
+                          isTrusted: true,
+                        });
+                      }
+                      if (schemaJson.properties) {
+                        const propCount = Object.keys(schemaJson.properties).length;
+                        contents.push({
+                          value: `**Properties:** ${propCount} property${propCount !== 1 ? 's' : ''}`,
+                          isTrusted: true,
+                        });
+                      }
+                      if (schemaJson.required) {
+                        contents.push({
+                          value: `**Required:** ${schemaJson.required.join(', ')}`,
+                          isTrusted: true,
+                        });
+                      }
+
+                      // Add a preview of the schema content
+                      contents.push({
+                        value: '---',
+                        isTrusted: true,
+                      });
+                      contents.push({
+                        value: '**Schema Preview:**',
+                        isTrusted: true,
+                      });
+                      contents.push({
+                        value: `\`\`\`json\n${JSON.stringify(schemaJson, null, 2)}\n\`\`\``,
+                        isTrusted: true,
+                      });
+                    } else {
+                      contents.push({
+                        value: '**Note:** Unable to parse schema content',
+                        isTrusted: true,
+                      });
+                    }
+
+                    contents.push({
+                      value: '---',
+                      isTrusted: true,
+                    });
+                    contents.push({
+                      value: '**Actions:** Press `Ctrl/Cmd + F12` to navigate to this schema',
+                      isTrusted: true,
+                    });
+
+                    return {
+                      contents,
+                      range: {
+                        startLineNumber: position.lineNumber,
+                        startColumn: word.startColumn,
+                        endLineNumber: position.lineNumber,
+                        endColumn: word.endColumn,
+                      },
+                    };
+                  } catch (_error) {
+                    // Fallback if file reading fails
+                    return {
+                      contents: [
+                        {
+                          value: `**Schema Reference:** \`${refPath}\``,
+                          isTrusted: true,
+                        },
+                        {
+                          value: `**Schema Name:** ${schema.name}`,
+                          isTrusted: true,
+                        },
+                        {
+                          value: `**Schema Path:** \`${schema.path}\``,
+                          isTrusted: true,
+                        },
+                        {
+                          value: '**Note:** Unable to read schema content',
+                          isTrusted: true,
+                        },
+                      ],
+                      range: {
+                        startLineNumber: position.lineNumber,
+                        startColumn: word.startColumn,
+                        endLineNumber: position.lineNumber,
+                        endColumn: word.endColumn,
+                      },
+                    };
+                  }
+                }
+              }
+
+              // Check if we're on a property name
+              const propertyMatch = lineContent.match(/"([^"]+)":\s*{/);
+              if (propertyMatch && word.word === propertyMatch[1]) {
+                return {
+                  contents: [
+                    {
+                      value: `**Property:** \`${word.word}\``,
+                      isTrusted: true,
+                    },
+                    {
+                      value: 'JSON Schema property definition',
+                      isTrusted: true,
+                    },
+                  ],
+                  range: {
+                    startLineNumber: position.lineNumber,
+                    startColumn: word.startColumn,
+                    endLineNumber: position.lineNumber,
+                    endColumn: word.endColumn,
+                  },
+                };
+              }
+
+              // Check if we're on a type value
+              const typeMatch = lineContent.match(/"type"\s*:\s*"([^"]+)"/);
+              if (typeMatch && word.word === typeMatch[1]) {
+                return {
+                  contents: [
+                    {
+                      value: `**Type:** \`${word.word}\``,
+                      isTrusted: true,
+                    },
+                    {
+                      value: 'JSON Schema data type',
+                      isTrusted: true,
+                    },
+                  ],
+                  range: {
+                    startLineNumber: position.lineNumber,
+                    startColumn: word.startColumn,
+                    endLineNumber: position.lineNumber,
+                    endColumn: word.endColumn,
+                  },
+                };
+              }
+
+              return null;
+            },
+          });
         }
 
         // Navigation (F12)
@@ -363,6 +578,9 @@ export const MonacoEditor = React.forwardRef<
         validationDisposable?.dispose();
         if (completionProviderRef.current) {
           completionProviderRef.current.dispose();
+        }
+        if (hoverProviderRef.current) {
+          hoverProviderRef.current.dispose();
         }
       };
 
