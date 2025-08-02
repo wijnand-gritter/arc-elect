@@ -787,6 +787,12 @@ export const MonacoEditor = React.forwardRef<
         renderLineHighlight: 'all',
         mouseWheelScrollSensitivity: 1,
         fastScrollSensitivity: 5,
+        hover: {
+          enabled: true,
+          delay: 300,
+          sticky: false,
+          above: true,
+        },
       });
 
       editor.addAction({

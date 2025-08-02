@@ -341,4 +341,34 @@
     font-size: 12px !important; /* Or match your editor font-size */
     font-family: 'Fira Mono', 'monospace', monospace !important;
   }
+
+  /* Ensure Monaco Editor hover widgets can overflow */
+  .monaco-editor .hoverWidget {
+    z-index: 1000 !important;
+  }
+
+  .monaco-editor .hoverWidget .hover-row {
+    z-index: 1000 !important;
+  }
+
+  /* Force hover widgets to render above other elements */
+  .monaco-editor .monaco-hover {
+    z-index: 1000 !important;
+    position: fixed !important;
+    overflow: visible !important;
+  }
+
+  /* Ensure all Monaco Editor widgets can overflow containers */
+  .monaco-editor .monaco-hover,
+  .monaco-editor .hoverWidget,
+  .monaco-editor .suggest-widget {
+    position: fixed !important;
+    z-index: 9999 !important;
+    overflow: visible !important;
+  }
+
+  /* Override any container overflow settings for Monaco widgets */
+  *:has(.monaco-editor) {
+    overflow: visible !important;
+  }
 }
