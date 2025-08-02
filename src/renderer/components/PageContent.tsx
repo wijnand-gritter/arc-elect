@@ -68,7 +68,7 @@ export function PageContent(): React.JSX.Element {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <div className="flex flex-1 overflow-y-auto">
-        <div className="page-transition flex-1">
+        <div className="page-transition flex-1 overflow-visible">
           {currentPage === 'project' && (
             <ErrorBoundary>
               <Project />
