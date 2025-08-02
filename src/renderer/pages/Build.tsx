@@ -18,6 +18,21 @@ import { Button } from '../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Badge } from '../components/ui/badge';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '../components/ui/context-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog';
 
 import {
   Code,
@@ -36,6 +51,11 @@ import {
   CheckCircle,
   PlayCircle,
   BarChart3,
+  XCircle,
+  ArrowLeft,
+  ArrowRight,
+  Minus,
+  Save,
 } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
 import type { Schema } from '../../types/schema-editor';
@@ -263,25 +283,43 @@ export function Build(): React.JSX.Element {
         tabId: newTab.id,
       });
 
-      toast.success('Schema opened', {
-        description: `${schema.name} is now open for editing`,
-      });
+      // Removed toast notification as requested
     }),
     [editorTabs],
   );
 
   // Close editor tab
   const closeTab = useCallback(
-    safeHandler((tabId: string) => {
+    safeHandler(async (tabId: string) => {
       const tab = editorTabs.find((t) => t.id === tabId);
       if (tab?.isDirty) {
-        // In a real implementation, show confirmation dialog
-        toast.error('Unsaved changes', {
-          description: 'Please save your changes before closing the tab',
+        setConfirmationDialog({
+          isOpen: true,
+          title: 'Unsaved Changes',
+          message: `Do you want to save changes to "${tab.schema.name}" before closing?`,
+          action: async () => {
+            // Save and close
+            await handleSaveTab(tabId);
+            closeTabWithoutConfirmation(tabId);
+            setConfirmationDialog(null);
+          },
+          cancelAction: () => {
+            // Close without saving
+            closeTabWithoutConfirmation(tabId);
+            setConfirmationDialog(null);
+          },
         });
         return;
       }
 
+      closeTabWithoutConfirmation(tabId);
+    }),
+    [editorTabs, activeTabId],
+  );
+
+  // Close tab without confirmation (internal use)
+  const closeTabWithoutConfirmation = useCallback(
+    safeHandler((tabId: string) => {
       setEditorTabs((prev) => prev.filter((t) => t.id !== tabId));
       setTabValidationErrors((prev) => {
         const newErrors = { ...prev };
@@ -297,6 +335,288 @@ export function Build(): React.JSX.Element {
       logger.info('Closed editor tab', { tabId });
     }),
     [editorTabs, activeTabId],
+  );
+
+  // Save specific tab
+  const handleSaveTab = useCallback(
+    safeHandler(async (tabId: string) => {
+      const tab = editorTabs.find((t) => t.id === tabId);
+      if (!tab || !window.api) {
+        toast.error('Save failed', {
+          description: 'Tab not found or file system API not available',
+        });
+        return;
+      }
+
+      try {
+        // Validate JSON before saving
+        try {
+          JSON.parse(tab.content);
+        } catch (_parseError) {
+          toast.error('Cannot save invalid JSON', {
+            description: 'Please fix JSON syntax errors first',
+          });
+          return;
+        }
+
+        // Save to file system
+        const result = await window.api.writeFile(tab.schema.path, tab.content);
+
+        if (result.success) {
+          setEditorTabs((prev) => prev.map((t) => (t.id === tabId ? { ...t, isDirty: false } : t)));
+
+          toast.success('Tab saved', {
+            description: `${tab.schema.name} has been saved successfully`,
+          });
+
+          logger.info('Tab saved successfully', {
+            schemaName: tab.schema.name,
+            filePath: tab.schema.path,
+            contentLength: tab.content.length,
+          });
+        } else {
+          toast.error('Save failed', {
+            description: result.error || 'Failed to save tab',
+          });
+
+          logger.error('Tab save failed', {
+            schemaName: tab.schema.name,
+            filePath: tab.schema.path,
+            error: result.error,
+          });
+        }
+      } catch (error) {
+        toast.error('Save error', {
+          description: 'An unexpected error occurred while saving',
+        });
+
+        logger.error('Tab save error', {
+          schemaName: tab.schema.name,
+          filePath: tab.schema.path,
+          error: error instanceof Error ? error.message : error,
+        });
+      }
+    }),
+    [editorTabs],
+  );
+
+  // Format specific tab
+  const handleFormatTab = useCallback(
+    safeHandler(async (tabId: string) => {
+      const tab = editorTabs.find((t) => t.id === tabId);
+      if (!tab) return;
+
+      try {
+        const parsed = JSON.parse(tab.content);
+        const formatted = JSON.stringify(parsed, null, 2);
+
+        setEditorTabs((prev) =>
+          prev.map((t) => (t.id === tabId ? { ...t, content: formatted, isDirty: true } : t)),
+        );
+
+        toast.success('Tab formatted', {
+          description: `${tab.schema.name} has been formatted`,
+        });
+
+        logger.info('Tab formatted', { schemaName: tab.schema.name });
+      } catch (_error) {
+        toast.error('Format failed', {
+          description: 'Cannot format invalid JSON',
+        });
+      }
+    }),
+    [editorTabs],
+  );
+
+  // Context menu functions for tab operations
+  const closeAllTabs = useCallback(
+    safeHandler(async () => {
+      const dirtyTabs = editorTabs.filter((tab) => tab.isDirty);
+      if (dirtyTabs.length > 0) {
+        setConfirmationDialog({
+          isOpen: true,
+          title: 'Unsaved Changes',
+          message: `You have ${dirtyTabs.length} tab(s) with unsaved changes. Do you want to save all changes before closing?`,
+          action: () => {
+            // Save all and close
+            Promise.all(dirtyTabs.map((tab) => handleSaveTab(tab.id)))
+              .then(() => {
+                setEditorTabs([]);
+                setActiveTabId(null);
+                setTabValidationErrors({});
+                setConfirmationDialog(null);
+                toast.success('All tabs saved and closed');
+              })
+              .catch(() => {
+                setConfirmationDialog(null);
+              });
+          },
+          cancelAction: () => {
+            // Close without saving
+            setEditorTabs([]);
+            setActiveTabId(null);
+            setTabValidationErrors({});
+            setConfirmationDialog(null);
+            toast.success('All tabs closed');
+          },
+        });
+        return;
+      }
+
+      setEditorTabs([]);
+      setActiveTabId(null);
+      setTabValidationErrors({});
+      logger.info('Closed all tabs');
+      toast.success('All tabs closed');
+    }),
+    [editorTabs],
+  );
+
+  const closeOtherTabs = useCallback(
+    safeHandler(async (tabId: string) => {
+      const targetTab = editorTabs.find((t) => t.id === tabId);
+      const otherTabs = editorTabs.filter((t) => t.id !== tabId);
+      const dirtyOtherTabs = otherTabs.filter((tab) => tab.isDirty);
+
+      if (dirtyOtherTabs.length > 0) {
+        setConfirmationDialog({
+          isOpen: true,
+          title: 'Unsaved Changes',
+          message: `You have ${dirtyOtherTabs.length} tab(s) with unsaved changes. Do you want to save all changes before closing?`,
+          action: () => {
+            // Save all and close others
+            Promise.all(dirtyOtherTabs.map((tab) => handleSaveTab(tab.id)))
+              .then(() => {
+                setEditorTabs([targetTab!]);
+                setActiveTabId(tabId);
+                setTabValidationErrors({ [tabId]: tabValidationErrors[tabId] || [] });
+                setConfirmationDialog(null);
+                toast.success('Other tabs saved and closed');
+              })
+              .catch(() => {
+                setConfirmationDialog(null);
+              });
+          },
+          cancelAction: () => {
+            // Close without saving
+            setEditorTabs([targetTab!]);
+            setActiveTabId(tabId);
+            setTabValidationErrors({ [tabId]: tabValidationErrors[tabId] || [] });
+            setConfirmationDialog(null);
+            toast.success('Other tabs closed');
+          },
+        });
+        return;
+      }
+
+      setEditorTabs([targetTab!]);
+      setActiveTabId(tabId);
+      setTabValidationErrors({ [tabId]: tabValidationErrors[tabId] || [] });
+
+      logger.info('Closed other tabs', { remainingTab: tabId });
+      toast.success('Other tabs closed');
+    }),
+    [editorTabs, tabValidationErrors],
+  );
+
+  const closeTabsToLeft = useCallback(
+    safeHandler(async (tabId: string) => {
+      const targetIndex = editorTabs.findIndex((t) => t.id === tabId);
+      const tabsToClose = editorTabs.slice(0, targetIndex);
+      const dirtyTabsToClose = tabsToClose.filter((tab) => tab.isDirty);
+
+      if (dirtyTabsToClose.length > 0) {
+        setConfirmationDialog({
+          isOpen: true,
+          title: 'Unsaved Changes',
+          message: `You have ${dirtyTabsToClose.length} tab(s) with unsaved changes. Do you want to save all changes before closing?`,
+          action: () => {
+            // Save all and close
+            Promise.all(dirtyTabsToClose.map((tab) => handleSaveTab(tab.id)))
+              .then(() => {
+                const remainingTabs = editorTabs.slice(targetIndex);
+                setEditorTabs(remainingTabs);
+                setActiveTabId(tabId);
+                setTabValidationErrors({ [tabId]: tabValidationErrors[tabId] || [] });
+                setConfirmationDialog(null);
+                toast.success(`Saved and closed ${tabsToClose.length} tab(s) to the left`);
+              })
+              .catch(() => {
+                setConfirmationDialog(null);
+              });
+          },
+          cancelAction: () => {
+            // Close without saving
+            const remainingTabs = editorTabs.slice(targetIndex);
+            setEditorTabs(remainingTabs);
+            setActiveTabId(tabId);
+            setTabValidationErrors({ [tabId]: tabValidationErrors[tabId] || [] });
+            setConfirmationDialog(null);
+            toast.success(`Closed ${tabsToClose.length} tab(s) to the left`);
+          },
+        });
+        return;
+      }
+
+      const remainingTabs = editorTabs.slice(targetIndex);
+      setEditorTabs(remainingTabs);
+      setActiveTabId(tabId);
+      setTabValidationErrors({ [tabId]: tabValidationErrors[tabId] || [] });
+
+      logger.info('Closed tabs to left', { remainingTabs: remainingTabs.length });
+      toast.success(`Closed ${tabsToClose.length} tab(s) to the left`);
+    }),
+    [editorTabs, tabValidationErrors],
+  );
+
+  const closeTabsToRight = useCallback(
+    safeHandler(async (tabId: string) => {
+      const targetIndex = editorTabs.findIndex((t) => t.id === tabId);
+      const tabsToClose = editorTabs.slice(targetIndex + 1);
+      const dirtyTabsToClose = tabsToClose.filter((tab) => tab.isDirty);
+
+      if (dirtyTabsToClose.length > 0) {
+        setConfirmationDialog({
+          isOpen: true,
+          title: 'Unsaved Changes',
+          message: `You have ${dirtyTabsToClose.length} tab(s) with unsaved changes. Do you want to save all changes before closing?`,
+          action: () => {
+            // Save all and close
+            Promise.all(dirtyTabsToClose.map((tab) => handleSaveTab(tab.id)))
+              .then(() => {
+                const remainingTabs = editorTabs.slice(0, targetIndex + 1);
+                setEditorTabs(remainingTabs);
+                setActiveTabId(tabId);
+                setTabValidationErrors({ [tabId]: tabValidationErrors[tabId] || [] });
+                setConfirmationDialog(null);
+                toast.success(`Saved and closed ${tabsToClose.length} tab(s) to the right`);
+              })
+              .catch(() => {
+                setConfirmationDialog(null);
+              });
+          },
+          cancelAction: () => {
+            // Close without saving
+            const remainingTabs = editorTabs.slice(0, targetIndex + 1);
+            setEditorTabs(remainingTabs);
+            setActiveTabId(tabId);
+            setTabValidationErrors({ [tabId]: tabValidationErrors[tabId] || [] });
+            setConfirmationDialog(null);
+            toast.success(`Closed ${tabsToClose.length} tab(s) to the right`);
+          },
+        });
+        return;
+      }
+
+      const remainingTabs = editorTabs.slice(0, targetIndex + 1);
+      setEditorTabs(remainingTabs);
+      setActiveTabId(tabId);
+      setTabValidationErrors({ [tabId]: tabValidationErrors[tabId] || [] });
+
+      logger.info('Closed tabs to right', { remainingTabs: remainingTabs.length });
+      toast.success(`Closed ${tabsToClose.length} tab(s) to the right`);
+    }),
+    [editorTabs, tabValidationErrors],
   );
 
   // Toggle tree item expansion
@@ -368,6 +688,54 @@ export function Build(): React.JSX.Element {
     [],
   );
 
+  // Handle ref click to open referenced schema
+  const handleRefClick = useCallback(
+    safeHandler((refPath: string) => {
+      logger.info('Ref click attempted', {
+        refPath,
+        availableSchemas: currentProject?.schemas?.map((s) => ({ name: s.name, path: s.path })),
+      });
+
+      // Find the schema by path or name with multiple matching strategies
+      const targetSchema = currentProject?.schemas?.find((schema) => {
+        // Exact path match
+        if (schema.path === refPath) return true;
+        // Exact name match
+        if (schema.name === refPath) return true;
+        // Path ends with the ref path
+        if (schema.path.endsWith(refPath)) return true;
+        // Path includes the ref path
+        if (schema.path.includes(refPath)) return true;
+        // Name includes the ref path
+        if (schema.name.includes(refPath)) return true;
+        // Handle relative paths by checking if the schema path ends with the ref path
+        if (refPath.startsWith('./') && schema.path.endsWith(refPath.substring(2))) return true;
+        if (refPath.startsWith('../') && schema.path.endsWith(refPath.substring(3))) return true;
+
+        return false;
+      });
+
+      if (targetSchema) {
+        openSchemaTab(targetSchema);
+        logger.info('Navigated to ref successfully', {
+          refPath,
+          targetSchema: targetSchema.name,
+          targetPath: targetSchema.path,
+        });
+      } else {
+        // Log all available schemas for debugging
+        logger.warn('Ref navigation failed - schema not found', {
+          refPath,
+          availableSchemas: currentProject?.schemas?.map((s) => ({ name: s.name, path: s.path })),
+        });
+        toast.error('Schema not found', {
+          description: `Could not find schema: ${refPath}`,
+        });
+      }
+    }),
+    [currentProject?.schemas, openSchemaTab],
+  );
+
   // Get active tab
   const activeTab = editorTabs.find((tab) => tab.id === activeTabId);
 
@@ -382,6 +750,16 @@ export function Build(): React.JSX.Element {
     errors: { schemaId: string; schemaName: string; errors: ValidationError[] }[];
   } | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Confirmation dialog state
+  const [confirmationDialog, setConfirmationDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    action: () => void;
+    cancelAction?: () => void;
+  } | null>(null);
 
   // Update scroll button visibility
   const updateScrollButtons = useCallback(() => {
@@ -393,9 +771,24 @@ export function Build(): React.JSX.Element {
     }
 
     const { scrollLeft, scrollWidth, clientWidth } = tabContainer;
-    setCanScrollLeft(scrollLeft > 0);
-    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
-  }, []);
+    const hasHorizontalScroll = scrollWidth > clientWidth;
+
+    // Always show scroll buttons if there are many tabs, even if scroll detection is delayed
+    const hasManyTabs = editorTabs.length > 5;
+
+    setCanScrollLeft(hasHorizontalScroll && scrollLeft > 0);
+    setCanScrollRight(hasHorizontalScroll && scrollLeft < scrollWidth - clientWidth - 1);
+
+    // Force scroll buttons to show if there are many tabs and we're at the edges
+    if (hasManyTabs) {
+      if (scrollLeft <= 0) {
+        setCanScrollLeft(false);
+      }
+      if (scrollLeft >= scrollWidth - clientWidth - 1) {
+        setCanScrollRight(false);
+      }
+    }
+  }, [editorTabs.length]);
 
   // Update scroll buttons when tabs change or component mounts
   useEffect(() => {
@@ -403,12 +796,22 @@ export function Build(): React.JSX.Element {
     return () => clearTimeout(timer);
   }, [editorTabs.length, updateScrollButtons]);
 
+  // Force update scroll buttons when tabs are added/removed
+  useEffect(() => {
+    if (editorTabs.length > 0) {
+      const timer = setTimeout(updateScrollButtons, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [editorTabs.length, updateScrollButtons]);
+
   // Add resize observer to update scroll buttons when container size changes
   useEffect(() => {
     const tabContainer = document.getElementById('tab-container');
     if (!tabContainer) return;
 
-    const resizeObserver = new ResizeObserver(updateScrollButtons);
+    const resizeObserver = new ResizeObserver(() => {
+      setTimeout(updateScrollButtons, 50);
+    });
     resizeObserver.observe(tabContainer);
 
     return () => resizeObserver.disconnect();
@@ -419,7 +822,7 @@ export function Build(): React.JSX.Element {
     (direction: 'left' | 'right') => {
       const container = document.getElementById('tab-container');
       if (container) {
-        const scrollAmount = 200;
+        const scrollAmount = Math.min(200, container.clientWidth * 0.8);
         container.scrollBy({
           left: direction === 'left' ? -scrollAmount : scrollAmount,
           behavior: 'smooth',
@@ -551,6 +954,92 @@ export function Build(): React.JSX.Element {
       return () => tabContainer.removeEventListener('scroll', updateScrollButtons);
     }
   }, [editorTabs, updateScrollButtons]);
+
+  // Save all tabs
+  const handleSaveAll = useCallback(
+    safeHandler(async () => {
+      const dirtyTabs = editorTabs.filter((tab) => tab.isDirty);
+      if (dirtyTabs.length === 0) {
+        toast.info('No files to save');
+        return;
+      }
+
+      setIsSaving(true);
+
+      try {
+        const savePromises = dirtyTabs.map(async (tab) => {
+          try {
+            // Validate JSON before saving
+            JSON.parse(tab.content);
+
+            // Save to file system
+            const result = await window.api.writeFile(tab.schema.path, tab.content);
+
+            if (result.success) {
+              setEditorTabs((prev) =>
+                prev.map((t) => (t.id === tab.id ? { ...t, isDirty: false } : t)),
+              );
+
+              logger.info('Tab saved successfully', {
+                schemaName: tab.schema.name,
+                filePath: tab.schema.path,
+              });
+
+              return { success: true, tabName: tab.schema.name };
+            } else {
+              logger.error('Tab save failed', {
+                schemaName: tab.schema.name,
+                filePath: tab.schema.path,
+                error: result.error,
+              });
+
+              return { success: false, tabName: tab.schema.name, error: result.error };
+            }
+          } catch (parseError) {
+            logger.error('Tab save failed - invalid JSON', {
+              schemaName: tab.schema.name,
+              error: parseError instanceof Error ? parseError.message : parseError,
+            });
+
+            return { success: false, tabName: tab.schema.name, error: 'Invalid JSON' };
+          }
+        });
+
+        const results = await Promise.all(savePromises);
+        const successful = results.filter((r) => r.success);
+        const failed = results.filter((r) => !r.success);
+
+        if (successful.length > 0) {
+          toast.success(`Saved ${successful.length} file(s)`, {
+            description: successful.map((r) => r.tabName).join(', '),
+          });
+        }
+
+        if (failed.length > 0) {
+          toast.error(`Failed to save ${failed.length} file(s)`, {
+            description: failed.map((r) => `${r.tabName}: ${r.error}`).join(', '),
+          });
+        }
+
+        logger.info('Save all completed', {
+          total: results.length,
+          successful: successful.length,
+          failed: failed.length,
+        });
+      } catch (error) {
+        toast.error('Save all failed', {
+          description: 'An unexpected error occurred',
+        });
+
+        logger.error('Save all error', {
+          error: error instanceof Error ? error.message : error,
+        });
+      } finally {
+        setIsSaving(false);
+      }
+    }),
+    [editorTabs],
+  );
 
   // Render tree item
   const renderTreeItem = (item: TreeItem, depth = 0) => {
@@ -728,9 +1217,9 @@ export function Build(): React.JSX.Element {
               {/* Tab Headers */}
               <div className="border-b border-border/50 flex-shrink-0">
                 <TabsList className="h-auto p-0 bg-transparent">
-                  <div className="flex items-center">
+                  <div className="flex items-center w-full">
                     {/* Left scroll arrow */}
-                    {canScrollLeft && (
+                    {(canScrollLeft || editorTabs.length > 5) && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -741,42 +1230,106 @@ export function Build(): React.JSX.Element {
                       </Button>
                     )}
 
-                    {/* Scrollable tab container */}
-                    <div
-                      id="tab-container"
-                      className="flex-1 overflow-x-auto scrollbar-hide"
-                      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                      onScroll={updateScrollButtons}
-                    >
-                      <div className="flex min-w-max">
-                        {editorTabs.map((tab) => (
-                          <TabsTrigger
-                            key={tab.id}
-                            value={tab.id}
-                            className="relative flex items-center gap-2 px-4 py-3 data-[state=active]:bg-accent/50 whitespace-nowrap shrink-0"
-                          >
-                            <FileText className="w-4 h-4" />
-                            <span className="text-sm">{tab.schema.name}</span>
-                            {tab.isDirty && <div className="w-2 h-2 bg-orange-500 rounded-full" />}
-                            {tab.errors.length > 0 && (
-                              <AlertTriangle className="w-3 h-3 text-destructive" />
-                            )}
-                            <div
-                              className="h-4 w-4 ml-2 flex items-center justify-center rounded-sm hover:bg-destructive/20 cursor-pointer transition-colors"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                closeTab(tab.id);
-                              }}
-                            >
-                              <X className="h-3 w-3" />
-                            </div>
-                          </TabsTrigger>
-                        ))}
-                      </div>
-                    </div>
+                    {/* Scrollable tab container with context menu */}
+                    <ContextMenu>
+                      <ContextMenuTrigger asChild>
+                        <div
+                          id="tab-container"
+                          className="flex-1 overflow-x-auto scrollbar-hide"
+                          style={{
+                            scrollbarWidth: 'none',
+                            msOverflowStyle: 'none',
+                            maxWidth: 'calc(100vw - 400px)', // Ensure it doesn't exceed viewport
+                          }}
+                          onScroll={updateScrollButtons}
+                        >
+                          <div className="flex min-w-max">
+                            {editorTabs.map((tab) => (
+                              <TabsTrigger
+                                key={tab.id}
+                                value={tab.id}
+                                className="relative flex items-center gap-2 px-4 py-3 data-[state=active]:bg-accent/50 whitespace-nowrap shrink-0"
+                              >
+                                <FileText className="w-4 h-4" />
+                                <span className="text-sm">{tab.schema.name}</span>
+                                {tab.isDirty && (
+                                  <div className="w-2 h-2 bg-orange-500 rounded-full" />
+                                )}
+                                {tab.errors.length > 0 && (
+                                  <AlertTriangle className="w-3 h-3 text-destructive" />
+                                )}
+                                <div
+                                  className="h-4 w-4 ml-2 flex items-center justify-center rounded-sm hover:bg-destructive/20 cursor-pointer transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    closeTab(tab.id);
+                                  }}
+                                >
+                                  <X className="h-3 w-3" />
+                                </div>
+                              </TabsTrigger>
+                            ))}
+                          </div>
+                        </div>
+                      </ContextMenuTrigger>
+                      <ContextMenuContent className="w-56">
+                        <ContextMenuItem onClick={() => activeTabId && handleSaveTab(activeTabId)}>
+                          <Save className="w-4 h-4 mr-2" />
+                          Save Tab
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                          onClick={() => activeTabId && handleFormatTab(activeTabId)}
+                        >
+                          <Code className="w-4 h-4 mr-2" />
+                          Format Tab
+                        </ContextMenuItem>
+                        <ContextMenuSeparator />
+                        <ContextMenuItem onClick={() => activeTabId && closeTab(activeTabId)}>
+                          <X className="w-4 h-4 mr-2" />
+                          Close Tab
+                        </ContextMenuItem>
+                        <ContextMenuSeparator />
+                        <ContextMenuItem onClick={() => closeAllTabs()}>
+                          <XCircle className="w-4 h-4 mr-2" />
+                          Close All Tabs
+                        </ContextMenuItem>
+                        <ContextMenuSeparator />
+                        <ContextMenuItem
+                          onClick={() => activeTabId && closeTabsToLeft(activeTabId)}
+                          disabled={
+                            !activeTabId || editorTabs.findIndex((t) => t.id === activeTabId) === 0
+                          }
+                        >
+                          <ArrowLeft className="w-4 h-4 mr-2" />
+                          Close Tabs to Left
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                          onClick={() => activeTabId && closeTabsToRight(activeTabId)}
+                          disabled={
+                            !activeTabId ||
+                            editorTabs.findIndex((t) => t.id === activeTabId) ===
+                              editorTabs.length - 1
+                          }
+                        >
+                          <ArrowRight className="w-4 h-4 mr-2" />
+                          Close Tabs to Right
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                          onClick={() => activeTabId && closeOtherTabs(activeTabId)}
+                          disabled={!activeTabId || editorTabs.length <= 1}
+                        >
+                          <Minus className="w-4 h-4 mr-2" />
+                          Close Other Tabs
+                        </ContextMenuItem>
+                        <ContextMenuItem onClick={handleSaveAll} disabled={isSaving}>
+                          <Save className="w-4 h-4 mr-2" />
+                          Save All Tabs
+                        </ContextMenuItem>
+                      </ContextMenuContent>
+                    </ContextMenu>
 
                     {/* Right scroll arrow */}
-                    {canScrollRight && (
+                    {(canScrollRight || editorTabs.length > 5) && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -805,6 +1358,16 @@ export function Build(): React.JSX.Element {
                           onDirtyChange={(isDirty) => handleTabDirtyChange(tab.id, isDirty)}
                           onValidationChange={(errors) => handleTabValidationChange(tab.id, errors)}
                           errors={tabValidationErrors[tab.id] || []}
+                          availableSchemas={
+                            currentProject?.schemas?.map((schema) => ({
+                              id: schema.id,
+                              name: schema.name,
+                              path: schema.path,
+                            })) || []
+                          }
+                          onRefClick={handleRefClick}
+                          onSaveAll={handleSaveAll}
+                          isSaving={isSaving}
                         />
                       </div>
 
@@ -847,6 +1410,28 @@ export function Build(): React.JSX.Element {
           )}
         </div>
       </div>
+      {confirmationDialog && (
+        <Dialog
+          open={confirmationDialog.isOpen}
+          onOpenChange={(open) => !open && setConfirmationDialog(null)}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{confirmationDialog.title}</DialogTitle>
+              <DialogDescription>{confirmationDialog.message}</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={confirmationDialog.cancelAction || (() => setConfirmationDialog(null))}
+              >
+                Close
+              </Button>
+              <Button onClick={confirmationDialog.action}>Save & Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

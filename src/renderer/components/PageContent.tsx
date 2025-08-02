@@ -13,7 +13,7 @@
 import React from 'react';
 import { useAppStore } from '../stores/useAppStore';
 import { ErrorBoundary } from './ErrorBoundary';
-import { Settings } from '@/pages/Settings';
+import Settings from '@/pages/Settings';
 import { Project } from '@/pages/Project';
 import { Explore } from '@/pages/Explore';
 import { Build } from '@/pages/Build';

@@ -18,8 +18,9 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { ScrollArea } from '../ui/scroll-area';
-import { Save, RotateCcw, Code, AlertTriangle, FileText, Zap } from 'lucide-react';
+import { Save, RotateCcw, Code, AlertTriangle, FileText, Zap, HelpCircle } from 'lucide-react';
 import { MonacoEditor, ValidationError } from './MonacoEditor';
+import { EditorShortcutsModal } from './EditorShortcutsModal';
 
 import type { Schema } from '../../../types/schema-editor';
 import logger from '../../lib/renderer-logger';
@@ -44,6 +45,12 @@ interface SchemaEditorProps {
   onValidationChange: (errors: ValidationError[]) => void;
   /** Current validation errors */
   errors: ValidationError[];
+  /** Available schemas for ref navigation */
+  availableSchemas?: Array<{ id: string; name: string; path: string }>;
+  /** Callback when a ref is clicked */
+  onRefClick?: (refPath: string) => void;
+  /** Whether save all is in progress */
+  isSaving?: boolean;
 }
 
 /**
@@ -57,6 +64,9 @@ export function SchemaEditor({
   onDirtyChange,
   onValidationChange,
   errors,
+  availableSchemas = [],
+  onRefClick,
+  isSaving: globalIsSaving = false,
 }: SchemaEditorProps): React.JSX.Element {
   const editorRef = useRef<{
     formatDocument: () => void;
@@ -68,6 +78,7 @@ export function SchemaEditor({
   const [isValidating, setIsValidating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSavedContent, setLastSavedContent] = useState(content);
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
 
   /**
    * Handle content change in editor.
@@ -114,10 +125,6 @@ export function SchemaEditor({
     safeHandler(() => {
       if (editorRef.current) {
         editorRef.current.formatDocument();
-        toast.success('Document formatted', {
-          description: 'JSON has been formatted with proper indentation',
-        });
-
         logger.info('Document formatted', { schemaName: schema.name });
       }
     }),
@@ -136,15 +143,7 @@ export function SchemaEditor({
       try {
         const result = editorRef.current.validateJson();
 
-        if (result.valid) {
-          toast.success('Validation successful', {
-            description: 'JSON schema is valid',
-          });
-        } else {
-          toast.error('Validation failed', {
-            description: result.error || 'Invalid JSON syntax',
-          });
-        }
+        // Validation completed - no toast needed
 
         logger.info('JSON validation completed', {
           schemaName: schema.name,
@@ -152,10 +151,6 @@ export function SchemaEditor({
           error: result.error,
         });
       } catch (error) {
-        toast.error('Validation error', {
-          description: 'An error occurred during validation',
-        });
-
         logger.error('Validation error', {
           schemaName: schema.name,
           error: error instanceof Error ? error.message : error,
@@ -201,20 +196,12 @@ export function SchemaEditor({
           setLastSavedContent(content);
           onDirtyChange(false);
 
-          toast.success('Schema saved', {
-            description: `${schema.name} has been saved successfully`,
-          });
-
           logger.info('Schema saved successfully', {
             schemaName: schema.name,
             filePath: schema.path,
             contentLength: content.length,
           });
         } else {
-          toast.error('Save failed', {
-            description: result.error || 'Failed to save schema',
-          });
-
           logger.error('Schema save failed', {
             schemaName: schema.name,
             filePath: schema.path,
@@ -222,10 +209,6 @@ export function SchemaEditor({
           });
         }
       } catch (error) {
-        toast.error('Save error', {
-          description: 'An unexpected error occurred while saving',
-        });
-
         logger.error('Schema save error', {
           schemaName: schema.name,
           filePath: schema.path,
@@ -247,10 +230,6 @@ export function SchemaEditor({
 
       onContentChange(lastSavedContent);
       onDirtyChange(false);
-
-      toast.success('Changes reverted', {
-        description: 'Content has been restored to last saved version',
-      });
 
       logger.info('Schema changes reverted', {
         schemaName: schema.name,
@@ -293,7 +272,43 @@ export function SchemaEditor({
       properties: { type: 'object' },
       required: { type: 'array', items: { type: 'string' } },
       additionalProperties: { type: 'boolean' },
+      items: { type: 'object' },
+      allOf: { type: 'array', items: { type: 'object' } },
+      anyOf: { type: 'array', items: { type: 'object' } },
+      oneOf: { type: 'array', items: { type: 'object' } },
+      not: { type: 'object' },
+      if: { type: 'object' },
+      then: { type: 'object' },
+      else: { type: 'object' },
+      enum: { type: 'array' },
+      const: {},
+      format: { type: 'string' },
+      pattern: { type: 'string' },
+      minLength: { type: 'number', minimum: 0 },
+      maxLength: { type: 'number', minimum: 0 },
+      minimum: { type: 'number' },
+      maximum: { type: 'number' },
+      exclusiveMinimum: { type: 'number' },
+      exclusiveMaximum: { type: 'number' },
+      multipleOf: { type: 'number', minimum: 0 },
+      minItems: { type: 'number', minimum: 0 },
+      maxItems: { type: 'number', minimum: 0 },
+      uniqueItems: { type: 'boolean' },
+      minProperties: { type: 'number', minimum: 0 },
+      maxProperties: { type: 'number', minimum: 0 },
+      dependencies: { type: 'object' },
+      propertyNames: { type: 'object' },
+      patternProperties: { type: 'object' },
+      definitions: { type: 'object' },
+      $ref: { type: 'string' },
+      $comment: { type: 'string' },
+      default: {},
+      examples: { type: 'array' },
+      readOnly: { type: 'boolean' },
+      writeOnly: { type: 'boolean' },
+      deprecated: { type: 'boolean' },
     },
+    additionalProperties: true,
   };
 
   return (
@@ -358,14 +373,24 @@ export function SchemaEditor({
             variant="default"
             size="sm"
             onClick={handleSave}
-            disabled={!isDirty || isSaving || errors.some((e) => e.severity === 'error')}
+            disabled={
+              !isDirty || isSaving || globalIsSaving || errors.some((e) => e.severity === 'error')
+            }
           >
-            {isSaving ? (
+            {isSaving || globalIsSaving ? (
               <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
             ) : (
               <Save className="w-4 h-4 mr-2" />
             )}
             Save
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowShortcutsModal(true)}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <HelpCircle className="w-4 h-4" />
           </Button>
         </div>
       </div>
@@ -384,6 +409,8 @@ export function SchemaEditor({
           tabSize={2}
           minimap={true}
           wordWrap={false}
+          availableSchemas={availableSchemas}
+          {...(onRefClick && { onRefClick })}
         />
       </div>
 
@@ -416,6 +443,9 @@ export function SchemaEditor({
           </ScrollArea>
         </div>
       )}
+
+      {/* Shortcuts Modal */}
+      <EditorShortcutsModal open={showShortcutsModal} onOpenChange={setShowShortcutsModal} />
     </div>
   );
 }

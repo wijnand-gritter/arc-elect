@@ -71,6 +71,10 @@ interface MonacoEditorProps {
   tabSize?: number;
   /** Font family */
   fontFamily?: string;
+  /** Available schemas for ref navigation */
+  availableSchemas?: Array<{ id: string; name: string; path: string }>;
+  /** Callback when a ref is clicked */
+  onRefClick?: (refPath: string) => void;
 }
 
 /**
@@ -97,7 +101,9 @@ export const MonacoEditor = React.forwardRef<
     wordWrap = false,
     fontSize = 14,
     tabSize = 2,
-    fontFamily = '"Monaspace Neon", Consolas, "Courier New", monospace',
+    fontFamily = '"JetBrains Mono", Consolas, "Courier New", monospace',
+    availableSchemas = [],
+    onRefClick,
   },
   ref,
 ) {
@@ -107,6 +113,7 @@ export const MonacoEditor = React.forwardRef<
   const onChangeRef = useRef(onChange);
   const validationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastValidationRef = useRef<string>('');
+  const completionProviderRef = useRef<monaco.IDisposable | null>(null);
   const { theme } = useTheme();
   const [isReady, setIsReady] = React.useState(false);
 
@@ -140,13 +147,133 @@ export const MonacoEditor = React.forwardRef<
           });
         }
 
-        // Enable JSON validation
+        // Enable JSON validation with disabled external schema requests
         monacoInstance.languages.json.jsonDefaults.setDiagnosticsOptions({
           validate: true,
           allowComments: false,
           schemaValidation: 'error',
-          schemaRequest: 'error',
+          schemaRequest: 'ignore', // Disable external schema requests to prevent network errors
         });
+
+        // Add ref auto-completion
+        if (onRefClick && availableSchemas.length > 0) {
+          // Dispose of existing completion provider to prevent duplicates
+          if (completionProviderRef.current) {
+            completionProviderRef.current.dispose();
+          }
+
+          completionProviderRef.current = monacoInstance.languages.registerCompletionItemProvider(
+            'json',
+            {
+              provideCompletionItems: (model, position) => {
+                const textUntilPosition = model.getValueInRange({
+                  startLineNumber: position.lineNumber,
+                  startColumn: 1,
+                  endLineNumber: position.lineNumber,
+                  endColumn: position.column,
+                });
+
+                // Check if we're in a $ref field - more flexible matching
+                const isInRefField = textUntilPosition.match(/"\$ref"\s*:\s*"?$/);
+                if (!isInRefField) return { suggestions: [] };
+
+                // Get the full line content to analyze the context
+                const lineContent = model.getLineContent(position.lineNumber);
+
+                // Find the position of the $ref field
+                const refMatch = lineContent.match(/"\$ref"\s*:\s*/);
+                if (!refMatch) return { suggestions: [] };
+
+                              const refStartIndex = refMatch.index! + refMatch[0].length;
+
+              // Check if we're inside quotes or not
+              const textAfterRef = lineContent.substring(refStartIndex);
+              const isInsideQuotes = textAfterRef.startsWith('"');
+
+                // Find the start and end of the current value
+                let valueStart = refStartIndex;
+                let valueEnd = position.column;
+
+                if (isInsideQuotes) {
+                  // We're inside quotes, find the closing quote
+                  const closingQuoteIndex = lineContent.indexOf('"', refStartIndex + 1);
+                  if (closingQuoteIndex !== -1) {
+                    valueEnd = closingQuoteIndex + 1;
+                  }
+                }
+
+                // Convert absolute paths to relative paths
+                const suggestions = availableSchemas.map((schema) => {
+                  // Convert absolute path to relative path
+                  const relativePath = schema.path.replace(/^.*\/schemas\//, './');
+
+                  // Determine insert text and range based on context
+                  let insertText: string;
+                  let range: monaco.IRange;
+
+                  if (isInsideQuotes) {
+                    // We're inside quotes, replace the entire quoted value
+                    insertText = relativePath;
+                    range = {
+                      startLineNumber: position.lineNumber,
+                      startColumn: valueStart + 1, // +1 to skip the opening quote
+                      endLineNumber: position.lineNumber,
+                      endColumn: valueEnd - 1, // -1 to exclude the closing quote
+                    };
+                  } else {
+                    // We're not inside quotes, add quotes around the path
+                    insertText = `"${relativePath}"`;
+                    range = {
+                      startLineNumber: position.lineNumber,
+                      startColumn: valueStart,
+                      endLineNumber: position.lineNumber,
+                      endColumn: valueEnd,
+                    };
+                  }
+
+                  return {
+                    label: schema.name,
+                    kind: monacoInstance.languages.CompletionItemKind.Reference,
+                    insertText,
+                    detail: `Schema: ${schema.name}`,
+                    documentation: `Reference to ${schema.name} schema`,
+                    range,
+                  };
+                });
+
+                return { suggestions };
+              },
+            },
+          );
+        }
+
+        // Add ref navigation (F12)
+        if (onRefClick) {
+          editor.addAction({
+            id: 'navigate-to-ref',
+            label: 'Navigate to Reference',
+            keybindings: [monacoInstance.KeyMod.CtrlCmd | monacoInstance.KeyCode.F12],
+            contextMenuGroupId: 'navigation',
+            run: () => {
+              const position = editor.getPosition();
+              if (!position) return;
+
+              const model = editor.getModel();
+              if (!model) return;
+
+              const word = model.getWordAtPosition(position);
+              if (!word) return;
+
+              // Check if we're on a $ref value
+              const lineContent = model.getLineContent(position.lineNumber);
+              const refMatch = lineContent.match(/"\$ref"\s*:\s*"([^"]+)"/);
+              if (refMatch) {
+                const refPath = refMatch[1];
+                onRefClick(refPath);
+              }
+            },
+          });
+        }
       }
 
       // Set up debounced validation to prevent infinite loops
@@ -229,6 +356,20 @@ export const MonacoEditor = React.forwardRef<
           bracketPairs: true,
           indentation: true,
         },
+        // Ensure proper cursor positioning
+        cursorBlinking: 'smooth',
+        cursorSmoothCaretAnimation: 'on',
+        cursorStyle: 'line',
+        multiCursorModifier: 'alt',
+        accessibilitySupport: 'auto',
+        autoIndent: 'full',
+        formatOnPaste: false,
+        formatOnType: false,
+        suggestOnTriggerCharacters: true,
+        quickSuggestions: true,
+        renderLineHighlight: 'all',
+        mouseWheelScrollSensitivity: 1,
+        fastScrollSensitivity: 5,
       });
 
       // Add custom actions
@@ -257,8 +398,9 @@ export const MonacoEditor = React.forwardRef<
             JSON.parse(content);
             logger.info('JSON validation successful');
           } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Invalid JSON syntax';
             logger.error('JSON validation failed', {
-              error: error instanceof Error ? error.message : error,
+              error: errorMessage,
             });
           }
         },
@@ -278,6 +420,9 @@ export const MonacoEditor = React.forwardRef<
           clearTimeout(validationTimeoutRef.current);
         }
         validationDisposable?.dispose();
+        if (completionProviderRef.current) {
+          completionProviderRef.current.dispose();
+        }
       };
 
       return cleanup;
@@ -373,6 +518,7 @@ export const MonacoEditor = React.forwardRef<
       monacoRef.current.languages.json.jsonDefaults.setDiagnosticsOptions({
         validate: true,
         allowComments: false,
+        schemaRequest: 'ignore', // Disable external schema requests
         schemas: [
           {
             uri: 'http://json-schema.org/draft-07/schema#',
