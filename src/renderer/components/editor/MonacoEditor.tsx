@@ -251,16 +251,19 @@ export const MonacoEditor = React.forwardRef<
                     console.log('Hover Debug - Schema:', schema);
                     console.log('Hover Debug - Ref Path:', refPath);
                     console.log('Hover Debug - Schema Path:', schema.path);
-                    
+
                     let schemaContent;
                     try {
-                      schemaContent = await (window as any).electronAPI?.readFile(schema.path);
+                      schemaContent = await (window as any).api?.readFile(schema.path);
                     } catch (fileError) {
                       console.error('Hover Debug - File Read Error:', fileError);
                       schemaContent = null;
                     }
-                    console.log('Hover Debug - File Content Length:', schemaContent?.length || 'No content');
-                    
+                    console.log(
+                      'Hover Debug - File Content Length:',
+                      schemaContent?.length || 'No content',
+                    );
+
                     let schemaJson;
                     try {
                       schemaJson = JSON.parse(schemaContent);
