@@ -21,7 +21,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -1100,25 +1106,214 @@ export function Build(): React.JSX.Element {
     [currentProject?.path],
   );
 
+  // Targeted app store update functions to avoid full project reload
+  const updateAppStoreForCreate = useCallback(async (filePath: string, templateType: string) => {
+    if (!currentProject) return;
+
+    try {
+      // Read and process the new schema file
+      const result = await (window as any).api.readFile(filePath);
+      if (!result.success) {
+        throw new Error('Failed to read new schema file');
+      }
+
+      const content = result.data;
+      const relativePath = filePath.replace(currentProject.path + '/', '');
+      const schemaId = `schema-${Date.now()}`;
+
+      // Create basic schema object
+      const newSchema: Schema = {
+        id: schemaId,
+        projectId: currentProject.id,
+        name: relativePath.split('/').pop()?.replace('.schema.json', '') || 'New Schema',
+        path: filePath,
+        content: JSON.parse(content),
+        metadata: {
+          title: 'New Schema',
+          description: 'Schema created from template',
+          lastModified: new Date(),
+          fileSize: content.length,
+        },
+        validationStatus: 'pending',
+        relativePath,
+        references: [],
+        referencedBy: [],
+      };
+
+      // Update app store with new schema
+      useAppStore.setState((state) => ({
+        currentProject: state.currentProject ? {
+          ...state.currentProject,
+          schemas: [...state.currentProject.schemas, newSchema],
+          schemaIds: [...state.currentProject.schemaIds, schemaId],
+          status: {
+            ...state.currentProject.status,
+            totalSchemas: state.currentProject.status.totalSchemas + 1,
+          },
+        } : null,
+      }));
+
+      // Update tree items to reflect the new schema
+      setTreeItems(prevItems => {
+        const updateItems = (items: TreeItem[]): TreeItem[] => {
+          return items.map(item => {
+            if (item.type === 'folder' && relativePath.startsWith(item.path)) {
+              const newItem: TreeItem = {
+                id: schemaId,
+                name: newSchema.name,
+                type: 'schema',
+                parentId: item.id,
+                children: [],
+                path: relativePath,
+                schema: newSchema,
+              };
+
+              return {
+                ...item,
+                children: [...item.children, newItem],
+              };
+            }
+
+            if (item.children.length > 0) {
+              return {
+                ...item,
+                children: updateItems(item.children),
+              };
+            }
+
+            return item;
+          });
+        };
+
+        return updateItems(prevItems);
+      });
+
+    } catch (error) {
+      logger.error('Failed to update app store for new schema', { error, filePath });
+      throw error;
+    }
+  }, [currentProject]);
+
+  const updateAppStoreForDelete = useCallback(async (filePath: string) => {
+    if (!currentProject) return;
+
+    const relativePath = filePath.replace(currentProject.path + '/', '');
+
+    // Find the schema to delete
+    const schemaToDelete = currentProject.schemas.find(s => s.path === filePath);
+    if (!schemaToDelete) return;
+
+    // Remove from app store
+    useAppStore.setState((state) => ({
+      currentProject: state.currentProject ? {
+        ...state.currentProject,
+        schemas: state.currentProject.schemas.filter(s => s.id !== schemaToDelete.id),
+        schemaIds: state.currentProject.schemaIds.filter(id => id !== schemaToDelete.id),
+        status: {
+          ...state.currentProject.status,
+          totalSchemas: state.currentProject.status.totalSchemas - 1,
+        },
+      } : null,
+    }));
+
+    // Close any editor tabs for this schema
+    setEditorTabs(prev => prev.filter(tab => tab.schema.id !== schemaToDelete.id));
+    if (activeTabId === schemaToDelete.id) {
+      setActiveTabId(editorTabs[0]?.id || null);
+    }
+
+    // Update tree items to remove the deleted item
+    setTreeItems(prevItems => {
+      const updateItems = (items: TreeItem[]): TreeItem[] => {
+        return items.map(item => {
+          if (item.path === relativePath) {
+            return null; // Remove item
+          }
+
+          if (item.children.length > 0) {
+            return {
+              ...item,
+              children: updateItems(item.children).filter(Boolean) as TreeItem[],
+            };
+          }
+
+          return item;
+        }).filter(Boolean) as TreeItem[];
+      };
+
+      return updateItems(prevItems);
+    });
+
+  }, [currentProject, editorTabs, activeTabId]);
+
+  const updateAppStoreForRename = useCallback(async (oldPath: string, newPath: string) => {
+    if (!currentProject) return;
+
+    const oldRelativePath = oldPath.replace(currentProject.path + '/', '');
+    const newRelativePath = newPath.replace(currentProject.path + '/', '');
+
+    // Find the schema to rename
+    const schemaToRename = currentProject.schemas.find(s => s.path === oldPath);
+    if (!schemaToRename) return;
+
+    // Update schema in app store
+    const updatedSchema: Schema = {
+      ...schemaToRename,
+      path: newPath,
+      relativePath: newRelativePath,
+      name: newRelativePath.split('/').pop()?.replace('.schema.json', '') || schemaToRename.name,
+    };
+
+    useAppStore.setState((state) => ({
+      currentProject: state.currentProject ? {
+        ...state.currentProject,
+        schemas: state.currentProject.schemas.map(s =>
+          s.id === schemaToRename.id ? updatedSchema : s
+        ),
+      } : null,
+    }));
+
+    // Update editor tabs if this schema is open
+    setEditorTabs(prev => prev.map(tab =>
+      tab.schema.id === schemaToRename.id
+        ? { ...tab, schema: updatedSchema }
+        : tab
+    ));
+
+    // Update tree items to reflect the rename
+    setTreeItems(prevItems => {
+      const updateItems = (items: TreeItem[]): TreeItem[] => {
+        return items.map(item => {
+          if (item.path === oldRelativePath) {
+            return {
+              ...item,
+              path: newRelativePath,
+              name: updatedSchema.name,
+              schema: updatedSchema,
+            };
+          }
+
+          if (item.children.length > 0) {
+            return {
+              ...item,
+              children: updateItems(item.children),
+            };
+          }
+
+          return item;
+        });
+      };
+
+      return updateItems(prevItems);
+    });
+
+  }, [currentProject, editorTabs]);
+
   const handleRenameConfirm = safeAsyncHandler(async () => {
     if (!contextMenuItem || !currentProject || !renameValue.trim()) return;
 
     const oldPath = `${currentProject.path}/${contextMenuItem.path}`;
-    let newPath: string;
-
-    if (contextMenuItem.type === 'schema') {
-      // For files: replace the filename only
-      const parentDir = contextMenuItem.path.substring(0, contextMenuItem.path.lastIndexOf('/'));
-      newPath = parentDir
-        ? `${currentProject.path}/${parentDir}/${renameValue.trim()}.schema.json`
-        : `${currentProject.path}/${renameValue.trim()}.schema.json`;
-    } else {
-      // For folders: replace the last segment
-      const parentDir = contextMenuItem.path.substring(0, contextMenuItem.path.lastIndexOf('/'));
-      newPath = parentDir
-        ? `${currentProject.path}/${parentDir}/${renameValue.trim()}`
-        : `${currentProject.path}/${renameValue.trim()}`;
-    }
+    const newPath = `${currentProject.path}/${contextMenuItem.path.replace(contextMenuItem.name, renameValue.trim())}`;
 
     const result = await (window as any).api.rename(oldPath, newPath);
 
@@ -1126,10 +1321,8 @@ export function Build(): React.JSX.Element {
       setIsRenameDialogOpen(false);
       setContextMenuItem(null);
       setRenameValue('');
-      // Refresh tree view to show renamed item
-      if (currentProject) {
-        await loadProject(currentProject.path);
-      }
+      // Update tree state locally instead of full reload
+      updateAppStoreForRename(oldPath, newPath);
     } else {
       throw new Error(result.error || 'Rename failed');
     }
@@ -1144,10 +1337,8 @@ export function Build(): React.JSX.Element {
     if (result.success) {
       setIsDeleteDialogOpen(false);
       setContextMenuItem(null);
-      // Refresh tree view to remove deleted item
-      if (currentProject) {
-        await loadProject(currentProject.path);
-      }
+      // Update tree state locally instead of full reload
+      updateAppStoreForDelete(filePath);
     } else {
       throw new Error(result.error || 'Delete failed');
     }
@@ -1178,10 +1369,8 @@ export function Build(): React.JSX.Element {
       setIsCreateSchemaDialogOpen(false);
       setContextMenuItem(null);
       setNewSchemaName('');
-      // Refresh tree view to show new schema
-      if (currentProject) {
-        await loadProject(currentProject.path);
-      }
+      // Update tree state locally instead of full reload
+      updateAppStoreForCreate(fullPath, 'basic');
     } else {
       throw new Error(result.error || 'Create schema failed');
     }
@@ -1197,10 +1386,40 @@ export function Build(): React.JSX.Element {
       setIsCreateFolderDialogOpen(false);
       setContextMenuItem(null);
       setNewFolderName('');
-      // Refresh tree view to show new folder
-      if (currentProject) {
-        await loadProject(currentProject.path);
-      }
+      // Update tree items to show new folder (no schema processing needed)
+      setTreeItems(prevItems => {
+        const updateItems = (items: TreeItem[]): TreeItem[] => {
+          return items.map(item => {
+            if (item.type === 'folder' && contextMenuItem.path.startsWith(item.path)) {
+              const newFolder: TreeItem = {
+                id: `folder-${Date.now()}`,
+                name: newFolderName.trim(),
+                type: 'folder',
+                parentId: item.id,
+                children: [],
+                path: `${contextMenuItem.path}/${newFolderName.trim()}`,
+                expanded: false,
+              };
+
+              return {
+                ...item,
+                children: [...item.children, newFolder],
+              };
+            }
+
+            if (item.children.length > 0) {
+              return {
+                ...item,
+                children: updateItems(item.children),
+              };
+            }
+
+            return item;
+          });
+        };
+
+        return updateItems(prevItems);
+      });
     } else {
       throw new Error(result.error || 'Create folder failed');
     }
@@ -1233,10 +1452,8 @@ export function Build(): React.JSX.Element {
     if (result.success) {
       setIsCreateRootSchemaDialogOpen(false);
       setRootSchemaName('');
-      // Refresh tree view to show new schema
-      if (currentProject) {
-        await loadProject(currentProject.path);
-      }
+      // Update app store with new schema
+      updateAppStoreForCreate(fullPath, 'basic');
     } else {
       throw new Error(result.error || 'Create schema failed');
     }
@@ -1251,10 +1468,19 @@ export function Build(): React.JSX.Element {
     if (result.success) {
       setIsCreateRootFolderDialogOpen(false);
       setRootFolderName('');
-      // Refresh tree view to show new folder
-      if (currentProject) {
-        await loadProject(currentProject.path);
-      }
+      // Update tree items to show new root folder
+      setTreeItems(prevItems => {
+        const newFolder: TreeItem = {
+          id: `folder-${Date.now()}`,
+          name: rootFolderName.trim(),
+          type: 'folder',
+          children: [],
+          path: rootFolderName.trim(),
+          expanded: false,
+        };
+
+        return [...prevItems, newFolder];
+      });
     } else {
       throw new Error(result.error || 'Create folder failed');
     }
@@ -1271,10 +1497,8 @@ export function Build(): React.JSX.Element {
     if (result.success) {
       setIsCreateTemplateDialogOpen(false);
       setTemplateSchemaName('');
-      // Refresh tree view to show new schema
-      if (currentProject) {
-        await loadProject(currentProject.path);
-      }
+      // Update app store with new schema
+      updateAppStoreForCreate(fullPath, selectedTemplate);
     } else {
       throw new Error('Failed to create schema');
     }
@@ -1292,9 +1516,9 @@ export function Build(): React.JSX.Element {
           id: { type: 'string' },
           name: { type: 'string' },
           description: { type: 'string' },
-          dateCreated: { type: 'string', format: 'date-time' }
+          dateCreated: { type: 'string', format: 'date-time' },
         },
-        additionalProperties: false
+        additionalProperties: false,
       },
       'simple-array': {
         $schema: 'https://json-schema.org/draft/2020-12/schema',
@@ -1303,7 +1527,7 @@ export function Build(): React.JSX.Element {
         type: 'array',
         items: { type: 'string' },
         minItems: 0,
-        uniqueItems: true
+        uniqueItems: true,
       },
       'complex-object': {
         $schema: 'https://json-schema.org/draft/2020-12/schema',
@@ -1317,9 +1541,9 @@ export function Build(): React.JSX.Element {
           externalId: { type: 'string' },
           dateCreated: { type: 'string', format: 'date-time' },
           dateUpdated: { type: 'string', format: 'date-time' },
-          status: { type: 'string', enum: ['ACTIVE', 'INACTIVE', 'PENDING', 'ARCHIVED'] }
+          status: { type: 'string', enum: ['ACTIVE', 'INACTIVE', 'PENDING', 'ARCHIVED'] },
         },
-        additionalProperties: false
+        additionalProperties: false,
       },
       'complex-array': {
         $schema: 'https://json-schema.org/draft/2020-12/schema',
@@ -1332,32 +1556,36 @@ export function Build(): React.JSX.Element {
             id: { type: 'string' },
             name: { type: 'string' },
             value: { type: 'number' },
-            dateCreated: { type: 'string', format: 'date-time' }
+            dateCreated: { type: 'string', format: 'date-time' },
           },
-          additionalProperties: false
+          additionalProperties: false,
         },
         minItems: 0,
-        uniqueItems: false
+        uniqueItems: false,
       },
-      'enum': {
+      enum: {
         $schema: 'https://json-schema.org/draft/2020-12/schema',
         title: schemaName,
         description: `${schemaName} schema`,
         type: 'string',
-        enum: ['OPTION_ONE', 'OPTION_TWO', 'OPTION_THREE', 'OPTION_FOUR']
+        enum: ['OPTION_ONE', 'OPTION_TWO', 'OPTION_THREE', 'OPTION_FOUR'],
       },
 
-      'basic': {
+      basic: {
         $schema: 'https://json-schema.org/draft/2020-12/schema',
         title: schemaName,
         description: `${schemaName} schema`,
         type: 'object',
         properties: {},
-        additionalProperties: false
-      }
+        additionalProperties: false,
+      },
     };
 
-    return JSON.stringify(templates[templateType as keyof typeof templates] || templates.basic, null, 2);
+    return JSON.stringify(
+      templates[templateType as keyof typeof templates] || templates.basic,
+      null,
+      2,
+    );
   };
 
   // Render tree item
@@ -2031,7 +2259,9 @@ export function Build(): React.JSX.Element {
               <label className="text-sm font-medium mb-2 block">Template Preview</label>
               <div className="border rounded-md p-4 bg-muted/50 max-h-80 overflow-auto">
                 <pre className="text-xs">
-                  {templateSchemaName.trim() ? getTemplatePreview(templateSchemaName.trim(), selectedTemplate) : 'Enter a schema name to see preview'}
+                  {templateSchemaName.trim()
+                    ? getTemplatePreview(templateSchemaName.trim(), selectedTemplate)
+                    : 'Enter a schema name to see preview'}
                 </pre>
               </div>
             </div>
