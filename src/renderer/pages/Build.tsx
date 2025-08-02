@@ -18,6 +18,7 @@ import { Button } from '../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Badge } from '../components/ui/badge';
+import { Input } from '../components/ui/input';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -56,6 +57,10 @@ import {
   ArrowRight,
   Minus,
   Save,
+  Trash2,
+  ExternalLink,
+  Copy,
+  Edit,
 } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
 import type { Schema } from '../../types/schema-editor';
@@ -125,6 +130,10 @@ export function Build(): React.JSX.Element {
   const [tabValidationErrors, setTabValidationErrors] = useState<Record<string, ValidationError[]>>(
     {},
   );
+  const [contextMenuItem, setContextMenuItem] = useState<TreeItem | null>(null);
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   // Build tree structure from schemas - file system approach
   const buildTreeStructure = useCallback((schemas: Schema[]): TreeItem[] => {
@@ -1041,6 +1050,76 @@ export function Build(): React.JSX.Element {
     [editorTabs],
   );
 
+  // Context menu handlers
+  const handleContextMenuOpen = useCallback((item: TreeItem) => {
+    if (item.type === 'schema' && item.schema) {
+      openSchemaTab(item.schema);
+    }
+  }, []);
+
+  const handleContextMenuRename = useCallback((item: TreeItem) => {
+    setContextMenuItem(item);
+    setRenameValue(item.name);
+    setIsRenameDialogOpen(true);
+  }, []);
+
+  const handleContextMenuDelete = useCallback((item: TreeItem) => {
+    setContextMenuItem(item);
+    setIsDeleteDialogOpen(true);
+  }, []);
+
+  const handleContextMenuCopyPath = useCallback(
+    async (item: TreeItem) => {
+      try {
+        const fullPath = currentProject?.path ? `${currentProject.path}/${item.path}` : item.path;
+        await navigator.clipboard.writeText(fullPath);
+        toast.success('Path copied to clipboard', {
+          description: fullPath,
+        });
+      } catch (_error) {
+        toast.error('Failed to copy path', {
+          description: 'Could not copy to clipboard',
+        });
+      }
+    },
+    [currentProject?.path],
+  );
+
+  const handleRenameConfirm = useCallback(async () => {
+    if (!contextMenuItem || !currentProject) return;
+
+    try {
+      // For now, just show a toast - actual file operations will be implemented next
+      toast.info('Rename functionality coming soon', {
+        description: `Would rename "${contextMenuItem.name}" to "${renameValue}"`,
+      });
+      setIsRenameDialogOpen(false);
+      setContextMenuItem(null);
+      setRenameValue('');
+    } catch (_error) {
+      toast.error('Rename failed', {
+        description: 'Could not rename the item',
+      });
+    }
+  }, [contextMenuItem, renameValue, currentProject]);
+
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!contextMenuItem || !currentProject) return;
+
+    try {
+      // For now, just show a toast - actual file operations will be implemented next
+      toast.info('Delete functionality coming soon', {
+        description: `Would delete "${contextMenuItem.name}"`,
+      });
+      setIsDeleteDialogOpen(false);
+      setContextMenuItem(null);
+    } catch (_error) {
+      toast.error('Delete failed', {
+        description: 'Could not delete the item',
+      });
+    }
+  }, [contextMenuItem, currentProject]);
+
   // Render tree item
   const renderTreeItem = (item: TreeItem, depth = 0) => {
     const Icon = item.type === 'folder' ? (item.expanded ? FolderOpen : Folder) : FileText;
@@ -1049,47 +1128,76 @@ export function Build(): React.JSX.Element {
 
     return (
       <div key={item.id}>
-        <div
-          className="flex items-center gap-2 py-1 px-2 hover:bg-accent/50 cursor-pointer rounded-sm"
-          style={indentStyle}
-          onClick={() => {
-            if (item.type === 'folder') {
-              toggleTreeItem(item.id);
-            } else if (item.schema) {
-              openSchemaTab(item.schema);
-            }
-          }}
-        >
-          {hasChildren ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-4 w-4 p-0 shrink-0"
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleTreeItem(item.id);
+        <ContextMenu>
+          <ContextMenuTrigger asChild>
+            <div
+              className="flex items-center gap-2 py-1 px-2 hover:bg-accent/50 cursor-pointer rounded-sm"
+              style={indentStyle}
+              onClick={() => {
+                if (item.type === 'folder') {
+                  toggleTreeItem(item.id);
+                } else if (item.schema) {
+                  openSchemaTab(item.schema);
+                }
               }}
             >
-              {item.expanded ? (
-                <ChevronDown className="h-3 w-3" />
+              {hasChildren ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-4 w-4 p-0 shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleTreeItem(item.id);
+                  }}
+                >
+                  {item.expanded ? (
+                    <ChevronDown className="h-3 w-3" />
+                  ) : (
+                    <ChevronRight className="h-3 w-3" />
+                  )}
+                </Button>
               ) : (
-                <ChevronRight className="h-3 w-3" />
+                <div className="h-4 w-4 shrink-0" /> // Spacer for alignment
               )}
-            </Button>
-          ) : (
-            <div className="h-4 w-4 shrink-0" /> // Spacer for alignment
-          )}
-          <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-          <span className="text-sm truncate">{item.name}</span>
-          {item.schema && (
-            <Badge
-              variant={item.schema.validationStatus === 'valid' ? 'default' : 'destructive'}
-              className="ml-auto h-4 text-xs"
+              <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="text-sm truncate">{item.name}</span>
+              {item.schema && (
+                <Badge
+                  variant={item.schema.validationStatus === 'valid' ? 'default' : 'destructive'}
+                  className="ml-auto h-4 text-xs"
+                >
+                  {item.schema.validationStatus}
+                </Badge>
+              )}
+            </div>
+          </ContextMenuTrigger>
+          <ContextMenuContent className="w-56">
+            {item.type === 'schema' && (
+              <ContextMenuItem onClick={() => handleContextMenuOpen(item)}>
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Open in Editor
+              </ContextMenuItem>
+            )}
+            <ContextMenuItem onClick={() => handleContextMenuRename(item)}>
+              <Edit className="w-4 h-4 mr-2" />
+              Rename
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem onClick={() => handleContextMenuCopyPath(item)}>
+              <Copy className="w-4 h-4 mr-2" />
+              Copy Path
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+              onClick={() => handleContextMenuDelete(item)}
+              className="text-destructive focus:text-destructive"
             >
-              {item.schema.validationStatus}
-            </Badge>
-          )}
-        </div>
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete
+            </ContextMenuItem>
+          </ContextMenuContent>
+        </ContextMenu>
         {item.expanded && item.children.map((child) => renderTreeItem(child, depth + 1))}
       </div>
     );
@@ -1432,6 +1540,57 @@ export function Build(): React.JSX.Element {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Rename Dialog */}
+      <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Rename {contextMenuItem?.type === 'folder' ? 'Folder' : 'Schema'}
+            </DialogTitle>
+            <DialogDescription>Enter a new name for "{contextMenuItem?.name}"</DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              placeholder="Enter new name"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRenameDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleRenameConfirm} disabled={!renameValue.trim()}>
+              Rename
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Delete {contextMenuItem?.type === 'folder' ? 'Folder' : 'Schema'}
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{contextMenuItem?.name}"? This action cannot be
+              undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
