@@ -61,7 +61,10 @@ export function withErrorHandling<T extends unknown[], R>(
     const startTime = Date.now();
 
     try {
-      logger.info(`${context} - START`, { args: args.length });
+      // Only log for non-file operations to reduce noise
+      if (!context.startsWith('file:')) {
+        logger.info(`${context} - START`, { args: args.length });
+      }
 
       const result = await handler(...args);
 
