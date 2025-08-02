@@ -112,10 +112,10 @@ export const MonacoEditor = React.forwardRef<
             completionProviderRef.current.dispose();
           }
 
-          completionProviderRef.current = monacoInstance.languages.registerCompletionItemProvider(
-            'json',
-            {
-              triggerCharacters: ['"', '/', '.', '\\', ' '],
+                  completionProviderRef.current = monacoInstance.languages.registerCompletionItemProvider(
+          'json',
+          {
+            triggerCharacters: ['"', '/', '.', '\\', ' ', ':', ','],
               provideCompletionItems: (model, position) => {
                 const lineContent = model.getLineContent(position.lineNumber);
                 const colonIndex = lineContent.indexOf(':');
@@ -213,7 +213,312 @@ export const MonacoEditor = React.forwardRef<
                     (s) => !typedPrefix || s.label.toLowerCase().startsWith(typedPrefixLower),
                   );
 
-                return { suggestions };
+                // Add JSON Schema keyword and value completion
+                const additionalSuggestions: monaco.languages.CompletionItem[] = [];
+
+                // Check if we're on a property name (left side of colon)
+                const propertyMatch = lineContent.match(/"([^"]*)"\s*:\s*$/);
+                if (propertyMatch) {
+                  // Suggest JSON Schema keywords
+                  const schemaKeywords = [
+                    { label: 'type', detail: 'Data type', documentation: 'Defines the data type of the schema' },
+                    { label: 'title', detail: 'Schema title', documentation: 'Human-readable title for the schema' },
+                    { label: 'description', detail: 'Schema description', documentation: 'Detailed description of the schema purpose' },
+                    { label: 'required', detail: 'Required properties', documentation: 'Array of property names that must be present' },
+                    { label: 'properties', detail: 'Schema properties', documentation: 'Defines the properties of an object schema' },
+                    { label: 'items', detail: 'Array items', documentation: 'Defines the schema for array elements' },
+                    { label: 'enum', detail: 'Enumeration', documentation: 'Restricts values to a specific set of options' },
+                    { label: 'const', detail: 'Constant value', documentation: 'The value must exactly match this constant' },
+                    { label: 'format', detail: 'String format', documentation: 'Specifies the format of string values' },
+                    { label: 'pattern', detail: 'Regex pattern', documentation: 'String must match this regex pattern' },
+                    { label: 'minimum', detail: 'Minimum value', documentation: 'Numeric value must be >= this value' },
+                    { label: 'maximum', detail: 'Maximum value', documentation: 'Numeric value must be <= this value' },
+                    { label: 'minLength', detail: 'Minimum length', documentation: 'String must have at least this many characters' },
+                    { label: 'maxLength', detail: 'Maximum length', documentation: 'String must have at most this many characters' },
+                    { label: 'minItems', detail: 'Minimum items', documentation: 'Array must have at least this many elements' },
+                    { label: 'maxItems', detail: 'Maximum items', documentation: 'Array must have at most this many elements' },
+                    { label: 'uniqueItems', detail: 'Unique items', documentation: 'All array elements must be unique' },
+                    { label: 'additionalProperties', detail: 'Additional properties', documentation: 'Whether to allow properties not defined in schema' },
+                    { label: 'allOf', detail: 'All of', documentation: 'Value must validate against ALL of these schemas' },
+                    { label: 'anyOf', detail: 'Any of', documentation: 'Value must validate against AT LEAST ONE of these schemas' },
+                    { label: 'oneOf', detail: 'One of', documentation: 'Value must validate against EXACTLY ONE of these schemas' },
+                    { label: 'not', detail: 'Not', documentation: 'Value must NOT validate against this schema' },
+                    { label: 'if', detail: 'If condition', documentation: 'Conditional validation - if this schema validates, then...' },
+                    { label: 'then', detail: 'Then', documentation: 'If the "if" schema validates, then this schema must also validate' },
+                    { label: 'else', detail: 'Else', documentation: 'If the "if" schema does not validate, then this schema must validate' },
+                    { label: 'default', detail: 'Default value', documentation: 'Default value when property is not provided' },
+                    { label: 'examples', detail: 'Examples', documentation: 'Sample values that are valid for this schema' },
+                    { label: 'deprecated', detail: 'Deprecated', documentation: 'Indicates this property is deprecated' },
+                    { label: 'readOnly', detail: 'Read only', documentation: 'Property should not be modified by clients' },
+                    { label: 'writeOnly', detail: 'Write only', documentation: 'Property should not be returned by servers' },
+                  ];
+
+                  schemaKeywords.forEach(keyword => {
+                    additionalSuggestions.push({
+                      label: keyword.label,
+                      kind: monacoInstance.languages.CompletionItemKind.Keyword,
+                      insertText: `"${keyword.label}"`,
+                      detail: keyword.detail,
+                      documentation: keyword.documentation,
+                      range: {
+                        startLineNumber: position.lineNumber,
+                        startColumn: position.column - (propertyMatch[1]?.length || 0),
+                        endLineNumber: position.lineNumber,
+                        endColumn: position.column,
+                      },
+                    });
+                  });
+                }
+
+                // Check if we're on a value (right side of colon)
+                const valueMatch = lineContent.match(/"([^"]+)"\s*:\s*"([^"]*)"$/);
+                if (valueMatch) {
+                  const propertyName = valueMatch[1];
+                  const currentValue = valueMatch[2];
+
+                  // Type value suggestions
+                  if (propertyName === 'type') {
+                    const typeValues = [
+                      { label: 'string', detail: 'Text values', documentation: 'String data type' },
+                      { label: 'number', detail: 'Numeric values', documentation: 'Integer or float numbers' },
+                      { label: 'integer', detail: 'Whole numbers', documentation: 'Whole numbers only' },
+                      { label: 'boolean', detail: 'True/false values', documentation: 'Boolean true or false' },
+                      { label: 'object', detail: 'Key-value pairs', documentation: 'Object with properties' },
+                      { label: 'array', detail: 'Ordered list', documentation: 'Array of values' },
+                      { label: 'null', detail: 'Null value', documentation: 'Null value' },
+                    ];
+
+                    typeValues.forEach(type => {
+                      additionalSuggestions.push({
+                        label: type.label,
+                        kind: monacoInstance.languages.CompletionItemKind.Value,
+                        insertText: `"${type.label}"`,
+                        detail: type.detail,
+                        documentation: type.documentation,
+                        range: {
+                          startLineNumber: position.lineNumber,
+                          startColumn: position.column - currentValue.length,
+                          endLineNumber: position.lineNumber,
+                          endColumn: position.column,
+                        },
+                      });
+                    });
+                  }
+
+                  // Format value suggestions
+                  if (propertyName === 'format') {
+                    const formatValues = [
+                      { label: 'date', detail: 'YYYY-MM-DD format', documentation: 'Date in YYYY-MM-DD format' },
+                      { label: 'date-time', detail: 'ISO 8601 datetime', documentation: 'ISO 8601 datetime format' },
+                      { label: 'time', detail: 'HH:MM:SS format', documentation: 'Time in HH:MM:SS format' },
+                      { label: 'email', detail: 'Email address', documentation: 'Valid email address format' },
+                      { label: 'uri', detail: 'URI/URL', documentation: 'Valid URI or URL' },
+                      { label: 'uri-reference', detail: 'URI reference', documentation: 'URI reference (relative or absolute)' },
+                      { label: 'uuid', detail: 'UUID format', documentation: 'UUID format' },
+                      { label: 'ipv4', detail: 'IPv4 address', documentation: 'IPv4 address format' },
+                      { label: 'ipv6', detail: 'IPv6 address', documentation: 'IPv6 address format' },
+                      { label: 'hostname', detail: 'Hostname', documentation: 'Valid hostname format' },
+                      { label: 'regex', detail: 'Regular expression', documentation: 'Regular expression pattern' },
+                      { label: 'json-pointer', detail: 'JSON pointer', documentation: 'JSON pointer format' },
+                      { label: 'relative-json-pointer', detail: 'Relative JSON pointer', documentation: 'Relative JSON pointer format' },
+                    ];
+
+                    formatValues.forEach(format => {
+                      additionalSuggestions.push({
+                        label: format.label,
+                        kind: monacoInstance.languages.CompletionItemKind.Value,
+                        insertText: `"${format.label}"`,
+                        detail: format.detail,
+                        documentation: format.documentation,
+                        range: {
+                          startLineNumber: position.lineNumber,
+                          startColumn: position.column - currentValue.length,
+                          endLineNumber: position.lineNumber,
+                          endColumn: position.column,
+                        },
+                      });
+                    });
+                  }
+
+                  // Pattern regex suggestions
+                  if (propertyName === 'pattern') {
+                    const regexPatterns = [
+                      { label: '^[a-zA-Z0-9]+$', detail: 'Alphanumeric only', documentation: 'Only letters and numbers allowed' },
+                      { label: '^[a-z0-9]+$', detail: 'Lowercase alphanumeric', documentation: 'Only lowercase letters and numbers' },
+                      { label: '^[A-Z0-9]+$', detail: 'Uppercase alphanumeric', documentation: 'Only uppercase letters and numbers' },
+                      { label: '^[a-zA-Z]+$', detail: 'Letters only', documentation: 'Only letters allowed' },
+                      { label: '^[0-9]+$', detail: 'Numbers only', documentation: 'Only numbers allowed' },
+                      { label: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$', detail: 'Email pattern', documentation: 'Email address validation pattern' },
+                      { label: '^https?://[^\\s/$.?#].[^\\s]*$', detail: 'URL pattern', documentation: 'HTTP/HTTPS URL validation pattern' },
+                      { label: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$', detail: 'Date pattern', documentation: 'YYYY-MM-DD date format' },
+                      { label: '^[0-9]{2}:[0-9]{2}:[0-9]{2}$', detail: 'Time pattern', documentation: 'HH:MM:SS time format' },
+                      { label: '^[0-9]{10}$', detail: 'Phone pattern', documentation: '10-digit phone number' },
+                      { label: '^[A-Z]{2}[0-9]{2}[A-Z0-9]{10,30}$', detail: 'IBAN pattern', documentation: 'IBAN bank account number' },
+                      { label: '^[0-9]{16}$', detail: 'Credit card', documentation: '16-digit credit card number' },
+                    ];
+
+                    regexPatterns.forEach(pattern => {
+                      additionalSuggestions.push({
+                        label: pattern.label,
+                        kind: monacoInstance.languages.CompletionItemKind.Value,
+                        insertText: `"${pattern.label}"`,
+                        detail: pattern.detail,
+                        documentation: pattern.documentation,
+                        range: {
+                          startLineNumber: position.lineNumber,
+                          startColumn: position.column - currentValue.length,
+                          endLineNumber: position.lineNumber,
+                          endColumn: position.column,
+                        },
+                      });
+                    });
+                  }
+                }
+
+                                 // Add JSON Schema snippets
+                 const snippetSuggestions: monaco.languages.CompletionItem[] = [
+                   {
+                     label: 'object-schema',
+                     kind: monacoInstance.languages.CompletionItemKind.Snippet,
+                     insertText: [
+                       '"type": "object",',
+                       '"properties": {',
+                       '  "${1:propertyName}": {',
+                       '    "type": "${2:string}",',
+                       '    "title": "${3:Property Title}",',
+                       '    "description": "${4:Property description}"',
+                       '  }',
+                       '},',
+                       '"required": ["${1:propertyName}"]'
+                     ].join('\n'),
+                     insertTextRules: monacoInstance.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                     detail: 'Object Schema',
+                     documentation: 'Complete object schema with properties and validation',
+                     range: {
+                       startLineNumber: position.lineNumber,
+                       startColumn: position.column,
+                       endLineNumber: position.lineNumber,
+                       endColumn: position.column,
+                     },
+                   },
+                   {
+                     label: 'array-schema',
+                     kind: monacoInstance.languages.CompletionItemKind.Snippet,
+                     insertText: [
+                       '"type": "array",',
+                       '"items": {',
+                       '  "type": "${1:string}"',
+                       '},',
+                       '"minItems": ${2:0},',
+                       '"maxItems": ${3:100}'
+                     ].join('\n'),
+                     insertTextRules: monacoInstance.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                     detail: 'Array Schema',
+                     documentation: 'Array schema with item validation and size constraints',
+                     range: {
+                       startLineNumber: position.lineNumber,
+                       startColumn: position.column,
+                       endLineNumber: position.lineNumber,
+                       endColumn: position.column,
+                     },
+                   },
+                   {
+                     label: 'string-schema',
+                     kind: monacoInstance.languages.CompletionItemKind.Snippet,
+                     insertText: [
+                       '"type": "string",',
+                       '"title": "${1:String Title}",',
+                       '"description": "${2:String description}",',
+                       '"minLength": ${3:0},',
+                       '"maxLength": ${4:255},',
+                       '"pattern": "${5:^[a-zA-Z0-9]+$}"'
+                     ].join('\n'),
+                     insertTextRules: monacoInstance.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                     detail: 'String Schema',
+                     documentation: 'String schema with validation constraints',
+                     range: {
+                       startLineNumber: position.lineNumber,
+                       startColumn: position.column,
+                       endLineNumber: position.lineNumber,
+                       endColumn: position.column,
+                     },
+                   },
+                   {
+                     label: 'number-schema',
+                     kind: monacoInstance.languages.CompletionItemKind.Snippet,
+                     insertText: [
+                       '"type": "number",',
+                       '"title": "${1:Number Title}",',
+                       '"description": "${2:Number description}",',
+                       '"minimum": ${3:0},',
+                       '"maximum": ${4:100},',
+                       '"multipleOf": ${5:1}'
+                     ].join('\n'),
+                     insertTextRules: monacoInstance.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                     detail: 'Number Schema',
+                     documentation: 'Number schema with range and multiple constraints',
+                     range: {
+                       startLineNumber: position.lineNumber,
+                       startColumn: position.column,
+                       endLineNumber: position.lineNumber,
+                       endColumn: position.column,
+                     },
+                   },
+                   {
+                     label: 'enum-schema',
+                     kind: monacoInstance.languages.CompletionItemKind.Snippet,
+                     insertText: [
+                       '"type": "string",',
+                       '"title": "${1:Enum Title}",',
+                       '"description": "${2:Enum description}",',
+                       '"enum": [',
+                       '  "${3:option1}",',
+                       '  "${4:option2}",',
+                       '  "${5:option3}"',
+                       '],',
+                       '"default": "${3:option1}"'
+                     ].join('\n'),
+                     insertTextRules: monacoInstance.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                     detail: 'Enum Schema',
+                     documentation: 'Enumeration schema with predefined options',
+                     range: {
+                       startLineNumber: position.lineNumber,
+                       startColumn: position.column,
+                       endLineNumber: position.lineNumber,
+                       endColumn: position.column,
+                     },
+                   },
+                   {
+                     label: 'conditional-schema',
+                     kind: monacoInstance.languages.CompletionItemKind.Snippet,
+                     insertText: [
+                       '"if": {',
+                       '  "properties": {',
+                       '    "${1:propertyName}": { "type": "${2:string}" }',
+                       '  }',
+                       '},',
+                       '"then": {',
+                       '  "required": ["${1:propertyName}"]',
+                       '},',
+                       '"else": {',
+                       '  "properties": {',
+                       '    "${3:alternativeProperty}": { "type": "${4:string}" }',
+                       '  }',
+                       '}'
+                     ].join('\n'),
+                     insertTextRules: monacoInstance.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                     detail: 'Conditional Schema',
+                     documentation: 'Conditional validation schema with if/then/else',
+                     range: {
+                       startLineNumber: position.lineNumber,
+                       startColumn: position.column,
+                       endLineNumber: position.lineNumber,
+                       endColumn: position.column,
+                     },
+                   },
+                 ];
+
+                 return { suggestions: [...suggestions, ...additionalSuggestions, ...snippetSuggestions] };
               },
             },
           );
