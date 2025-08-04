@@ -132,7 +132,6 @@ interface TreeItem {
  */
 export function Build(): React.JSX.Element {
   const currentProject = useAppStore((state) => state.currentProject);
-  const loadProject = useAppStore((state) => state.loadProject);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [editorTabs, setEditorTabs] = useState<EditorTab[]>([]);
   const [treeItems, setTreeItems] = useState<TreeItem[]>([]);
@@ -1107,70 +1106,202 @@ export function Build(): React.JSX.Element {
   );
 
   // Targeted app store update functions to avoid full project reload
-  const updateAppStoreForCreate = useCallback(async (filePath: string, templateType: string) => {
-    if (!currentProject) return;
+  const updateAppStoreForCreate = useCallback(
+    async (filePath: string, _templateType: string) => {
+      if (!currentProject) return;
 
-    try {
-      // Read and process the new schema file
-      const result = await (window as any).api.readFile(filePath);
-      if (!result.success) {
-        throw new Error('Failed to read new schema file');
-      }
+      try {
+        // Read and process the new schema file
+        const result = await (window as any).api.readFile(filePath);
+        if (!result.success) {
+          throw new Error('Failed to read new schema file');
+        }
 
-      const content = result.data;
-      const relativePath = filePath.replace(currentProject.path + '/', '');
-      const schemaId = `schema-${Date.now()}`;
+        const content = result.data;
+        const relativePath = filePath.replace(currentProject.path + '/', '');
+        const schemaId = `schema-${Date.now()}`;
 
-      // Create basic schema object
-      const newSchema: Schema = {
-        id: schemaId,
-        projectId: currentProject.id,
-        name: relativePath.split('/').pop()?.replace('.schema.json', '') || 'New Schema',
-        path: filePath,
-        content: JSON.parse(content),
-        metadata: {
-          title: 'New Schema',
-          description: 'Schema created from template',
-          lastModified: new Date(),
-          fileSize: content.length,
-        },
-        validationStatus: 'pending',
-        relativePath,
-        references: [],
-        referencedBy: [],
-      };
-
-      // Update app store with new schema
-      useAppStore.setState((state) => ({
-        currentProject: state.currentProject ? {
-          ...state.currentProject,
-          schemas: [...state.currentProject.schemas, newSchema],
-          schemaIds: [...state.currentProject.schemaIds, schemaId],
-          status: {
-            ...state.currentProject.status,
-            totalSchemas: state.currentProject.status.totalSchemas + 1,
+        // Create basic schema object
+        const newSchema: Schema = {
+          id: schemaId,
+          projectId: currentProject.id,
+          name: relativePath.split('/').pop()?.replace('.schema.json', '') || 'New Schema',
+          path: filePath,
+          content: JSON.parse(content),
+          metadata: {
+            title: 'New Schema',
+            description: 'Schema created from template',
+            lastModified: new Date(),
+            fileSize: content.length,
           },
-        } : null,
+          validationStatus: 'pending',
+          relativePath,
+          references: [],
+          referencedBy: [],
+        };
+
+        // Update app store with new schema
+        useAppStore.setState((state) => ({
+          currentProject: state.currentProject
+            ? {
+              ...state.currentProject,
+              schemas: [...state.currentProject.schemas, newSchema],
+              schemaIds: [...state.currentProject.schemaIds, schemaId],
+              status: {
+                ...state.currentProject.status,
+                totalSchemas: state.currentProject.status.totalSchemas + 1,
+              },
+            }
+            : null,
+        }));
+
+        // Update tree items to reflect the new schema
+        setTreeItems((prevItems) => {
+          const updateItems = (items: TreeItem[]): TreeItem[] => {
+            return items.map((item) => {
+              if (item.type === 'folder' && relativePath.startsWith(item.path)) {
+                const newItem: TreeItem = {
+                  id: schemaId,
+                  name: newSchema.name,
+                  type: 'schema',
+                  parentId: item.id,
+                  children: [],
+                  path: relativePath,
+                  schema: newSchema,
+                };
+
+                return {
+                  ...item,
+                  children: [...item.children, newItem],
+                };
+              }
+
+              if (item.children.length > 0) {
+                return {
+                  ...item,
+                  children: updateItems(item.children),
+                };
+              }
+
+              return item;
+            });
+          };
+
+          return updateItems(prevItems);
+        });
+      } catch (error) {
+        logger.error('Failed to update app store for new schema', { error, filePath });
+        throw error;
+      }
+    },
+    [currentProject],
+  );
+
+  const updateAppStoreForDelete = useCallback(
+    async (filePath: string) => {
+      if (!currentProject) return;
+
+      const relativePath = filePath.replace(currentProject.path + '/', '');
+
+      // Find the schema to delete
+      const schemaToDelete = currentProject.schemas.find((s) => s.path === filePath);
+      if (!schemaToDelete) return;
+
+      // Remove from app store
+      useAppStore.setState((state) => ({
+        currentProject: state.currentProject
+          ? {
+            ...state.currentProject,
+            schemas: state.currentProject.schemas.filter((s) => s.id !== schemaToDelete.id),
+            schemaIds: state.currentProject.schemaIds.filter((id) => id !== schemaToDelete.id),
+            status: {
+              ...state.currentProject.status,
+              totalSchemas: state.currentProject.status.totalSchemas - 1,
+            },
+          }
+          : null,
       }));
 
-      // Update tree items to reflect the new schema
-      setTreeItems(prevItems => {
-        const updateItems = (items: TreeItem[]): TreeItem[] => {
-          return items.map(item => {
-            if (item.type === 'folder' && relativePath.startsWith(item.path)) {
-              const newItem: TreeItem = {
-                id: schemaId,
-                name: newSchema.name,
-                type: 'schema',
-                parentId: item.id,
-                children: [],
-                path: relativePath,
-                schema: newSchema,
-              };
+      // Close any editor tabs for this schema
+      setEditorTabs((prev) => prev.filter((tab) => tab.schema.id !== schemaToDelete.id));
+      if (activeTabId === schemaToDelete.id) {
+        setActiveTabId(editorTabs[0]?.id || null);
+      }
 
+      // Update tree items to remove the deleted item
+      setTreeItems((prevItems) => {
+        const updateItems = (items: TreeItem[]): TreeItem[] => {
+          return items
+            .map((item) => {
+              if (item.path === relativePath) {
+                return null; // Remove item
+              }
+
+              if (item.children.length > 0) {
+                return {
+                  ...item,
+                  children: updateItems(item.children).filter(Boolean) as TreeItem[],
+                };
+              }
+
+              return item;
+            })
+            .filter(Boolean) as TreeItem[];
+        };
+
+        return updateItems(prevItems);
+      });
+    },
+    [currentProject, editorTabs, activeTabId],
+  );
+
+  const updateAppStoreForRename = useCallback(
+    async (oldPath: string, newPath: string) => {
+      if (!currentProject) return;
+
+      const oldRelativePath = oldPath.replace(currentProject.path + '/', '');
+      const newRelativePath = newPath.replace(currentProject.path + '/', '');
+
+      // Find the schema to rename
+      const schemaToRename = currentProject.schemas.find((s) => s.path === oldPath);
+      if (!schemaToRename) return;
+
+      // Update schema in app store
+      const updatedSchema: Schema = {
+        ...schemaToRename,
+        path: newPath,
+        relativePath: newRelativePath,
+        name: newRelativePath.split('/').pop()?.replace('.schema.json', '') || schemaToRename.name,
+      };
+
+      useAppStore.setState((state) => ({
+        currentProject: state.currentProject
+          ? {
+            ...state.currentProject,
+            schemas: state.currentProject.schemas.map((s) =>
+              s.id === schemaToRename.id ? updatedSchema : s,
+            ),
+          }
+          : null,
+      }));
+
+      // Update editor tabs if this schema is open
+      setEditorTabs((prev) =>
+        prev.map((tab) =>
+          tab.schema.id === schemaToRename.id ? { ...tab, schema: updatedSchema } : tab,
+        ),
+      );
+
+      // Update tree items to reflect the rename
+      setTreeItems((prevItems) => {
+        const updateItems = (items: TreeItem[]): TreeItem[] => {
+          return items.map((item) => {
+            if (item.path === oldRelativePath) {
               return {
                 ...item,
-                children: [...item.children, newItem],
+                path: newRelativePath,
+                name: updatedSchema.name,
+                schema: updatedSchema,
               };
             }
 
@@ -1187,127 +1318,9 @@ export function Build(): React.JSX.Element {
 
         return updateItems(prevItems);
       });
-
-    } catch (error) {
-      logger.error('Failed to update app store for new schema', { error, filePath });
-      throw error;
-    }
-  }, [currentProject]);
-
-  const updateAppStoreForDelete = useCallback(async (filePath: string) => {
-    if (!currentProject) return;
-
-    const relativePath = filePath.replace(currentProject.path + '/', '');
-
-    // Find the schema to delete
-    const schemaToDelete = currentProject.schemas.find(s => s.path === filePath);
-    if (!schemaToDelete) return;
-
-    // Remove from app store
-    useAppStore.setState((state) => ({
-      currentProject: state.currentProject ? {
-        ...state.currentProject,
-        schemas: state.currentProject.schemas.filter(s => s.id !== schemaToDelete.id),
-        schemaIds: state.currentProject.schemaIds.filter(id => id !== schemaToDelete.id),
-        status: {
-          ...state.currentProject.status,
-          totalSchemas: state.currentProject.status.totalSchemas - 1,
-        },
-      } : null,
-    }));
-
-    // Close any editor tabs for this schema
-    setEditorTabs(prev => prev.filter(tab => tab.schema.id !== schemaToDelete.id));
-    if (activeTabId === schemaToDelete.id) {
-      setActiveTabId(editorTabs[0]?.id || null);
-    }
-
-    // Update tree items to remove the deleted item
-    setTreeItems(prevItems => {
-      const updateItems = (items: TreeItem[]): TreeItem[] => {
-        return items.map(item => {
-          if (item.path === relativePath) {
-            return null; // Remove item
-          }
-
-          if (item.children.length > 0) {
-            return {
-              ...item,
-              children: updateItems(item.children).filter(Boolean) as TreeItem[],
-            };
-          }
-
-          return item;
-        }).filter(Boolean) as TreeItem[];
-      };
-
-      return updateItems(prevItems);
-    });
-
-  }, [currentProject, editorTabs, activeTabId]);
-
-  const updateAppStoreForRename = useCallback(async (oldPath: string, newPath: string) => {
-    if (!currentProject) return;
-
-    const oldRelativePath = oldPath.replace(currentProject.path + '/', '');
-    const newRelativePath = newPath.replace(currentProject.path + '/', '');
-
-    // Find the schema to rename
-    const schemaToRename = currentProject.schemas.find(s => s.path === oldPath);
-    if (!schemaToRename) return;
-
-    // Update schema in app store
-    const updatedSchema: Schema = {
-      ...schemaToRename,
-      path: newPath,
-      relativePath: newRelativePath,
-      name: newRelativePath.split('/').pop()?.replace('.schema.json', '') || schemaToRename.name,
-    };
-
-    useAppStore.setState((state) => ({
-      currentProject: state.currentProject ? {
-        ...state.currentProject,
-        schemas: state.currentProject.schemas.map(s =>
-          s.id === schemaToRename.id ? updatedSchema : s
-        ),
-      } : null,
-    }));
-
-    // Update editor tabs if this schema is open
-    setEditorTabs(prev => prev.map(tab =>
-      tab.schema.id === schemaToRename.id
-        ? { ...tab, schema: updatedSchema }
-        : tab
-    ));
-
-    // Update tree items to reflect the rename
-    setTreeItems(prevItems => {
-      const updateItems = (items: TreeItem[]): TreeItem[] => {
-        return items.map(item => {
-          if (item.path === oldRelativePath) {
-            return {
-              ...item,
-              path: newRelativePath,
-              name: updatedSchema.name,
-              schema: updatedSchema,
-            };
-          }
-
-          if (item.children.length > 0) {
-            return {
-              ...item,
-              children: updateItems(item.children),
-            };
-          }
-
-          return item;
-        });
-      };
-
-      return updateItems(prevItems);
-    });
-
-  }, [currentProject, editorTabs]);
+    },
+    [currentProject, editorTabs],
+  );
 
   const handleRenameConfirm = safeAsyncHandler(async () => {
     if (!contextMenuItem || !currentProject || !renameValue.trim()) return;
@@ -1387,9 +1400,9 @@ export function Build(): React.JSX.Element {
       setContextMenuItem(null);
       setNewFolderName('');
       // Update tree items to show new folder (no schema processing needed)
-      setTreeItems(prevItems => {
+      setTreeItems((prevItems) => {
         const updateItems = (items: TreeItem[]): TreeItem[] => {
-          return items.map(item => {
+          return items.map((item) => {
             if (item.type === 'folder' && contextMenuItem.path.startsWith(item.path)) {
               const newFolder: TreeItem = {
                 id: `folder-${Date.now()}`,
@@ -1469,7 +1482,7 @@ export function Build(): React.JSX.Element {
       setIsCreateRootFolderDialogOpen(false);
       setRootFolderName('');
       // Update tree items to show new root folder
-      setTreeItems(prevItems => {
+      setTreeItems((prevItems) => {
         const newFolder: TreeItem = {
           id: `folder-${Date.now()}`,
           name: rootFolderName.trim(),
