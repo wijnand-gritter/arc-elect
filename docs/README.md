@@ -34,10 +34,10 @@ To regenerate the documentation after making changes to the code:
 
 ```bash
 # Clean previous documentation
-npm run docs:clean
+pnpm run docs:clean
 
 # Generate new documentation
-npm run docs
+pnpm run docs
 ```
 
 Or use TypeDoc directly:

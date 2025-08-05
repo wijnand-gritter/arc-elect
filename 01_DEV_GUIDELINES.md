@@ -524,16 +524,16 @@ Following these security practices ensures your Electron app is secure and follo
 
 ```bash
 # Run all E2E tests
-npm run test:e2e
+pnpm run test:e2e
 
 # Run tests in headed mode (see browser)
-npm run test:e2e:headed
+pnpm run test:e2e:headed
 
 # Run tests for specific browser
-npm run test:e2e:chromium
+pnpm run test:e2e:chromium
 
 # Open Playwright report
-npm run test:e2e:report
+pnpm run test:e2e:report
 ```
 
 ### Writing E2E Tests
@@ -582,13 +582,13 @@ With Playwright, your app has comprehensive E2E testing coverage for real user s
 
 ```bash
 # Run all unit tests
-npm run test
+pnpm run test
 
 # Run tests in watch mode
-npm run test -- --watch
+pnpm run test -- --watch
 
 # Run tests with coverage
-npm run test -- --coverage
+pnpm run test -- --coverage
 ```
 
 ### Writing Unit Tests
@@ -637,7 +637,7 @@ With Vitest, you have fast, reliable unit testing for your components and utilit
 1. Install electron-updater:
 
    ```bash
-   npm install electron-updater
+   pnpm add electron-updater
    ```
 
 2. Configure in `forge.config.ts`:
@@ -733,13 +733,13 @@ electron-updater provides seamless automatic updates for production Electron app
 
 ```bash
 # Development
-npm run dev          # Start development server
+pnpm run dev          # Start development server
 
 # Production builds
-npm run build        # Build renderer
-npm run package      # Package app
-npm run make         # Create distributables
-npm run publish      # Publish to distribution platform
+pnpm run build        # Build renderer
+pnpm run package      # Package app
+pnpm run make         # Create distributables
+pnpm run publish      # Publish to distribution platform
 ```
 
 ### Configuration
@@ -1029,8 +1029,8 @@ Conventional commits provide a standardized way to write commit messages, making
 - **Purpose:** Runs before each commit to ensure code quality
 - **Current setup:**
   ```bash
-  npm run format  # Prettier formatting
-  # npm run lint  # ESLint checking (temporarily disabled)
+  pnpm run format  # Prettier formatting
+  # pnpm run lint  # ESLint checking (temporarily disabled)
   ```
 - **What it does:**
   - Formats all code with Prettier
@@ -1076,13 +1076,13 @@ Conventional commits provide a standardized way to write commit messages, making
 
 ```bash
 # Format code with Prettier
-npm run format
+pnpm run format
 
 # Lint code with ESLint
-npm run lint
+pnpm run lint
 
 # Run both formatting and linting
-npm run format && npm run lint
+pnpm run format && pnpm run lint
 ```
 
 ### Customizing Hooks
@@ -1094,8 +1094,8 @@ npm run format && npm run lint
 nano .husky/pre-commit
 
 # Add new commands
-npm run test
-npm run build
+pnpm run test
+pnpm run build
 ```
 
 #### Temporarily Bypassing Hooks
@@ -1125,7 +1125,7 @@ chmod +x .husky/pre-commit
 chmod +x .husky/commit-msg
 
 # Reinstall husky
-npm run prepare
+pnpm run prepare
 ```
 
 #### ESLint Errors
@@ -1137,7 +1137,7 @@ npm run prepare
 #### Prettier Issues
 
 - Check `.prettierrc` configuration
-- Ensure Prettier is installed: `npm install --save-dev prettier`
+- Ensure Prettier is installed: `pnpm add -D prettier`
 - Verify file extensions are supported
 
 ---
@@ -1334,7 +1334,7 @@ Ctrl+T               # Go to symbol
 
 #### Debug Not Working
 
-- Ensure Electron is installed: `npm install`
+- Ensure Electron is installed: `pnpm install`
 - Check port 9222 is available for renderer debugging
 - Verify TypeScript configuration in `tsconfig.json`
 

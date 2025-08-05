@@ -151,9 +151,9 @@ git checkout -b new-stuff
 ```bash
 # ✅ Good: Pre-commit hook setup
 #!/bin/sh
-npm run format
-npm run lint
-npm run test
+pnpm run format
+pnpm run lint
+pnpm run test
 
 # ❌ Bad: No pre-commit checks
 # No hooks configured
@@ -456,9 +456,9 @@ git checkout -b new-stuff
 ```bash
 # ✅ Good: Pre-commit hook setup
 #!/bin/sh
-npm run format
-npm run lint
-npm run test
+pnpm run format
+pnpm run lint
+pnpm run test
 
 # ❌ Bad: No pre-commit checks
 # No hooks configured
