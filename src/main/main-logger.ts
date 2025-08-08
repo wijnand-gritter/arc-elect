@@ -10,29 +10,33 @@
  * @version 1.0.0
  */
 
-import logger from 'electron-log';
+let exportedLogger: {
+  info: (...args: unknown[]) => void;
+  warn: (...args: unknown[]) => void;
+  error: (...args: unknown[]) => void;
+  debug: (...args: unknown[]) => void;
+};
 
-// Initialize the logger for the main process
-logger.initialize();
+try {
+  // Lazy require to avoid ESM interop issues in CLI/node context
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const el = require('electron-log');
+  if (typeof el.initialize === 'function') {
+    try {
+      el.initialize();
+    } catch (_e) {
+      // ignore initialization issues in non-Electron environments
+    }
+  }
+  exportedLogger = el;
+} catch (_e) {
+  // Fallback console-based logger for non-Electron (CLI) contexts
+  exportedLogger = {
+    info: console.log.bind(console),
+    warn: console.warn.bind(console),
+    error: console.error.bind(console),
+    debug: console.debug.bind(console),
+  };
+}
 
-/**
- * Main process logger instance.
- *
- * This logger provides the following features:
- * - Automatic log rotation
- * - File storage in app data directory
- * - Console output for development
- * - Structured logging with timestamps
- * - Error tracking and reporting
- *
- * @example
- * ```ts
- * import logger from './main-logger';
- *
- * logger.info('Application started');
- * logger.error('An error occurred', error);
- * logger.warn('Warning message');
- * logger.debug('Debug information');
- * ```
- */
-export default logger;
+export default exportedLogger;
