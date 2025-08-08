@@ -235,10 +235,12 @@ export class SimpleRamlParser {
       libraryName = parts[0];
       typeName = parts[1];
     }
+    // Ensure referenced filenames start with a capital letter
+    const cap = typeName.charAt(0).toUpperCase() + typeName.slice(1);
     if (libraryName && libraryName.startsWith('enum')) {
-      return `../common/enums/${typeName}Enum.schema.json`;
+      return `../common/enums/${cap}Enum.schema.json`;
     }
-    return `./${typeName}.schema.json`;
+    return `./${cap}.schema.json`;
   }
 
   generateEnumName(parentTypeName: string, propertyName: string) {
@@ -311,6 +313,15 @@ export class SimpleRamlParser {
           propSchema.format = 'date-time';
         } else if (propDef.format) {
           propSchema.format = propDef.format;
+        }
+        // Heuristic: if property name contains 'email' and the type is string, set format to email
+        if (
+          typeof propSchema.type === 'string' &&
+          propSchema.type === 'string' &&
+          !propSchema.format &&
+          /email/i.test(propName)
+        ) {
+          propSchema.format = 'email';
         }
         schema.properties[propName] = propSchema;
       }
