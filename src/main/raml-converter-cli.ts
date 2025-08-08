@@ -49,6 +49,29 @@ async function main() {
     console.log(JSON.stringify(result, null, 2));
     console.log('\nOutput directory:');
     console.log(result.outputDir);
+
+    // Print output files for quick verification
+    const enumDir = path.join(result.outputDir, 'common', 'enums');
+    const boDir = path.join(result.outputDir, 'business-objects');
+
+    async function safeList(dir: string): Promise<string[]> {
+      try {
+        const items = await fs.readdir(dir);
+        return items
+          .filter((f) => f.endsWith('.schema.json'))
+          .map((f) => path.join(dir, f));
+      } catch {
+        return [];
+      }
+    }
+
+    const [enumFiles, payloadFiles] = await Promise.all([
+      safeList(enumDir),
+      safeList(boDir),
+    ]);
+
+    console.log('\nOutput files:');
+    [...enumFiles, ...payloadFiles].forEach((f) => console.log(f));
     process.exit(0);
   } catch (error) {
     console.error(
