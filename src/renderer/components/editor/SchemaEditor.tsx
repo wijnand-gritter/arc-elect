@@ -34,6 +34,7 @@ import type { Schema } from '../../../types/schema-editor';
 import logger from '../../lib/renderer-logger';
 import { safeHandler } from '../../lib/error-handling';
 import { toast } from 'sonner';
+import { formatSchemaJsonString } from '../../lib/json-format';
 
 /**
  * Props for the Schema Editor component.
@@ -80,7 +81,7 @@ export function SchemaEditor({
   onSaved,
 }: SchemaEditorProps): React.JSX.Element {
   const editorRef = useRef<{
-    formatDocument: () => void;
+    formatDocument: () => Promise<void>;
     validateJson: () => { valid: boolean; error: string | null };
     getCursorPosition: () => { line: number; column: number } | null;
     goToPosition: (line: number, column: number) => void;
@@ -210,6 +211,26 @@ export function SchemaEditor({
       setIsSaving(true);
 
       try {
+        // Custom format before validating/saving: sort enum values and properties keys
+        if (editorRef.current) {
+          try {
+            const currentRaw = editorRef.current.getValue();
+            const customFormatted = formatSchemaJsonString(currentRaw);
+            if (customFormatted !== currentRaw) {
+              editorRef.current.setValue(customFormatted);
+            }
+          } catch (_e) {
+            // non-blocking
+          }
+
+          // Best-effort Monaco native formatter (optional)
+          try {
+            await editorRef.current.formatDocument();
+          } catch (_e) {
+            // non-blocking
+          }
+        }
+
         // Validate JSON before saving
         if (editorRef.current) {
           const validation = editorRef.current.validateJson();

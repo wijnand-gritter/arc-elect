@@ -5,6 +5,7 @@ import { useTheme } from 'next-themes';
 import logger from '../../lib/renderer-logger';
 import { safeHandler } from '../../lib/error-handling';
 import { ErrorBoundary } from '../ErrorBoundary';
+import { formatSchemaJsonString } from '../../lib/json-format';
 
 /**
  * Interface for validation errors.
@@ -41,7 +42,7 @@ interface MonacoEditorProps {
 
 export const MonacoEditor = React.forwardRef<
   {
-    formatDocument: () => void;
+    formatDocument: () => Promise<void>;
     validateJson: () => { valid: boolean; error: string | null };
     getCursorPosition: () => { line: number; column: number } | null;
     goToPosition: (line: number, column: number) => void;
@@ -111,6 +112,33 @@ export const MonacoEditor = React.forwardRef<
             schemaValidation: 'error',
             schemaRequest: 'ignore',
           });
+
+          // Register a custom, minimal formatting provider that ONLY sorts:
+          // - enum arrays A→Z
+          // - keys within any `properties` object A→Z
+          const formattingProvider = monacoInstance.languages.registerDocumentFormattingEditProvider(
+            'json',
+            {
+              provideDocumentFormattingEdits(model) {
+                try {
+                  const text = model.getValue();
+                  const formatted = formatSchemaJsonString(text);
+                  if (formatted === text) return [];
+                  return [
+                    {
+                      range: model.getFullModelRange(),
+                      text: formatted,
+                    },
+                  ];
+                } catch (e) {
+                  logger.debug('Custom JSON formatter skipped', {
+                    error: e instanceof Error ? e.message : String(e),
+                  });
+                  return [];
+                }
+              },
+            },
+          );
 
           // --- FIXED SUGGESTION PROVIDER WITH DYNAMIC RANGE ---
           if (onRefClick && availableSchemas.length > 0) {
@@ -1606,9 +1634,17 @@ export const MonacoEditor = React.forwardRef<
     [],
   );
 
-  const formatDocument = React.useCallback(() => {
+  const formatDocument = React.useCallback(async () => {
     if (editorRef.current) {
-      editorRef.current.getAction('editor.action.formatDocument')?.run();
+      try {
+        await editorRef.current
+          .getAction('editor.action.formatDocument')
+          ?.run();
+      } catch (e) {
+        logger.warn('Monaco formatDocument failed', {
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
     }
   }, []);
 
