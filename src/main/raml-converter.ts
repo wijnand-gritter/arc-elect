@@ -441,7 +441,8 @@ export async function convertRamlToJsonSchemas(
   }
   // Write enums
   for (const [name, schema] of enumTypes) {
-    const filename = `${name}Enum.schema.json`;
+    const cap = name.charAt(0).toUpperCase() + name.slice(1);
+    const filename = `${cap}Enum.schema.json`;
     await fs.writeFile(
       path.join(OUTPUT_ENUMS, filename),
       JSON.stringify(schema, null, 2),
@@ -449,7 +450,8 @@ export async function convertRamlToJsonSchemas(
   }
   // Write business objects (formerly payloads)
   for (const [name, schema] of payloadTypes) {
-    const filename = `${name}.schema.json`;
+    const cap = name.charAt(0).toUpperCase() + name.slice(1);
+    const filename = `${cap}.schema.json`;
     await fs.writeFile(
       path.join(OUTPUT_BUSINESS_OBJECTS, filename),
       JSON.stringify(schema, null, 2),
@@ -466,8 +468,9 @@ export async function convertRamlToJsonSchemas(
   };
   for (const [name] of payloadTypes) {
     const camelCaseName = name.charAt(0).toLowerCase() + name.slice(1);
+    const cap = name.charAt(0).toUpperCase() + name.slice(1);
     datamodelObjects.properties[camelCaseName] = {
-      $ref: `./business-objects/${name}.schema.json`,
+      $ref: `./business-objects/${cap}.schema.json`,
     };
   }
   await fs.writeFile(

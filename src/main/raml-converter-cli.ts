@@ -47,6 +47,8 @@ async function main() {
     const result = await convertRamlToJsonSchemas(inDir, outDir);
     console.log('Conversion complete');
     console.log(JSON.stringify(result, null, 2));
+    console.log('\nOutput directory:');
+    console.log(result.outputDir);
     process.exit(0);
   } catch (error) {
     console.error(
