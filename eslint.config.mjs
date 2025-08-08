@@ -9,6 +9,7 @@ export default [
   {
     ignores: [
       'dist/**',
+      'build/**',
       'node_modules/**',
       '.vite/**',
       '*.config.js',
