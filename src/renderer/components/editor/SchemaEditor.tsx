@@ -84,6 +84,7 @@ export function SchemaEditor({
     validateJson: () => { valid: boolean; error: string | null };
     getCursorPosition: () => { line: number; column: number } | null;
     goToPosition: (line: number, column: number) => void;
+    getValue: () => string;
   } | null>(null);
 
   const [isValidating, setIsValidating] = useState(false);
@@ -92,21 +93,36 @@ export function SchemaEditor({
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
 
   /**
+   * Normalize content to match file system behavior.
+   * Node.js fs.writeFile normalizes line endings and may trim trailing whitespace.
+   */
+  const normalizeContent = useCallback((rawContent: string): string => {
+    // Normalize line endings to platform default (LF on Unix, CRLF on Windows)
+    // Node.js writeFile will do this automatically, so we pre-normalize to match
+    return rawContent.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  }, []);
+
+  /**
    * Handle content change in editor.
    */
   const handleContentChange = useCallback(
     safeHandler((newContent: string) => {
       onContentChange(newContent);
-      const hasChanges = newContent !== lastSavedContent;
+
+      // Compare normalized versions to avoid false positives from line ending differences
+      const normalizedNew = normalizeContent(newContent);
+      const normalizedSaved = normalizeContent(lastSavedContent);
+      const hasChanges = normalizedNew !== normalizedSaved;
       onDirtyChange(hasChanges);
 
       logger.debug('Schema content changed', {
         schemaName: schema.name,
         hasChanges,
         contentLength: newContent.length,
+        normalizedLength: normalizedNew.length,
       });
     }),
-    [schema.name, lastSavedContent, onContentChange, onDirtyChange],
+    [schema.name, lastSavedContent, onContentChange, onDirtyChange, normalizeContent],
   );
 
   /**
@@ -192,6 +208,10 @@ export function SchemaEditor({
         if (editorRef.current) {
           const validation = editorRef.current.validateJson();
           if (!validation.valid) {
+            logger.warn('SchemaEditor: validation failed', {
+              schemaName: schema.name,
+              error: validation.error,
+            });
             toast.error('Cannot save invalid JSON', {
               description:
                 validation.error || 'Please fix JSON syntax errors first',
@@ -202,26 +222,38 @@ export function SchemaEditor({
         }
 
         // Use current editor value to avoid any race with prop updates
-        const currentValue = editorRef.current
-          ? (editorRef.current as any).getValue?.() || content
+        const rawValue = editorRef.current
+          ? editorRef.current.getValue()
           : content;
 
+        // Normalize content to match what will be written to disk
+        const normalizedValue = normalizeContent(rawValue);
+
+        logger.debug('SchemaEditor: buffer prepared for save', {
+          schemaName: schema.name,
+          bufferLength: rawValue.length,
+          normalizedLength: normalizedValue.length,
+          propLength: content.length,
+        });
+
         // Save to file system
-        const result = await window.api.writeFile(schema.path, currentValue);
+        const result = await window.api.writeFile(schema.path, normalizedValue);
 
         if (result.success) {
-          // Sync parent state to the exact saved buffer to avoid any divergence
+          // Sync parent state to the exact normalized content that was saved
+          // This prevents Monaco from seeing a difference and "reverting"
           try {
-            onContentChange(currentValue);
+            onContentChange(normalizedValue);
           } catch (_e) {
             // ignore
           }
 
-          setLastSavedContent(currentValue);
+          setLastSavedContent(normalizedValue);
           onDirtyChange(false);
+
           // Notify parent so it can update store with latest content
           try {
-            onSaved?.(currentValue);
+            onSaved?.(normalizedValue);
           } catch (_e) {
             // ignore callback errors
           }
@@ -229,7 +261,12 @@ export function SchemaEditor({
           logger.info('Schema saved successfully', {
             schemaName: schema.name,
             filePath: schema.path,
-            contentLength: currentValue.length,
+            contentLength: normalizedValue.length,
+          });
+
+          logger.debug('SchemaEditor: handleSave complete', {
+            schemaName: schema.name,
+            savedLength: normalizedValue.length,
           });
         } else {
           logger.error('Schema save failed', {
@@ -248,7 +285,7 @@ export function SchemaEditor({
         setIsSaving(false);
       }
     }),
-    [schema.name, schema.path, content, onDirtyChange, onSaved],
+    [schema.name, schema.path, content, onDirtyChange, onSaved, normalizeContent],
   );
 
   /**

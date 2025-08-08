@@ -97,6 +97,7 @@ addFormats(ajv);
 class ProjectManager {
   private projects = new Map<string, Project>();
   private watchers = new Map<string, ReturnType<typeof watch>>();
+  private changeTimeouts = new Map<string, NodeJS.Timeout>();
   private referenceDebugLogPath: string;
 
   constructor() {
@@ -217,7 +218,9 @@ class ProjectManager {
     ipcMain.handle(
       'dialog:selectFolder',
       withErrorHandling(async (_event, title: string) => {
-        const validation = title ? validateInput(title, 'string', 256) : { valid: true } as const;
+        const validation = title
+          ? validateInput(title, 'string', 256)
+          : ({ valid: true } as const);
         if (!validation.valid) throw new Error(validation.error);
         const result = await this.showFolderDialog({ title });
         return {
@@ -232,7 +235,9 @@ class ProjectManager {
     ipcMain.handle(
       'dialog:selectDestinationFolder',
       withErrorHandling(async (_event, title: string) => {
-        const validation = title ? validateInput(title, 'string', 256) : { valid: true } as const;
+        const validation = title
+          ? validateInput(title, 'string', 256)
+          : ({ valid: true } as const);
         if (!validation.valid) throw new Error(validation.error);
         const result = await this.showDestinationFolderDialog({ title });
         return {
@@ -1728,15 +1733,47 @@ class ProjectManager {
 
     try {
       const watcher = watch(project.path, {
-        ignored: ['**/node_modules/**', '**/.git/**'],
+        ignored: [
+          '**/node_modules/**',
+          '**/.git/**',
+          '**/dist/**',
+          '**/.vite/**',
+          '**/out/**',
+        ],
         persistent: true,
+        // Add some stability settings to reduce noise
+        awaitWriteFinish: {
+          stabilityThreshold: 100,
+          pollInterval: 50,
+        },
       });
 
       watcher.on('change', async (filePath) => {
-        if (filePath.endsWith('.json')) {
-          logger.info('ProjectManager: Schema file changed', { filePath });
-          // TODO: Implement schema reloading
+        // Only process schema files
+        if (!filePath.endsWith('.json') && !filePath.endsWith('.schema.json')) {
+          return;
         }
+
+        // Debounce rapid changes to the same file (300ms window)
+        const timeoutKey = `${project.id}:${filePath}`;
+
+        // Clear any existing timeout for this file
+        const existingTimeout = this.changeTimeouts.get(timeoutKey);
+        if (existingTimeout) {
+          clearTimeout(existingTimeout);
+        }
+
+        // Set new timeout to handle the change
+        const timeout = setTimeout(() => {
+          this.changeTimeouts.delete(timeoutKey);
+          logger.debug('ProjectManager: Schema file changed', {
+            filePath,
+            projectId: project.id,
+          });
+          // TODO: Implement schema reloading
+        }, 300);
+
+        this.changeTimeouts.set(timeoutKey, timeout);
       });
 
       this.watchers.set(project.id, watcher);
@@ -1985,6 +2022,15 @@ class ProjectManager {
    * Cleans up resources when shutting down.
    */
   public async cleanup(): Promise<void> {
+    // Clear all pending change timeouts
+    for (const [timeoutKey, timeout] of Array.from(
+      this.changeTimeouts.entries(),
+    )) {
+      clearTimeout(timeout);
+      logger.debug('ProjectManager: Cleared pending timeout', { timeoutKey });
+    }
+    this.changeTimeouts.clear();
+
     // Close all file watchers
     for (const [projectId, watcher] of Array.from(this.watchers.entries())) {
       await watcher.close();

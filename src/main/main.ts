@@ -197,7 +197,10 @@ function getSchemaTemplate(templateType: string, schemaName: string): string {
  * Validates and normalizes an absolute filesystem path.
  * Throws on invalid input. Returns the resolved absolute path.
  */
-function validateAbsolutePath(inputPath: string, maxLength: number = 512): string {
+function validateAbsolutePath(
+  inputPath: string,
+  maxLength: number = 512,
+): string {
   const inputValidation = validateInput(inputPath, 'string', maxLength);
   if (!inputValidation.valid) {
     throw new Error(inputValidation.error);
@@ -329,7 +332,10 @@ ipcMain.handle(
 
     const safePath = validateAbsolutePath(filePath, 2048);
     await fs.writeFile(safePath, data, 'utf-8');
-    logger.info('File written successfully', { filePath: safePath, size: data.length });
+    logger.info('File written successfully', {
+      filePath: safePath,
+      size: data.length,
+    });
     return { success: true };
   }, 'file:write'),
 );
@@ -406,7 +412,10 @@ ipcMain.handle(
     const safeOld = validateAbsolutePath(oldPath, 2048);
     const safeNew = validateAbsolutePath(newPath, 2048);
     await fs.rename(safeOld, safeNew);
-    logger.info('File/folder renamed successfully', { oldPath: safeOld, newPath: safeNew });
+    logger.info('File/folder renamed successfully', {
+      oldPath: safeOld,
+      newPath: safeNew,
+    });
     return { success: true, oldPath: safeOld, newPath: safeNew };
   }, 'file:rename'),
 );
