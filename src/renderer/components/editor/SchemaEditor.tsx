@@ -210,6 +210,13 @@ export function SchemaEditor({
         const result = await window.api.writeFile(schema.path, currentValue);
 
         if (result.success) {
+          // Sync parent state to the exact saved buffer to avoid any divergence
+          try {
+            onContentChange(currentValue);
+          } catch (_e) {
+            // ignore
+          }
+
           setLastSavedContent(currentValue);
           onDirtyChange(false);
           // Notify parent so it can update store with latest content
