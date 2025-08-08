@@ -44,6 +44,14 @@ async function main() {
   }
 
   try {
+    // Always clear the output directory before conversion
+    try {
+      await fs.rm(outDir, { recursive: true, force: true });
+      console.log(`Cleared output directory: ${outDir}`);
+    } catch (e) {
+      console.warn(`Failed to clear output directory (continuing): ${outDir}`);
+    }
+
     const result = await convertRamlToJsonSchemas(inDir, outDir, {
       namingConvention: 'PascalCase',
     });
