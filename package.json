@@ -35,6 +35,7 @@
     "icons:setup": "node scripts/setup-icons.js",
     "icons:clean": "rm -rf build/icons",
     "icons:full": "pnpm run icons:clean && pnpm run icons && pnpm run icons:mac && pnpm run icons:setup",
+    "raml:convert": "tsx src/main/raml-converter-cli.ts",
     "quality": "pnpm run format && pnpm run lint",
     "quality:fix": "pnpm run format && pnpm run lint:fix",
     "preflight": "pnpm run quality && pnpm run test"
@@ -72,6 +73,7 @@
     "husky": "^9.1.7",
     "jsdom": "^26.1.0",
     "prettier": "^3.6.2",
+    "tsx": "^4.20.3",
     "typedoc": "^0.28.8",
     "typescript": "~5.8.3",
     "vite": "^7.0.6",
