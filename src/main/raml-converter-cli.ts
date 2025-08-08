@@ -44,7 +44,9 @@ async function main() {
   }
 
   try {
-    const result = await convertRamlToJsonSchemas(inDir, outDir);
+    const result = await convertRamlToJsonSchemas(inDir, outDir, {
+      namingConvention: 'camelCase',
+    });
     console.log('Conversion complete');
     console.log(JSON.stringify(result, null, 2));
     console.log('\nOutput directory:');

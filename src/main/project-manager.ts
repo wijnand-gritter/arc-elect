@@ -1897,6 +1897,7 @@ class ProjectManager {
       const result = await convertRamlToJsonSchemas(
         options.sourceDirectory,
         options.destinationDirectory,
+        { namingConvention: 'camelCase' },
       );
 
       logger.info('ProjectManager: Batch RAML conversion completed', {

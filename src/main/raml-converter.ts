@@ -16,6 +16,44 @@ import * as path from 'path';
 import { glob } from 'glob';
 import logger from './main-logger';
 
+type NamingConvention =
+  | 'kebab-case'
+  | 'camelCase'
+  | 'PascalCase'
+  | 'snake_case';
+
+function applyNamingConvention(
+  name: string,
+  convention: NamingConvention,
+): string {
+  switch (convention) {
+    case 'kebab-case':
+      return name
+        .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+        .toLowerCase()
+        .replace(/[_\s]+/g, '-');
+    case 'camelCase':
+      return name
+        .replace(/[-_\s]+(.)?/g, (_: string, c: string) =>
+          c ? c.toUpperCase() : '',
+        )
+        .replace(/^./, (c) => c.toLowerCase());
+    case 'PascalCase':
+      return name
+        .replace(/[-_\s]+(.)?/g, (_: string, c: string) =>
+          c ? c.toUpperCase() : '',
+        )
+        .replace(/^./, (c) => c.toUpperCase());
+    case 'snake_case':
+      return name
+        .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+        .toLowerCase()
+        .replace(/[-\s]+/g, '_');
+    default:
+      return name;
+  }
+}
+
 export interface RamlType {
   name: string;
   properties: Record<string, any>;
@@ -29,6 +67,9 @@ export interface RamlType {
 }
 
 export class SimpleRamlParser {
+  constructor(
+    private readonly namingConvention: NamingConvention = 'camelCase',
+  ) {}
   async parseFile(filePath: string): Promise<RamlType[]> {
     const content = await fs.readFile(filePath, 'utf8');
     const lines = content.split('\n');
@@ -235,12 +276,12 @@ export class SimpleRamlParser {
       libraryName = parts[0];
       typeName = parts[1];
     }
-    // Ensure referenced filenames start with a capital letter
-    const cap = typeName.charAt(0).toUpperCase() + typeName.slice(1);
+    // Apply configured naming convention to referenced filenames
+    const base = applyNamingConvention(typeName, this.namingConvention);
     if (libraryName && libraryName.startsWith('enum')) {
-      return `../common/enums/${cap}Enum.schema.json`;
+      return `../common/enums/${base}Enum.schema.json`;
     }
-    return `./${cap}.schema.json`;
+    return `./${base}.schema.json`;
   }
 
   generateEnumName(parentTypeName: string, propertyName: string) {
@@ -336,8 +377,10 @@ export class SimpleRamlParser {
 export async function convertRamlToJsonSchemas(
   ramlDir: string,
   outputDir: string,
+  options?: { namingConvention?: NamingConvention },
 ) {
-  const parser = new SimpleRamlParser();
+  const convention: NamingConvention = options?.namingConvention ?? 'camelCase';
+  const parser = new SimpleRamlParser(convention);
   const enumTypes = new Map<string, any>();
   const payloadTypes = new Map<string, any>();
   const SCHEMAS_ROOT = outputDir;
@@ -441,8 +484,8 @@ export async function convertRamlToJsonSchemas(
   }
   // Write enums
   for (const [name, schema] of enumTypes) {
-    const cap = name.charAt(0).toUpperCase() + name.slice(1);
-    const filename = `${cap}Enum.schema.json`;
+    const base = applyNamingConvention(name, convention);
+    const filename = `${base}Enum.schema.json`;
     await fs.writeFile(
       path.join(OUTPUT_ENUMS, filename),
       JSON.stringify(schema, null, 2),
@@ -450,8 +493,8 @@ export async function convertRamlToJsonSchemas(
   }
   // Write business objects (formerly payloads)
   for (const [name, schema] of payloadTypes) {
-    const cap = name.charAt(0).toUpperCase() + name.slice(1);
-    const filename = `${cap}.schema.json`;
+    const base = applyNamingConvention(name, convention);
+    const filename = `${base}.schema.json`;
     await fs.writeFile(
       path.join(OUTPUT_BUSINESS_OBJECTS, filename),
       JSON.stringify(schema, null, 2),
@@ -467,10 +510,10 @@ export async function convertRamlToJsonSchemas(
     additionalProperties: false,
   };
   for (const [name] of payloadTypes) {
-    const camelCaseName = name.charAt(0).toLowerCase() + name.slice(1);
-    const cap = name.charAt(0).toUpperCase() + name.slice(1);
-    datamodelObjects.properties[camelCaseName] = {
-      $ref: `./business-objects/${cap}.schema.json`,
+    const propKey = applyNamingConvention(name, 'camelCase');
+    const base = applyNamingConvention(name, convention);
+    datamodelObjects.properties[propKey] = {
+      $ref: `./business-objects/${base}.schema.json`,
     };
   }
   await fs.writeFile(
