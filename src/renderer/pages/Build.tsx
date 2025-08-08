@@ -84,6 +84,7 @@ import { ValidationError } from '../components/editor/MonacoEditor';
 import { LivePreview } from '../components/preview/LivePreview';
 import logger from '../lib/renderer-logger';
 import { toast } from 'sonner';
+import { formatSchemaJsonString } from '../lib/json-format';
 
 /**
  * Interface for editor tabs.
@@ -403,6 +404,22 @@ export function Build(): React.JSX.Element {
       }
 
       try {
+        // Ask the active editor instance (if any) to format before save
+        // The actual active SchemaEditor handles format-before-save itself, but
+        // if this path is used via context menu we still attempt to normalize content
+        try {
+          const formatted = JSON.stringify(JSON.parse(tab.content), null, 2);
+          if (formatted !== tab.content) {
+            setEditorTabs((prev) =>
+              prev.map((t) =>
+                t.id === tabId ? { ...t, content: formatted } : t,
+              ),
+            );
+          }
+        } catch (_e) {
+          // ignore formatting attempt here; validation will catch errors
+        }
+
         // Validate JSON before saving
         try {
           JSON.parse(tab.content);
@@ -888,6 +905,7 @@ export function Build(): React.JSX.Element {
   } | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isBatchFormatting, setIsBatchFormatting] = useState(false);
 
   // Confirmation dialog state
   const [confirmationDialog, setConfirmationDialog] = useState<{
@@ -1226,6 +1244,138 @@ export function Build(): React.JSX.Element {
       }
     }),
     [editorTabs],
+  );
+
+  // Batch format (format + save all schemas on disk)
+  const runBatchFormat = useCallback(
+    safeHandler(async () => {
+      if (!currentProject?.schemas?.length) {
+        toast.error('No schemas to format');
+        return;
+      }
+
+      setIsBatchFormatting(true);
+      try {
+        const results: Array<{ name: string; success: boolean; error?: string }> = [];
+
+        for (const schema of currentProject.schemas) {
+          try {
+            const openTab = editorTabs.find((t) => t.schema.id === schema.id);
+
+            // Determine source text: prefer open dirty tab content; else disk
+            let sourceText: string | null = null;
+            if (openTab && openTab.isDirty) {
+              sourceText = openTab.content;
+            } else {
+              const read = await window.api.readFile(schema.path);
+              if (!read.success || !read.data) {
+                results.push({
+                  name: schema.name,
+                  success: false,
+                  error: read.error || 'Read failed',
+                });
+                continue;
+              }
+              sourceText = read.data;
+            }
+
+            // Validate JSON before formatting/saving
+            try {
+              JSON.parse(sourceText);
+            } catch (e) {
+              results.push({
+                name: schema.name,
+                success: false,
+                error: 'Invalid JSON',
+              });
+              continue;
+            }
+
+            // Apply custom formatter (enum + properties)
+            const formatted = formatSchemaJsonString(sourceText);
+
+            // Write file if there were changes, or if tab is dirty to persist edits
+            const shouldWrite =
+              formatted !== sourceText || (openTab && openTab.isDirty);
+            const write = shouldWrite
+              ? await window.api.writeFile(schema.path, formatted)
+              : { success: true };
+            if (!write.success) {
+              results.push({
+                name: schema.name,
+                success: false,
+                error: write.error || 'Write failed',
+              });
+              continue;
+            }
+
+            // Update in-memory project state
+            try {
+              const parsed = JSON.parse(formatted);
+              useAppStore.setState((state) => ({
+                currentProject: state.currentProject
+                  ? {
+                    ...state.currentProject,
+                    schemas: state.currentProject.schemas.map((s) =>
+                      s.id === schema.id
+                        ? {
+                          ...s,
+                          content: parsed,
+                          metadata: s.metadata
+                            ? {
+                              ...s.metadata,
+                              lastModified: new Date(),
+                              fileSize: formatted.length,
+                            }
+                            : s.metadata,
+                        }
+                        : s,
+                    ),
+                  }
+                  : null,
+              }));
+            } catch (e) {
+              logger.debug('Batch format: project state update failed', {
+                error: e instanceof Error ? e.message : String(e),
+              });
+            }
+
+            // Update any open tabs for this schema (mark clean and replace content)
+            setEditorTabs((prev) =>
+              prev.map((t) =>
+                t.schema.id === schema.id
+                  ? { ...t, content: formatted, isDirty: false }
+                  : t,
+              ),
+            );
+
+            results.push({ name: schema.name, success: true });
+          } catch (error) {
+            results.push({
+              name: schema.name,
+              success: false,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
+
+        const ok = results.filter((r) => r.success).length;
+        const fail = results.length - ok;
+        if (fail === 0) {
+          toast.success('Formatted all files successfully');
+        } else {
+          toast.error(`Failed to format ${fail} file(s)`);
+        }
+
+        logger.info('Batch format completed', { total: results.length, ok, fail });
+      } catch (error) {
+        logger.error('Batch format failed', { error });
+        toast.error('Batch format failed');
+      } finally {
+        setIsBatchFormatting(false);
+      }
+    }),
+    [currentProject?.schemas],
   );
 
   // Listen to Monaco-dispatched Save All event
@@ -1965,6 +2115,19 @@ export function Build(): React.JSX.Element {
                 <CheckCircle className="w-4 h-4 mr-2" />
               )}
               {isBatchValidating ? 'Validating...' : 'Batch Validate'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={runBatchFormat}
+              disabled={isBatchFormatting || !currentProject.schemas?.length}
+            >
+              {isBatchFormatting ? (
+                <PlayCircle className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Code className="w-4 h-4 mr-2" />
+              )}
+              {isBatchFormatting ? 'Formatting...' : 'Batch Format + Save'}
             </Button>
             <Button
               variant={showPreview ? 'default' : 'outline'}
