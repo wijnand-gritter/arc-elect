@@ -100,7 +100,11 @@ class ProjectManager {
 
   constructor() {
     this.setupIpcHandlers();
-    this.referenceDebugLogPath = path.join(os.homedir(), '.arc-elect', 'reference-debug.log');
+    this.referenceDebugLogPath = path.join(
+      os.homedir(),
+      '.arc-elect',
+      'reference-debug.log',
+    );
   }
 
   /**
@@ -152,9 +156,12 @@ class ProjectManager {
     });
 
     // Directory scanning
-    ipcMain.handle('fs:scan', async (_event, dirPath: string, pattern: string) => {
-      return this.scanDirectory(dirPath, pattern);
-    });
+    ipcMain.handle(
+      'fs:scan',
+      async (_event, dirPath: string, pattern: string) => {
+        return this.scanDirectory(dirPath, pattern);
+      },
+    );
 
     // Schema reading
     ipcMain.handle('fs:readSchema', async (_event, filePath: string) => {
@@ -177,14 +184,17 @@ class ProjectManager {
     });
 
     // Destination folder dialog (allows creating new folders)
-    ipcMain.handle('dialog:selectDestinationFolder', async (_event, title: string) => {
-      const result = await this.showDestinationFolderDialog({ title });
-      return {
-        success: result.success,
-        data: result.path,
-        error: result.error,
-      };
-    });
+    ipcMain.handle(
+      'dialog:selectDestinationFolder',
+      async (_event, title: string) => {
+        const result = await this.showDestinationFolderDialog({ title });
+        return {
+          success: result.success,
+          data: result.path,
+          error: result.error,
+        };
+      },
+    );
 
     // Create directory
     ipcMain.handle('fs:createDirectory', async (_event, dirPath: string) => {
@@ -194,7 +204,10 @@ class ProjectManager {
       } catch (error) {
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to create directory',
+          error:
+            error instanceof Error
+              ? error.message
+              : 'Failed to create directory',
         };
       }
     });
@@ -207,38 +220,56 @@ class ProjectManager {
       } catch (error) {
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to scan RAML files',
+          error:
+            error instanceof Error
+              ? error.message
+              : 'Failed to scan RAML files',
         };
       }
     });
 
-    ipcMain.handle('raml:convertBatch', async (_event, options: RamlBatchConversionParams) => {
-      return this.convertRamlBatch(options);
-    });
+    ipcMain.handle(
+      'raml:convertBatch',
+      async (_event, options: RamlBatchConversionParams) => {
+        return this.convertRamlBatch(options);
+      },
+    );
 
-    ipcMain.handle('raml:clearDirectory', async (_event, directoryPath: string) => {
-      try {
-        await this.clearDirectory(directoryPath);
-        return { success: true };
-      } catch (error) {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Failed to clear directory',
-        };
-      }
-    });
+    ipcMain.handle(
+      'raml:clearDirectory',
+      async (_event, directoryPath: string) => {
+        try {
+          await this.clearDirectory(directoryPath);
+          return { success: true };
+        } catch (error) {
+          return {
+            success: false,
+            error:
+              error instanceof Error
+                ? error.message
+                : 'Failed to clear directory',
+          };
+        }
+      },
+    );
 
-    ipcMain.handle('raml:validateSchemas', async (_event, directoryPath: string) => {
-      try {
-        const isValid = await this.validateSchemasInDirectory(directoryPath);
-        return { success: isValid };
-      } catch (error) {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Failed to validate schemas',
-        };
-      }
-    });
+    ipcMain.handle(
+      'raml:validateSchemas',
+      async (_event, directoryPath: string) => {
+        try {
+          const isValid = await this.validateSchemasInDirectory(directoryPath);
+          return { success: isValid };
+        } catch (error) {
+          return {
+            success: false,
+            error:
+              error instanceof Error
+                ? error.message
+                : 'Failed to validate schemas',
+          };
+        }
+      },
+    );
 
     ipcMain.handle('raml:cancel', async () => {
       // Placeholder for cancellation logic
@@ -316,29 +347,35 @@ class ProjectManager {
       let totalReferenceTime = 0;
 
       const schemaLoadStart = Date.now();
-      logger.info('ProjectManager: Loading schemas', { totalFiles: jsonFiles.length });
+      logger.info('ProjectManager: Loading schemas', {
+        totalFiles: jsonFiles.length,
+      });
 
       for (let i = 0; i < jsonFiles.length; i += batchSize) {
         const batch = jsonFiles.slice(i, i + batchSize);
         const batchPromises = batch.map(async (filePath, _batchIndex) => {
           try {
-            const schema = await this.readSchemaFileOptimized(filePath, project.id, {
-              onFileRead: (duration) => {
-                totalFileReadTime += duration;
+            const schema = await this.readSchemaFileOptimized(
+              filePath,
+              project.id,
+              {
+                onFileRead: (duration) => {
+                  totalFileReadTime += duration;
+                },
+                onParse: (duration) => {
+                  totalParseTime += duration;
+                },
+                onValidation: (duration) => {
+                  totalValidationTime += duration;
+                },
+                onMetadata: (duration) => {
+                  totalMetadataTime += duration;
+                },
+                onReferences: (duration) => {
+                  totalReferenceTime += duration;
+                },
               },
-              onParse: (duration) => {
-                totalParseTime += duration;
-              },
-              onValidation: (duration) => {
-                totalValidationTime += duration;
-              },
-              onMetadata: (duration) => {
-                totalMetadataTime += duration;
-              },
-              onReferences: (duration) => {
-                totalReferenceTime += duration;
-              },
-            });
+            );
             if (schema) {
               if (schema.validationStatus === 'valid') {
                 validCount++;
@@ -354,7 +391,9 @@ class ProjectManager {
         });
 
         const batchResults = await Promise.all(batchPromises);
-        const validSchemas = batchResults.filter((schema): schema is Schema => schema !== null);
+        const validSchemas = batchResults.filter(
+          (schema): schema is Schema => schema !== null,
+        );
         schemas.push(...validSchemas);
 
         // Log progress for large projects
@@ -416,17 +455,22 @@ class ProjectManager {
         this.setupProjectWatching(project)
           .then(() => {
             const watchSetupDuration = Date.now() - watchSetupStart;
-            logger.info(`ProjectManager: File watching setup completed in ${watchSetupDuration}ms`);
+            logger.info(
+              `ProjectManager: File watching setup completed in ${watchSetupDuration}ms`,
+            );
           })
           .catch((error) => {
             logger.warn('Failed to setup file watching', { error });
           });
       }
 
-      logger.info(`ProjectManager: Project created in ${Date.now() - startTime}ms`, {
-        projectId: project.id,
-        schemaCount: schemas.length,
-      });
+      logger.info(
+        `ProjectManager: Project created in ${Date.now() - startTime}ms`,
+        {
+          projectId: project.id,
+          schemaCount: schemas.length,
+        },
+      );
 
       // Print comprehensive performance report
       const totalDuration = Date.now() - startTime;
@@ -458,7 +502,10 @@ class ProjectManager {
           referenceResolution: {
             totalTime: '1-3ms',
             schemasProcessed: schemas.length,
-            referencesFound: schemas.reduce((sum, schema) => sum + schema.references.length, 0),
+            referencesFound: schemas.reduce(
+              (sum, schema) => sum + schema.references.length,
+              0,
+            ),
             cacheHitRate: '99%',
             parallelization: '✅ Enabled',
           },
@@ -473,15 +520,22 @@ class ProjectManager {
         targets: {
           originalTarget: '20ms',
           currentResult: `${totalDuration}ms`,
-          status: totalDuration < 200 ? '🎯 TARGET ACHIEVED' : '⚠️ NEEDS MORE OPTIMIZATION',
+          status:
+            totalDuration < 200
+              ? '🎯 TARGET ACHIEVED'
+              : '⚠️ NEEDS MORE OPTIMIZATION',
         },
       });
 
       return { success: true, project };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       logger.error('ProjectManager: Failed to create project', { error });
-      return { success: false, error: `Failed to create project: ${errorMessage}` };
+      return {
+        success: false,
+        error: `Failed to create project: ${errorMessage}`,
+      };
     }
   }
 
@@ -507,9 +561,12 @@ class ProjectManager {
       const projectId = this.generateProjectId(projectPath);
       const existingProject = this.projects.get(projectId);
       if (existingProject) {
-        logger.info('ProjectManager: Project already loaded, but reloading to ensure fresh data', {
-          projectId,
-        });
+        logger.info(
+          'ProjectManager: Project already loaded, but reloading to ensure fresh data',
+          {
+            projectId,
+          },
+        );
         // Remove from cache to force reload
         this.projects.delete(projectId);
       }
@@ -533,9 +590,13 @@ class ProjectManager {
       // Create project (reuse createProject logic)
       return await this.createProject(config);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       logger.error('ProjectManager: Failed to load project', { error });
-      return { success: false, error: `Failed to load project: ${errorMessage}` };
+      return {
+        success: false,
+        error: `Failed to load project: ${errorMessage}`,
+      };
     }
   }
 
@@ -547,7 +608,9 @@ class ProjectManager {
     error?: string;
   }> {
     const startTime = Date.now();
-    logger.info('ProjectManager: Saving project - START', { projectId: project.id });
+    logger.info('ProjectManager: Saving project - START', {
+      projectId: project.id,
+    });
 
     try {
       // Update last modified time
@@ -556,12 +619,18 @@ class ProjectManager {
       // Store project
       this.projects.set(project.id, project);
 
-      logger.info(`ProjectManager: Project saved in ${Date.now() - startTime}ms`);
+      logger.info(
+        `ProjectManager: Project saved in ${Date.now() - startTime}ms`,
+      );
       return { success: true };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       logger.error('ProjectManager: Failed to save project', { error });
-      return { success: false, error: `Failed to save project: ${errorMessage}` };
+      return {
+        success: false,
+        error: `Failed to save project: ${errorMessage}`,
+      };
     }
   }
 
@@ -604,7 +673,9 @@ class ProjectManager {
                 path: metadata.path,
                 schemaPattern: metadata.schemaPattern || '*.json',
                 createdAt: new Date(metadata.createdAt),
-                lastModified: new Date(metadata.lastModified || metadata.createdAt),
+                lastModified: new Date(
+                  metadata.lastModified || metadata.createdAt,
+                ),
                 settings: metadata.settings || {
                   autoValidate: true,
                   watchForChanges: true,
@@ -626,12 +697,18 @@ class ProjectManager {
               projects.push(project);
             } catch {
               // Project directory doesn't exist anymore, skip it
-              logger.debug('ProjectManager: Project directory no longer exists', {
-                path: metadata.path,
-              });
+              logger.debug(
+                'ProjectManager: Project directory no longer exists',
+                {
+                  path: metadata.path,
+                },
+              );
             }
           } catch (error) {
-            logger.warn('ProjectManager: Failed to load project metadata', { file, error });
+            logger.warn('ProjectManager: Failed to load project metadata', {
+              file,
+              error,
+            });
           }
         }
       }
@@ -643,9 +720,13 @@ class ProjectManager {
 
       return { success: true, projects: sortedProjects };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       logger.error('ProjectManager: Failed to get recent projects', { error });
-      return { success: false, error: `Failed to get recent projects: ${errorMessage}` };
+      return {
+        success: false,
+        error: `Failed to get recent projects: ${errorMessage}`,
+      };
     }
   }
 
@@ -685,12 +766,22 @@ class ProjectManager {
       // Delete project metadata file
       await this.deleteProjectMetadata(project.path);
 
-      logger.info(`ProjectManager: Project deleted in ${Date.now() - startTime}ms`, { projectId });
+      logger.info(
+        `ProjectManager: Project deleted in ${Date.now() - startTime}ms`,
+        { projectId },
+      );
       return { success: true };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('ProjectManager: Failed to delete project', { projectId, error });
-      return { success: false, error: `Failed to delete project: ${errorMessage}` };
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      logger.error('ProjectManager: Failed to delete project', {
+        projectId,
+        error,
+      });
+      return {
+        success: false,
+        error: `Failed to delete project: ${errorMessage}`,
+      };
     }
   }
 
@@ -727,7 +818,11 @@ class ProjectManager {
         metadataPath,
       });
 
-      await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2), 'utf8');
+      await fs.writeFile(
+        metadataPath,
+        JSON.stringify(metadata, null, 2),
+        'utf8',
+      );
       logger.info('ProjectManager: Project metadata saved successfully', {
         projectPath: project.path,
         metadataPath,
@@ -776,8 +871,10 @@ class ProjectManager {
             } = {};
 
             if (metadata.name) result.name = metadata.name;
-            if (metadata.schemaPattern) result.schemaPattern = metadata.schemaPattern;
-            if (metadata.createdAt) result.createdAt = new Date(metadata.createdAt);
+            if (metadata.schemaPattern)
+              result.schemaPattern = metadata.schemaPattern;
+            if (metadata.createdAt)
+              result.createdAt = new Date(metadata.createdAt);
             if (metadata.settings) result.settings = metadata.settings;
 
             return result;
@@ -788,7 +885,9 @@ class ProjectManager {
       return null;
     } catch (_error) {
       // Metadata file doesn't exist or is invalid - return null
-      logger.debug('ProjectManager: No project metadata found', { projectPath });
+      logger.debug('ProjectManager: No project metadata found', {
+        projectPath,
+      });
       return null;
     }
   }
@@ -816,16 +915,23 @@ class ProjectManager {
           // Check if this metadata file corresponds to the project path
           if (metadata.path === projectPath) {
             await fs.unlink(metadataPath);
-            logger.info('ProjectManager: Project metadata deleted', { projectPath, metadataPath });
+            logger.info('ProjectManager: Project metadata deleted', {
+              projectPath,
+              metadataPath,
+            });
             return;
           }
         }
       }
 
-      logger.debug('ProjectManager: No project metadata to delete', { projectPath });
+      logger.debug('ProjectManager: No project metadata to delete', {
+        projectPath,
+      });
     } catch (_error) {
       // Metadata file might not exist - don't throw error
-      logger.debug('ProjectManager: No project metadata to delete', { projectPath });
+      logger.debug('ProjectManager: No project metadata to delete', {
+        projectPath,
+      });
     }
   }
 
@@ -850,9 +956,16 @@ class ProjectManager {
       // For other patterns, return empty array for now
       return { success: true, files: [] };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('ProjectManager: Failed to scan directory', { dirPath, error });
-      return { success: false, error: `Failed to scan directory: ${errorMessage}` };
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      logger.error('ProjectManager: Failed to scan directory', {
+        dirPath,
+        error,
+      });
+      return {
+        success: false,
+        error: `Failed to scan directory: ${errorMessage}`,
+      };
     }
   }
 
@@ -866,13 +979,24 @@ class ProjectManager {
   }> {
     try {
       // Generate a temporary project ID for standalone schema reading
-      const tempProjectId = 'temp-' + this.generateProjectId(path.dirname(filePath));
-      const schema = await this.readSchemaFileOptimized(filePath, tempProjectId);
+      const tempProjectId =
+        'temp-' + this.generateProjectId(path.dirname(filePath));
+      const schema = await this.readSchemaFileOptimized(
+        filePath,
+        tempProjectId,
+      );
       return schema ? { success: true, schema } : { success: true };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('ProjectManager: Failed to read schema', { filePath, error });
-      return { success: false, error: `Failed to read schema: ${errorMessage}` };
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      logger.error('ProjectManager: Failed to read schema', {
+        filePath,
+        error,
+      });
+      return {
+        success: false,
+        error: `Failed to read schema: ${errorMessage}`,
+      };
     }
   }
 
@@ -896,7 +1020,10 @@ class ProjectManager {
             {
               path: '',
               instancePath: '',
-              message: parseError instanceof Error ? parseError.message : 'Failed to parse JSON',
+              message:
+                parseError instanceof Error
+                  ? parseError.message
+                  : 'Failed to parse JSON',
               keyword: 'parse',
               severity: 'error',
             },
@@ -911,16 +1038,26 @@ class ProjectManager {
       const result = this.validateSchemaData(data);
       return { success: true, result };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('ProjectManager: Failed to validate schema', { filePath, error });
-      return { success: false, error: `Failed to validate schema: ${errorMessage}` };
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      logger.error('ProjectManager: Failed to validate schema', {
+        filePath,
+        error,
+      });
+      return {
+        success: false,
+        error: `Failed to validate schema: ${errorMessage}`,
+      };
     }
   }
 
   /**
    * Shows a folder selection dialog.
    */
-  private async showFolderDialog(options?: { title?: string; defaultPath?: string }): Promise<{
+  private async showFolderDialog(options?: {
+    title?: string;
+    defaultPath?: string;
+  }): Promise<{
     success: boolean;
     path?: string;
     error?: string;
@@ -948,9 +1085,13 @@ class ProjectManager {
         return { success: true, path: dialogResult.filePaths[0] };
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       logger.error('ProjectManager: Failed to show folder dialog', { error });
-      return { success: false, error: `Failed to show folder dialog: ${errorMessage}` };
+      return {
+        success: false,
+        error: `Failed to show folder dialog: ${errorMessage}`,
+      };
     }
   }
 
@@ -988,9 +1129,15 @@ class ProjectManager {
         return { success: true, path: dialogResult.filePaths[0] };
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('ProjectManager: Failed to show destination folder dialog', { error });
-      return { success: false, error: `Failed to show destination folder dialog: ${errorMessage}` };
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      logger.error('ProjectManager: Failed to show destination folder dialog', {
+        error,
+      });
+      return {
+        success: false,
+        error: `Failed to show destination folder dialog: ${errorMessage}`,
+      };
     }
   }
 
@@ -1003,11 +1150,19 @@ class ProjectManager {
         cwd: dirPath,
         absolute: true,
         nodir: true,
-        ignore: ['**/node_modules/**', '**/.git/**', '**/package-lock.json', '**/package.json'],
+        ignore: [
+          '**/node_modules/**',
+          '**/.git/**',
+          '**/package-lock.json',
+          '**/package.json',
+        ],
       });
       return files;
     } catch (error) {
-      logger.error('Failed to scan directory for JSON files', { dirPath, error });
+      logger.error('Failed to scan directory for JSON files', {
+        dirPath,
+        error,
+      });
       return [];
     }
   }
@@ -1061,7 +1216,10 @@ class ProjectManager {
             {
               path: '',
               instancePath: '',
-              message: parseError instanceof Error ? parseError.message : 'Failed to parse JSON',
+              message:
+                parseError instanceof Error
+                  ? parseError.message
+                  : 'Failed to parse JSON',
               keyword: 'parse',
               severity: 'error',
             },
@@ -1108,7 +1266,9 @@ class ProjectManager {
         },
         validationStatus,
         ...(validationResult.errors &&
-          validationResult.errors.length > 0 && { validationErrors: validationResult.errors }),
+          validationResult.errors.length > 0 && {
+            validationErrors: validationResult.errors,
+          }),
         relativePath,
         importSource: 'json',
         importDate: new Date(),
@@ -1155,7 +1315,9 @@ class ProjectManager {
     const extractRefs = (obj: unknown, path = '') => {
       if (typeof obj !== 'object' || obj === null) return;
 
-      for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      for (const [key, value] of Object.entries(
+        obj as Record<string, unknown>,
+      )) {
         const currentPath = path ? `${path}.${key}` : key;
 
         if (key === '$ref' && typeof value === 'string') {
@@ -1206,7 +1368,10 @@ class ProjectManager {
       // Most JSON objects can be valid schemas, so be very permissive
 
       // Check for invalid $schema format (should be a string if present)
-      if (dataRecord.$schema !== undefined && typeof dataRecord.$schema !== 'string') {
+      if (
+        dataRecord.$schema !== undefined &&
+        typeof dataRecord.$schema !== 'string'
+      ) {
         errors.push({
           path: '/$schema',
           instancePath: '/$schema',
@@ -1234,7 +1399,8 @@ class ProjectManager {
       // Check for invalid properties format (should be object if present)
       if (
         dataRecord.properties !== undefined &&
-        (typeof dataRecord.properties !== 'object' || dataRecord.properties === null)
+        (typeof dataRecord.properties !== 'object' ||
+          dataRecord.properties === null)
       ) {
         errors.push({
           path: '/properties',
@@ -1257,7 +1423,10 @@ class ProjectManager {
       }
 
       // Check for invalid $ref format (should be string if present)
-      if (dataRecord.$ref !== undefined && typeof dataRecord.$ref !== 'string') {
+      if (
+        dataRecord.$ref !== undefined &&
+        typeof dataRecord.$ref !== 'string'
+      ) {
         errors.push({
           path: '/$ref',
           instancePath: '/$ref',
@@ -1280,7 +1449,9 @@ class ProjectManager {
   /**
    * Resolves references between schemas and populates referencedBy fields (parallel optimized).
    */
-  private async resolveSchemaReferencesParallel(schemas: Schema[]): Promise<void> {
+  private async resolveSchemaReferencesParallel(
+    schemas: Schema[],
+  ): Promise<void> {
     const startTime = Date.now();
 
     // Create lookup map efficiently
@@ -1328,7 +1499,10 @@ class ProjectManager {
     // Process batches in parallel
     await Promise.all(
       batches.map(async (batch) => {
-        const batchResults: Array<{ schemaId: string; referencedSchemaId: string }> = [];
+        const batchResults: Array<{
+          schemaId: string;
+          referencedSchemaId: string;
+        }> = [];
 
         for (const schema of batch) {
           totalReferences += schema.references.length;
@@ -1351,7 +1525,9 @@ class ProjectManager {
 
                 // Try clean path matching
                 if (!referencedSchema) {
-                  const cleanRef = ref.$ref.replace(/^\.\//, '').replace(/\.schema\.json$/, '');
+                  const cleanRef = ref.$ref
+                    .replace(/^\.\//, '')
+                    .replace(/\.schema\.json$/, '');
                   referencedSchema = schemaMap.get(cleanRef);
                 }
 
@@ -1387,7 +1563,9 @@ class ProjectManager {
       // Consolidate results and update referencedBy
       for (const batchResult of allBatchResults) {
         for (const result of batchResult) {
-          const referencedBySet = referencedByMap.get(result.referencedSchemaId);
+          const referencedBySet = referencedByMap.get(
+            result.referencedSchemaId,
+          );
           if (referencedBySet) {
             referencedBySet.add(result.schemaId);
           }
@@ -1404,14 +1582,17 @@ class ProjectManager {
     }
 
     const duration = Date.now() - startTime;
-    logger.info(`ProjectManager: Parallel reference resolution completed in ${duration}ms`, {
-      totalSchemas: schemas.length,
-      totalReferences,
-      resolvedReferences,
-      unresolvedReferences: totalReferences - resolvedReferences,
-      averagePerSchema: `${Math.round(duration / schemas.length)}ms`,
-      cacheHits: referenceCache.size,
-    });
+    logger.info(
+      `ProjectManager: Parallel reference resolution completed in ${duration}ms`,
+      {
+        totalSchemas: schemas.length,
+        totalReferences,
+        resolvedReferences,
+        unresolvedReferences: totalReferences - resolvedReferences,
+        averagePerSchema: `${Math.round(duration / schemas.length)}ms`,
+        cacheHits: referenceCache.size,
+      },
+    );
   }
 
   /**
@@ -1590,7 +1771,10 @@ class ProjectManager {
 
             return fileInfo;
           } catch (error) {
-            logger.warn('ProjectManager: Failed to process RAML file', { filePath, error });
+            logger.warn('ProjectManager: Failed to process RAML file', {
+              filePath,
+              error,
+            });
             const errorFileInfo: RamlFileInfo = {
               path: filePath,
               name: path.basename(filePath),
@@ -1610,7 +1794,10 @@ class ProjectManager {
 
       return ramlFiles;
     } catch (error) {
-      logger.error('ProjectManager: Failed to scan RAML files', { directoryPath, error });
+      logger.error('ProjectManager: Failed to scan RAML files', {
+        directoryPath,
+        error,
+      });
       throw error;
     }
   }
@@ -1666,11 +1853,14 @@ class ProjectManager {
         },
       };
     } catch (error) {
-      logger.error('ProjectManager: Batch RAML conversion failed with exception', {
-        sourceDirectory: options.sourceDirectory,
-        destinationDirectory: options.destinationDirectory,
-        error,
-      });
+      logger.error(
+        'ProjectManager: Batch RAML conversion failed with exception',
+        {
+          sourceDirectory: options.sourceDirectory,
+          destinationDirectory: options.destinationDirectory,
+          error,
+        },
+      );
       return {
         success: false,
         results: [],
@@ -1702,9 +1892,14 @@ class ProjectManager {
         }),
       );
 
-      logger.info('ProjectManager: Directory cleared successfully', { directoryPath });
+      logger.info('ProjectManager: Directory cleared successfully', {
+        directoryPath,
+      });
     } catch (error) {
-      logger.error('ProjectManager: Failed to clear directory', { directoryPath, error });
+      logger.error('ProjectManager: Failed to clear directory', {
+        directoryPath,
+        error,
+      });
       throw error;
     }
   }
@@ -1712,9 +1907,13 @@ class ProjectManager {
   /**
    * Validates all JSON schemas in a directory.
    */
-  public async validateSchemasInDirectory(directoryPath: string): Promise<boolean> {
+  public async validateSchemasInDirectory(
+    directoryPath: string,
+  ): Promise<boolean> {
     try {
-      logger.info('ProjectManager: Validating schemas in directory', { directoryPath });
+      logger.info('ProjectManager: Validating schemas in directory', {
+        directoryPath,
+      });
 
       const files = await glob('**/*.json', {
         cwd: directoryPath,
@@ -1738,7 +1937,10 @@ class ProjectManager {
           }
         } catch (error) {
           allValid = false;
-          logger.warn('ProjectManager: Failed to validate schema', { filePath, error });
+          logger.warn('ProjectManager: Failed to validate schema', {
+            filePath,
+            error,
+          });
         }
       }
 
@@ -1750,7 +1952,10 @@ class ProjectManager {
 
       return allValid;
     } catch (error) {
-      logger.error('ProjectManager: Failed to validate schemas', { directoryPath, error });
+      logger.error('ProjectManager: Failed to validate schemas', {
+        directoryPath,
+        error,
+      });
       return false;
     }
   }

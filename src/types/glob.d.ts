@@ -16,6 +16,9 @@ declare module 'glob' {
     [key: string]: unknown;
   }
 
-  export function glob(pattern: string, options?: GlobOptions): Promise<string[]>;
+  export function glob(
+    pattern: string,
+    options?: GlobOptions,
+  ): Promise<string[]>;
   export function globSync(pattern: string, options?: GlobOptions): string[];
 }

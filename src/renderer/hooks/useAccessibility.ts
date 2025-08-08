@@ -66,7 +66,10 @@ interface AccessibilityResult extends AccessibilityState {
   /** Function to announce message to screen readers */
   announce: (message: string, priority?: 'polite' | 'assertive') => void;
   /** Function to create focus trap */
-  createFocusTrap: (element: HTMLElement, options?: FocusTrapOptions) => () => void;
+  createFocusTrap: (
+    element: HTMLElement,
+    options?: FocusTrapOptions,
+  ) => () => void;
   /** Function to manage focus */
   manageFocus: (element: HTMLElement | null) => void;
   /** Function to add skip links */
@@ -121,7 +124,9 @@ interface AccessibilityResult extends AccessibilityState {
  * }, [isModalOpen]);
  * ```
  */
-export function useAccessibility(options: AccessibilityOptions = {}): AccessibilityResult {
+export function useAccessibility(
+  options: AccessibilityOptions = {},
+): AccessibilityResult {
   const {
     enableFocusManagement = true,
     enableScreenReaderSupport = true,
@@ -205,7 +210,11 @@ export function useAccessibility(options: AccessibilityOptions = {}): Accessibil
     (element: HTMLElement, options: FocusTrapOptions = {}): (() => void) => {
       if (!enableFocusManagement) return () => {};
 
-      const { enabled = true, returnFocus = true, allowEscape = true } = options;
+      const {
+        enabled = true,
+        returnFocus = true,
+        allowEscape = true,
+      } = options;
 
       if (!enabled) return () => {};
 
@@ -382,7 +391,8 @@ export function useAccessibility(options: AccessibilityOptions = {}): Accessibil
         selected?: boolean;
       },
     ): void => {
-      const { role, label, description, controls, expanded, selected } = options;
+      const { role, label, description, controls, expanded, selected } =
+        options;
 
       if (role) {
         element.setAttribute('role', role);
@@ -418,7 +428,10 @@ export function useAccessibility(options: AccessibilityOptions = {}): Accessibil
         element.setAttribute('aria-selected', String(selected));
       }
 
-      logger.debug('Element accessibility enhanced', { element: element.tagName, options });
+      logger.debug('Element accessibility enhanced', {
+        element: element.tagName,
+        options,
+      });
     },
     [],
   );
@@ -433,14 +446,18 @@ export function useAccessibility(options: AccessibilityOptions = {}): Accessibil
       let currentIndex = 0;
 
       const updateTabindexes = () => {
-        const items = container.querySelectorAll(itemSelector) as NodeListOf<HTMLElement>;
+        const items = container.querySelectorAll(
+          itemSelector,
+        ) as NodeListOf<HTMLElement>;
         items.forEach((item, index) => {
           item.tabIndex = index === currentIndex ? 0 : -1;
         });
       };
 
       const handleKeyDown = (event: KeyboardEvent) => {
-        const items = container.querySelectorAll(itemSelector) as NodeListOf<HTMLElement>;
+        const items = container.querySelectorAll(
+          itemSelector,
+        ) as NodeListOf<HTMLElement>;
 
         switch (event.key) {
           case 'ArrowDown':
@@ -479,7 +496,10 @@ export function useAccessibility(options: AccessibilityOptions = {}): Accessibil
       updateTabindexes();
       container.addEventListener('keydown', handleKeyDown);
 
-      logger.debug('Roving tabindex created', { container: container.tagName, itemSelector });
+      logger.debug('Roving tabindex created', {
+        container: container.tagName,
+        itemSelector,
+      });
 
       return () => {
         container.removeEventListener('keydown', handleKeyDown);
@@ -495,7 +515,10 @@ export function useAccessibility(options: AccessibilityOptions = {}): Accessibil
     // Detect reduced motion preference
     if (enableReducedMotionSupport) {
       const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-      setState((prev) => ({ ...prev, prefersReducedMotion: mediaQuery.matches }));
+      setState((prev) => ({
+        ...prev,
+        prefersReducedMotion: mediaQuery.matches,
+      }));
 
       const handleChange = (e: MediaQueryListEvent) => {
         setState((prev) => ({ ...prev, prefersReducedMotion: e.matches }));
@@ -513,7 +536,10 @@ export function useAccessibility(options: AccessibilityOptions = {}): Accessibil
   useEffect(() => {
     if (enableHighContrastSupport) {
       const mediaQuery = window.matchMedia('(prefers-contrast: high)');
-      setState((prev) => ({ ...prev, prefersHighContrast: mediaQuery.matches }));
+      setState((prev) => ({
+        ...prev,
+        prefersHighContrast: mediaQuery.matches,
+      }));
 
       const handleChange = (e: MediaQueryListEvent) => {
         setState((prev) => ({ ...prev, prefersHighContrast: e.matches }));

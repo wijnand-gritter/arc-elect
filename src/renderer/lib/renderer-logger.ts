@@ -24,9 +24,16 @@ const levelToConsole: Record<LogLevel, keyof Console> = {
 
 class RendererLogger extends BaseLogger {
   protected logImpl(level: LogLevel, message: unknown, ...args: unknown[]) {
-    (logger as unknown as Record<string, (...args: unknown[]) => void>)[level](message, ...args);
+    (logger as unknown as Record<string, (...args: unknown[]) => void>)[level](
+      message,
+      ...args,
+    );
   }
-  protected consoleTransport(level: LogLevel, fmt: string, ...fmtArgs: unknown[]) {
+  protected consoleTransport(
+    level: LogLevel,
+    fmt: string,
+    ...fmtArgs: unknown[]
+  ) {
     const fn = console[levelToConsole[level]];
     if (typeof fn === 'function') {
       (fn as (...args: unknown[]) => void).call(console, fmt, ...fmtArgs);

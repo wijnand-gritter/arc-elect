@@ -145,7 +145,10 @@ ipcMain.handle('api:action', async (event, data) => {
 
     // Process data
     const result = await processData(data);
-    logger.info('IPC action completed', { action: 'api:action', success: true });
+    logger.info('IPC action completed', {
+      action: 'api:action',
+      success: true,
+    });
 
     return { success: true, result };
   } catch (error) {
@@ -417,7 +420,10 @@ ipcMain.handle('api:action', async (event, data) => {
 
     // Process data
     const result = await processData(data);
-    logger.info('IPC action completed', { action: 'api:action', success: true });
+    logger.info('IPC action completed', {
+      action: 'api:action',
+      success: true,
+    });
 
     return { success: true, result };
   } catch (error) {

@@ -35,4 +35,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <App />
   </React.StrictMode>,
 );
-logger.info(`Renderer: React app rendered in ${Date.now() - renderStartTime}ms`);
+logger.info(
+  `Renderer: React app rendered in ${Date.now() - renderStartTime}ms`,
+);

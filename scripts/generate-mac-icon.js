@@ -38,7 +38,9 @@ function main() {
   console.log('🚀 Starting macOS icon generation for ARC ELECT...\n');
 
   if (!fs.existsSync('src/assets/arc-elect-icon-white-bg.png')) {
-    console.error('❌ Source icon not found: src/assets/arc-elect-icon-white-bg.png');
+    console.error(
+      '❌ Source icon not found: src/assets/arc-elect-icon-white-bg.png',
+    );
     process.exit(1);
   }
 

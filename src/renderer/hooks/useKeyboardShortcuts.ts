@@ -80,7 +80,10 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}): {
   shortcuts: KeyboardShortcut[];
   registerShortcut: (shortcut: KeyboardShortcut) => void;
   unregisterShortcut: (key: string) => void;
-  isShortcutPressed: (event: KeyboardEvent, shortcut: KeyboardShortcut) => boolean;
+  isShortcutPressed: (
+    event: KeyboardEvent,
+    shortcut: KeyboardShortcut,
+  ) => boolean;
 } {
   const {
     enableGlobal = true,
@@ -113,7 +116,9 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}): {
       if (isMac && shortcut.key === '?' && shortcut.meta && !shortcut.shift) {
         // On macOS, ? requires Shift, so Cmd + ? should be Cmd + Shift + ?
         const adjustedShiftMatch = event.shiftKey;
-        return keyMatch && ctrlMatch && altMatch && adjustedShiftMatch && metaMatch;
+        return (
+          keyMatch && ctrlMatch && altMatch && adjustedShiftMatch && metaMatch
+        );
       }
 
       return keyMatch && ctrlMatch && altMatch && shiftMatch && metaMatch;
@@ -124,15 +129,18 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}): {
   /**
    * Generate shortcut key for storage.
    */
-  const generateShortcutKey = useCallback((shortcut: KeyboardShortcut): string => {
-    const modifiers = [];
-    if (shortcut.ctrl) modifiers.push('ctrl');
-    if (shortcut.alt) modifiers.push('alt');
-    if (shortcut.shift) modifiers.push('shift');
-    if (shortcut.meta) modifiers.push('meta');
+  const generateShortcutKey = useCallback(
+    (shortcut: KeyboardShortcut): string => {
+      const modifiers = [];
+      if (shortcut.ctrl) modifiers.push('ctrl');
+      if (shortcut.alt) modifiers.push('alt');
+      if (shortcut.shift) modifiers.push('shift');
+      if (shortcut.meta) modifiers.push('meta');
 
-    return `${modifiers.join('+')}_${shortcut.key.toLowerCase()}`;
-  }, []);
+      return `${modifiers.join('+')}_${shortcut.key.toLowerCase()}`;
+    },
+    [],
+  );
 
   /**
    * Default keyboard shortcuts.
@@ -252,7 +260,9 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}): {
         // Find selected schema and open it
         const selectedCard = document.querySelector('[aria-selected="true"]');
         if (selectedCard) {
-          selectedCard.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+          selectedCard.dispatchEvent(
+            new MouseEvent('click', { bubbles: true }),
+          );
         }
       }),
     },
@@ -360,7 +370,10 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}): {
   const registerShortcut = useCallback(
     (shortcut: KeyboardShortcut): void => {
       const key = generateShortcutKey(shortcut);
-      shortcutsRef.current.set(key, { ...shortcut, enabled: shortcut.enabled ?? true });
+      shortcutsRef.current.set(key, {
+        ...shortcut,
+        enabled: shortcut.enabled ?? true,
+      });
     },
     [generateShortcutKey],
   );
@@ -380,7 +393,9 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}): {
       // Skip if user is typing in an input, textarea, or contenteditable
       const target = event.target as HTMLElement;
       const isInput =
-        target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable;
 
       // Allow some shortcuts even in inputs (like Escape)
       const allowInInputs = ['Escape', 'Tab'];

@@ -17,7 +17,12 @@ import { safeAsyncHandler, safeHandler } from '../lib/error-handling';
 
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '../components/ui/tabs';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
@@ -136,20 +141,25 @@ export function Build(): React.JSX.Element {
   const [editorTabs, setEditorTabs] = useState<EditorTab[]>([]);
   const [treeItems, setTreeItems] = useState<TreeItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [tabValidationErrors, setTabValidationErrors] = useState<Record<string, ValidationError[]>>(
-    {},
-  );
+  const [tabValidationErrors, setTabValidationErrors] = useState<
+    Record<string, ValidationError[]>
+  >({});
   const [contextMenuItem, setContextMenuItem] = useState<TreeItem | null>(null);
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [renameValue, setRenameValue] = useState('');
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isCreateSchemaDialogOpen, setIsCreateSchemaDialogOpen] = useState(false);
-  const [isCreateFolderDialogOpen, setIsCreateFolderDialogOpen] = useState(false);
+  const [isCreateSchemaDialogOpen, setIsCreateSchemaDialogOpen] =
+    useState(false);
+  const [isCreateFolderDialogOpen, setIsCreateFolderDialogOpen] =
+    useState(false);
   const [newSchemaName, setNewSchemaName] = useState('');
   const [newFolderName, setNewFolderName] = useState('');
-  const [isCreateRootSchemaDialogOpen, setIsCreateRootSchemaDialogOpen] = useState(false);
-  const [isCreateRootFolderDialogOpen, setIsCreateRootFolderDialogOpen] = useState(false);
-  const [isCreateTemplateDialogOpen, setIsCreateTemplateDialogOpen] = useState(false);
+  const [isCreateRootSchemaDialogOpen, setIsCreateRootSchemaDialogOpen] =
+    useState(false);
+  const [isCreateRootFolderDialogOpen, setIsCreateRootFolderDialogOpen] =
+    useState(false);
+  const [isCreateTemplateDialogOpen, setIsCreateTemplateDialogOpen] =
+    useState(false);
   const [rootSchemaName, setRootSchemaName] = useState('');
   const [rootFolderName, setRootFolderName] = useState('');
   const [templateSchemaName, setTemplateSchemaName] = useState('');
@@ -161,15 +171,21 @@ export function Build(): React.JSX.Element {
     const rootItems: TreeItem[] = [];
 
     // Simple check for debugging
-    const schemasWithFolders = schemas.filter((s) => s.relativePath.includes('/'));
+    const schemasWithFolders = schemas.filter((s) =>
+      s.relativePath.includes('/'),
+    );
     if (schemasWithFolders.length === 0) {
-      logger.error('No folder paths found - all schemas appear to be at root level');
+      logger.error(
+        'No folder paths found - all schemas appear to be at root level',
+      );
     }
 
     // First pass: Create all folders
     const allPaths = new Set<string>();
     schemas.forEach((schema) => {
-      const pathParts = schema.relativePath.split('/').filter((part) => part.length > 0);
+      const pathParts = schema.relativePath
+        .split('/')
+        .filter((part) => part.length > 0);
 
       // Add all parent folder paths
       for (let i = 0; i < pathParts.length - 1; i++) {
@@ -179,7 +195,9 @@ export function Build(): React.JSX.Element {
     });
 
     if (allPaths.size === 0) {
-      logger.warn('No folder paths found - all schemas appear to be at root level');
+      logger.warn(
+        'No folder paths found - all schemas appear to be at root level',
+      );
     }
 
     // Create folder items
@@ -213,7 +231,9 @@ export function Build(): React.JSX.Element {
 
     // Second pass: Add schema files
     schemas.forEach((schema) => {
-      const pathParts = schema.relativePath.split('/').filter((part) => part.length > 0);
+      const pathParts = schema.relativePath
+        .split('/')
+        .filter((part) => part.length > 0);
       const fileName = pathParts[pathParts.length - 1];
       const parentPath = pathParts.slice(0, -1).join('/');
 
@@ -247,7 +267,10 @@ export function Build(): React.JSX.Element {
             return a.type === 'folder' ? -1 : 1;
           }
           // Alphabetical within same type
-          return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+          return a.name.localeCompare(b.name, undefined, {
+            numeric: true,
+            sensitivity: 'base',
+          });
         })
         .map((item) => ({
           ...item,
@@ -358,7 +381,9 @@ export function Build(): React.JSX.Element {
 
       if (activeTabId === tabId) {
         const remainingTabs = editorTabs.filter((t) => t.id !== tabId);
-        setActiveTabId(remainingTabs.length > 0 ? (remainingTabs[0]?.id ?? null) : null);
+        setActiveTabId(
+          remainingTabs.length > 0 ? (remainingTabs[0]?.id ?? null) : null,
+        );
       }
 
       logger.info('Closed editor tab', { tabId });
@@ -392,7 +417,9 @@ export function Build(): React.JSX.Element {
         const result = await window.api.writeFile(tab.schema.path, tab.content);
 
         if (result.success) {
-          setEditorTabs((prev) => prev.map((t) => (t.id === tabId ? { ...t, isDirty: false } : t)));
+          setEditorTabs((prev) =>
+            prev.map((t) => (t.id === tabId ? { ...t, isDirty: false } : t)),
+          );
 
           toast.success('Tab saved', {
             description: `${tab.schema.name} has been saved successfully`,
@@ -440,7 +467,9 @@ export function Build(): React.JSX.Element {
         const formatted = JSON.stringify(parsed, null, 2);
 
         setEditorTabs((prev) =>
-          prev.map((t) => (t.id === tabId ? { ...t, content: formatted, isDirty: true } : t)),
+          prev.map((t) =>
+            t.id === tabId ? { ...t, content: formatted, isDirty: true } : t,
+          ),
         );
 
         toast.success('Tab formatted', {
@@ -518,7 +547,9 @@ export function Build(): React.JSX.Element {
               .then(() => {
                 setEditorTabs([targetTab!]);
                 setActiveTabId(tabId);
-                setTabValidationErrors({ [tabId]: tabValidationErrors[tabId] || [] });
+                setTabValidationErrors({
+                  [tabId]: tabValidationErrors[tabId] || [],
+                });
                 setConfirmationDialog(null);
                 toast.success('Other tabs saved and closed');
               })
@@ -530,7 +561,9 @@ export function Build(): React.JSX.Element {
             // Close without saving
             setEditorTabs([targetTab!]);
             setActiveTabId(tabId);
-            setTabValidationErrors({ [tabId]: tabValidationErrors[tabId] || [] });
+            setTabValidationErrors({
+              [tabId]: tabValidationErrors[tabId] || [],
+            });
             setConfirmationDialog(null);
             toast.success('Other tabs closed');
           },
@@ -566,9 +599,13 @@ export function Build(): React.JSX.Element {
                 const remainingTabs = editorTabs.slice(targetIndex);
                 setEditorTabs(remainingTabs);
                 setActiveTabId(tabId);
-                setTabValidationErrors({ [tabId]: tabValidationErrors[tabId] || [] });
+                setTabValidationErrors({
+                  [tabId]: tabValidationErrors[tabId] || [],
+                });
                 setConfirmationDialog(null);
-                toast.success(`Saved and closed ${tabsToClose.length} tab(s) to the left`);
+                toast.success(
+                  `Saved and closed ${tabsToClose.length} tab(s) to the left`,
+                );
               })
               .catch(() => {
                 setConfirmationDialog(null);
@@ -579,7 +616,9 @@ export function Build(): React.JSX.Element {
             const remainingTabs = editorTabs.slice(targetIndex);
             setEditorTabs(remainingTabs);
             setActiveTabId(tabId);
-            setTabValidationErrors({ [tabId]: tabValidationErrors[tabId] || [] });
+            setTabValidationErrors({
+              [tabId]: tabValidationErrors[tabId] || [],
+            });
             setConfirmationDialog(null);
             toast.success(`Closed ${tabsToClose.length} tab(s) to the left`);
           },
@@ -592,7 +631,9 @@ export function Build(): React.JSX.Element {
       setActiveTabId(tabId);
       setTabValidationErrors({ [tabId]: tabValidationErrors[tabId] || [] });
 
-      logger.info('Closed tabs to left', { remainingTabs: remainingTabs.length });
+      logger.info('Closed tabs to left', {
+        remainingTabs: remainingTabs.length,
+      });
       toast.success(`Closed ${tabsToClose.length} tab(s) to the left`);
     }),
     [editorTabs, tabValidationErrors],
@@ -616,9 +657,13 @@ export function Build(): React.JSX.Element {
                 const remainingTabs = editorTabs.slice(0, targetIndex + 1);
                 setEditorTabs(remainingTabs);
                 setActiveTabId(tabId);
-                setTabValidationErrors({ [tabId]: tabValidationErrors[tabId] || [] });
+                setTabValidationErrors({
+                  [tabId]: tabValidationErrors[tabId] || [],
+                });
                 setConfirmationDialog(null);
-                toast.success(`Saved and closed ${tabsToClose.length} tab(s) to the right`);
+                toast.success(
+                  `Saved and closed ${tabsToClose.length} tab(s) to the right`,
+                );
               })
               .catch(() => {
                 setConfirmationDialog(null);
@@ -629,7 +674,9 @@ export function Build(): React.JSX.Element {
             const remainingTabs = editorTabs.slice(0, targetIndex + 1);
             setEditorTabs(remainingTabs);
             setActiveTabId(tabId);
-            setTabValidationErrors({ [tabId]: tabValidationErrors[tabId] || [] });
+            setTabValidationErrors({
+              [tabId]: tabValidationErrors[tabId] || [],
+            });
             setConfirmationDialog(null);
             toast.success(`Closed ${tabsToClose.length} tab(s) to the right`);
           },
@@ -642,7 +689,9 @@ export function Build(): React.JSX.Element {
       setActiveTabId(tabId);
       setTabValidationErrors({ [tabId]: tabValidationErrors[tabId] || [] });
 
-      logger.info('Closed tabs to right', { remainingTabs: remainingTabs.length });
+      logger.info('Closed tabs to right', {
+        remainingTabs: remainingTabs.length,
+      });
       toast.success(`Closed ${tabsToClose.length} tab(s) to the right`);
     }),
     [editorTabs, tabValidationErrors],
@@ -672,7 +721,9 @@ export function Build(): React.JSX.Element {
     const filterItems = (items: TreeItem[]): TreeItem[] => {
       return items
         .map((item) => {
-          const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+          const matchesSearch = item.name
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase());
           const filteredChildren = filterItems(item.children);
 
           if (matchesSearch || filteredChildren.length > 0) {
@@ -694,7 +745,9 @@ export function Build(): React.JSX.Element {
   const handleTabContentChange = useCallback(
     safeHandler((tabId: string, newContent: string) => {
       setEditorTabs((prev) =>
-        prev.map((tab) => (tab.id === tabId ? { ...tab, content: newContent } : tab)),
+        prev.map((tab) =>
+          tab.id === tabId ? { ...tab, content: newContent } : tab,
+        ),
       );
     }),
     [],
@@ -703,7 +756,9 @@ export function Build(): React.JSX.Element {
   // Handle tab dirty state changes
   const handleTabDirtyChange = useCallback(
     safeHandler((tabId: string, isDirty: boolean) => {
-      setEditorTabs((prev) => prev.map((tab) => (tab.id === tabId ? { ...tab, isDirty } : tab)));
+      setEditorTabs((prev) =>
+        prev.map((tab) => (tab.id === tabId ? { ...tab, isDirty } : tab)),
+      );
     }),
     [],
   );
@@ -712,7 +767,9 @@ export function Build(): React.JSX.Element {
   const handleTabValidationChange = useCallback(
     safeHandler((tabId: string, errors: ValidationError[]) => {
       setTabValidationErrors((prev) => ({ ...prev, [tabId]: errors }));
-      setEditorTabs((prev) => prev.map((tab) => (tab.id === tabId ? { ...tab, errors } : tab)));
+      setEditorTabs((prev) =>
+        prev.map((tab) => (tab.id === tabId ? { ...tab, errors } : tab)),
+      );
     }),
     [],
   );
@@ -722,7 +779,10 @@ export function Build(): React.JSX.Element {
     safeHandler((refPath: string) => {
       logger.info('Ref click attempted', {
         refPath,
-        availableSchemas: currentProject?.schemas?.map((s) => ({ name: s.name, path: s.path })),
+        availableSchemas: currentProject?.schemas?.map((s) => ({
+          name: s.name,
+          path: s.path,
+        })),
       });
 
       // Find the schema by path or name with multiple matching strategies
@@ -738,8 +798,16 @@ export function Build(): React.JSX.Element {
         // Name includes the ref path
         if (schema.name.includes(refPath)) return true;
         // Handle relative paths by checking if the schema path ends with the ref path
-        if (refPath.startsWith('./') && schema.path.endsWith(refPath.substring(2))) return true;
-        if (refPath.startsWith('../') && schema.path.endsWith(refPath.substring(3))) return true;
+        if (
+          refPath.startsWith('./') &&
+          schema.path.endsWith(refPath.substring(2))
+        )
+          return true;
+        if (
+          refPath.startsWith('../') &&
+          schema.path.endsWith(refPath.substring(3))
+        )
+          return true;
 
         return false;
       });
@@ -755,7 +823,10 @@ export function Build(): React.JSX.Element {
         // Log all available schemas for debugging
         logger.warn('Ref navigation failed - schema not found', {
           refPath,
-          availableSchemas: currentProject?.schemas?.map((s) => ({ name: s.name, path: s.path })),
+          availableSchemas: currentProject?.schemas?.map((s) => ({
+            name: s.name,
+            path: s.path,
+          })),
         });
         toast.error('Schema not found', {
           description: `Could not find schema: ${refPath}`,
@@ -776,7 +847,11 @@ export function Build(): React.JSX.Element {
     total: number;
     valid: number;
     invalid: number;
-    errors: { schemaId: string; schemaName: string; errors: ValidationError[] }[];
+    errors: {
+      schemaId: string;
+      schemaName: string;
+      errors: ValidationError[];
+    }[];
   } | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -806,7 +881,9 @@ export function Build(): React.JSX.Element {
     const hasManyTabs = editorTabs.length > 5;
 
     setCanScrollLeft(hasHorizontalScroll && scrollLeft > 0);
-    setCanScrollRight(hasHorizontalScroll && scrollLeft < scrollWidth - clientWidth - 1);
+    setCanScrollRight(
+      hasHorizontalScroll && scrollLeft < scrollWidth - clientWidth - 1,
+    );
 
     // Force scroll buttons to show if there are many tabs and we're at the edges
     if (hasManyTabs) {
@@ -956,7 +1033,9 @@ export function Build(): React.JSX.Element {
         setBatchValidationResults(results);
 
         if (results.invalid === 0) {
-          toast.success(`Batch validation complete: All ${results.total} schemas are valid!`);
+          toast.success(
+            `Batch validation complete: All ${results.total} schemas are valid!`,
+          );
         } else {
           toast.warning(
             `Batch validation complete: ${results.valid} valid, ${results.invalid} invalid schemas`,
@@ -980,7 +1059,8 @@ export function Build(): React.JSX.Element {
     const tabContainer = document.getElementById('tab-container');
     if (tabContainer) {
       tabContainer.addEventListener('scroll', updateScrollButtons);
-      return () => tabContainer.removeEventListener('scroll', updateScrollButtons);
+      return () =>
+        tabContainer.removeEventListener('scroll', updateScrollButtons);
     }
   }, [editorTabs, updateScrollButtons]);
 
@@ -1002,11 +1082,16 @@ export function Build(): React.JSX.Element {
             JSON.parse(tab.content);
 
             // Save to file system
-            const result = await window.api.writeFile(tab.schema.path, tab.content);
+            const result = await window.api.writeFile(
+              tab.schema.path,
+              tab.content,
+            );
 
             if (result.success) {
               setEditorTabs((prev) =>
-                prev.map((t) => (t.id === tab.id ? { ...t, isDirty: false } : t)),
+                prev.map((t) =>
+                  t.id === tab.id ? { ...t, isDirty: false } : t,
+                ),
               );
 
               logger.info('Tab saved successfully', {
@@ -1022,15 +1107,24 @@ export function Build(): React.JSX.Element {
                 error: result.error,
               });
 
-              return { success: false, tabName: tab.schema.name, error: result.error };
+              return {
+                success: false,
+                tabName: tab.schema.name,
+                error: result.error,
+              };
             }
           } catch (parseError) {
             logger.error('Tab save failed - invalid JSON', {
               schemaName: tab.schema.name,
-              error: parseError instanceof Error ? parseError.message : parseError,
+              error:
+                parseError instanceof Error ? parseError.message : parseError,
             });
 
-            return { success: false, tabName: tab.schema.name, error: 'Invalid JSON' };
+            return {
+              success: false,
+              tabName: tab.schema.name,
+              error: 'Invalid JSON',
+            };
           }
         });
 
@@ -1046,7 +1140,9 @@ export function Build(): React.JSX.Element {
 
         if (failed.length > 0) {
           toast.error(`Failed to save ${failed.length} file(s)`, {
-            description: failed.map((r) => `${r.tabName}: ${r.error}`).join(', '),
+            description: failed
+              .map((r) => `${r.tabName}: ${r.error}`)
+              .join(', '),
           });
         }
 
@@ -1091,7 +1187,9 @@ export function Build(): React.JSX.Element {
   const handleContextMenuCopyPath = useCallback(
     async (item: TreeItem) => {
       try {
-        const fullPath = currentProject?.path ? `${currentProject.path}/${item.path}` : item.path;
+        const fullPath = currentProject?.path
+          ? `${currentProject.path}/${item.path}`
+          : item.path;
         await navigator.clipboard.writeText(fullPath);
         toast.success('Path copied to clipboard', {
           description: fullPath,
@@ -1125,7 +1223,9 @@ export function Build(): React.JSX.Element {
         const newSchema: Schema = {
           id: schemaId,
           projectId: currentProject.id,
-          name: relativePath.split('/').pop()?.replace('.schema.json', '') || 'New Schema',
+          name:
+            relativePath.split('/').pop()?.replace('.schema.json', '') ||
+            'New Schema',
           path: filePath,
           content: JSON.parse(content),
           metadata: {
@@ -1144,14 +1244,14 @@ export function Build(): React.JSX.Element {
         useAppStore.setState((state) => ({
           currentProject: state.currentProject
             ? {
-              ...state.currentProject,
-              schemas: [...state.currentProject.schemas, newSchema],
-              schemaIds: [...state.currentProject.schemaIds, schemaId],
-              status: {
-                ...state.currentProject.status,
-                totalSchemas: state.currentProject.status.totalSchemas + 1,
-              },
-            }
+                ...state.currentProject,
+                schemas: [...state.currentProject.schemas, newSchema],
+                schemaIds: [...state.currentProject.schemaIds, schemaId],
+                status: {
+                  ...state.currentProject.status,
+                  totalSchemas: state.currentProject.status.totalSchemas + 1,
+                },
+              }
             : null,
         }));
 
@@ -1159,7 +1259,10 @@ export function Build(): React.JSX.Element {
         setTreeItems((prevItems) => {
           const updateItems = (items: TreeItem[]): TreeItem[] => {
             return items.map((item) => {
-              if (item.type === 'folder' && relativePath.startsWith(item.path)) {
+              if (
+                item.type === 'folder' &&
+                relativePath.startsWith(item.path)
+              ) {
                 const newItem: TreeItem = {
                   id: schemaId,
                   name: newSchema.name,
@@ -1190,7 +1293,10 @@ export function Build(): React.JSX.Element {
           return updateItems(prevItems);
         });
       } catch (error) {
-        logger.error('Failed to update app store for new schema', { error, filePath });
+        logger.error('Failed to update app store for new schema', {
+          error,
+          filePath,
+        });
         throw error;
       }
     },
@@ -1204,26 +1310,34 @@ export function Build(): React.JSX.Element {
       const relativePath = filePath.replace(currentProject.path + '/', '');
 
       // Find the schema to delete
-      const schemaToDelete = currentProject.schemas.find((s) => s.path === filePath);
+      const schemaToDelete = currentProject.schemas.find(
+        (s) => s.path === filePath,
+      );
       if (!schemaToDelete) return;
 
       // Remove from app store
       useAppStore.setState((state) => ({
         currentProject: state.currentProject
           ? {
-            ...state.currentProject,
-            schemas: state.currentProject.schemas.filter((s) => s.id !== schemaToDelete.id),
-            schemaIds: state.currentProject.schemaIds.filter((id) => id !== schemaToDelete.id),
-            status: {
-              ...state.currentProject.status,
-              totalSchemas: state.currentProject.status.totalSchemas - 1,
-            },
-          }
+              ...state.currentProject,
+              schemas: state.currentProject.schemas.filter(
+                (s) => s.id !== schemaToDelete.id,
+              ),
+              schemaIds: state.currentProject.schemaIds.filter(
+                (id) => id !== schemaToDelete.id,
+              ),
+              status: {
+                ...state.currentProject.status,
+                totalSchemas: state.currentProject.status.totalSchemas - 1,
+              },
+            }
           : null,
       }));
 
       // Close any editor tabs for this schema
-      setEditorTabs((prev) => prev.filter((tab) => tab.schema.id !== schemaToDelete.id));
+      setEditorTabs((prev) =>
+        prev.filter((tab) => tab.schema.id !== schemaToDelete.id),
+      );
       if (activeTabId === schemaToDelete.id) {
         setActiveTabId(editorTabs[0]?.id || null);
       }
@@ -1240,7 +1354,9 @@ export function Build(): React.JSX.Element {
               if (item.children.length > 0) {
                 return {
                   ...item,
-                  children: updateItems(item.children).filter(Boolean) as TreeItem[],
+                  children: updateItems(item.children).filter(
+                    Boolean,
+                  ) as TreeItem[],
                 };
               }
 
@@ -1263,7 +1379,9 @@ export function Build(): React.JSX.Element {
       const newRelativePath = newPath.replace(currentProject.path + '/', '');
 
       // Find the schema to rename
-      const schemaToRename = currentProject.schemas.find((s) => s.path === oldPath);
+      const schemaToRename = currentProject.schemas.find(
+        (s) => s.path === oldPath,
+      );
       if (!schemaToRename) return;
 
       // Update schema in app store
@@ -1271,24 +1389,28 @@ export function Build(): React.JSX.Element {
         ...schemaToRename,
         path: newPath,
         relativePath: newRelativePath,
-        name: newRelativePath.split('/').pop()?.replace('.schema.json', '') || schemaToRename.name,
+        name:
+          newRelativePath.split('/').pop()?.replace('.schema.json', '') ||
+          schemaToRename.name,
       };
 
       useAppStore.setState((state) => ({
         currentProject: state.currentProject
           ? {
-            ...state.currentProject,
-            schemas: state.currentProject.schemas.map((s) =>
-              s.id === schemaToRename.id ? updatedSchema : s,
-            ),
-          }
+              ...state.currentProject,
+              schemas: state.currentProject.schemas.map((s) =>
+                s.id === schemaToRename.id ? updatedSchema : s,
+              ),
+            }
           : null,
       }));
 
       // Update editor tabs if this schema is open
       setEditorTabs((prev) =>
         prev.map((tab) =>
-          tab.schema.id === schemaToRename.id ? { ...tab, schema: updatedSchema } : tab,
+          tab.schema.id === schemaToRename.id
+            ? { ...tab, schema: updatedSchema }
+            : tab,
         ),
       );
 
@@ -1403,7 +1525,10 @@ export function Build(): React.JSX.Element {
       setTreeItems((prevItems) => {
         const updateItems = (items: TreeItem[]): TreeItem[] => {
           return items.map((item) => {
-            if (item.type === 'folder' && contextMenuItem.path.startsWith(item.path)) {
+            if (
+              item.type === 'folder' &&
+              contextMenuItem.path.startsWith(item.path)
+            ) {
               const newFolder: TreeItem = {
                 id: `folder-${Date.now()}`,
                 name: newFolderName.trim(),
@@ -1505,7 +1630,10 @@ export function Build(): React.JSX.Element {
     const schemaFileName = `${templateSchemaName.trim()}.schema.json`;
     const fullPath = `${currentProject.path}/${schemaFileName}`;
 
-    const result = await (window as any).api.createSchema(fullPath, selectedTemplate);
+    const result = await (window as any).api.createSchema(
+      fullPath,
+      selectedTemplate,
+    );
 
     if (result.success) {
       setIsCreateTemplateDialogOpen(false);
@@ -1518,7 +1646,10 @@ export function Build(): React.JSX.Element {
   });
 
   // Template preview function
-  const getTemplatePreview = (schemaName: string, templateType: string): string => {
+  const getTemplatePreview = (
+    schemaName: string,
+    templateType: string,
+  ): string => {
     const templates = {
       'simple-object': {
         $schema: 'https://json-schema.org/draft/2020-12/schema',
@@ -1554,7 +1685,10 @@ export function Build(): React.JSX.Element {
           externalId: { type: 'string' },
           dateCreated: { type: 'string', format: 'date-time' },
           dateUpdated: { type: 'string', format: 'date-time' },
-          status: { type: 'string', enum: ['ACTIVE', 'INACTIVE', 'PENDING', 'ARCHIVED'] },
+          status: {
+            type: 'string',
+            enum: ['ACTIVE', 'INACTIVE', 'PENDING', 'ARCHIVED'],
+          },
         },
         additionalProperties: false,
       },
@@ -1603,7 +1737,8 @@ export function Build(): React.JSX.Element {
 
   // Render tree item
   const renderTreeItem = (item: TreeItem, depth = 0) => {
-    const Icon = item.type === 'folder' ? (item.expanded ? FolderOpen : Folder) : FileText;
+    const Icon =
+      item.type === 'folder' ? (item.expanded ? FolderOpen : Folder) : FileText;
     const hasChildren = item.children.length > 0;
     const indentStyle = { paddingLeft: `${depth * 16 + 8}px` };
 
@@ -1645,7 +1780,11 @@ export function Build(): React.JSX.Element {
               <span className="text-sm truncate">{item.name}</span>
               {item.schema && (
                 <Badge
-                  variant={item.schema.validationStatus === 'valid' ? 'default' : 'destructive'}
+                  variant={
+                    item.schema.validationStatus === 'valid'
+                      ? 'default'
+                      : 'destructive'
+                  }
                   className="ml-auto h-4 text-xs"
                 >
                   {item.schema.validationStatus}
@@ -1662,11 +1801,15 @@ export function Build(): React.JSX.Element {
             )}
             {item.type === 'folder' && (
               <>
-                <ContextMenuItem onClick={() => handleContextMenuCreateSchema(item)}>
+                <ContextMenuItem
+                  onClick={() => handleContextMenuCreateSchema(item)}
+                >
                   <FilePlus className="w-4 h-4 mr-2" />
                   New Schema
                 </ContextMenuItem>
-                <ContextMenuItem onClick={() => handleContextMenuCreateFolder(item)}>
+                <ContextMenuItem
+                  onClick={() => handleContextMenuCreateFolder(item)}
+                >
                   <FolderPlus className="w-4 h-4 mr-2" />
                   New Folder
                 </ContextMenuItem>
@@ -1697,7 +1840,8 @@ export function Build(): React.JSX.Element {
             </ContextMenuItem>
           </ContextMenuContent>
         </ContextMenu>
-        {item.expanded && item.children.map((child) => renderTreeItem(child, depth + 1))}
+        {item.expanded &&
+          item.children.map((child) => renderTreeItem(child, depth + 1))}
       </div>
     );
   };
@@ -1732,7 +1876,8 @@ export function Build(): React.JSX.Element {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-medium text-foreground">
-              {currentProject.name} ({currentProject.schemas?.length || 0} schemas)
+              {currentProject.name} ({currentProject.schemas?.length || 0}{' '}
+              schemas)
             </h3>
           </div>
           <div className="flex items-center gap-2">
@@ -1759,9 +1904,14 @@ export function Build(): React.JSX.Element {
               {showPreview ? 'Hide Preview' : 'Show Preview'}
             </Button>
             {batchValidationResults && (
-              <Button variant="outline" size="sm" onClick={() => setBatchValidationResults(null)}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setBatchValidationResults(null)}
+              >
                 <BarChart3 className="w-4 h-4 mr-2" />
-                Results ({batchValidationResults.valid}/{batchValidationResults.total})
+                Results ({batchValidationResults.valid}/
+                {batchValidationResults.total})
               </Button>
             )}
             <Badge variant="outline" className="text-xs">
@@ -1800,7 +1950,9 @@ export function Build(): React.JSX.Element {
                       <div className="text-center">
                         <FileText className="w-8 h-8 mx-auto text-muted-foreground opacity-50 mb-2" />
                         <p className="text-sm text-muted-foreground">
-                          {searchQuery ? 'No schemas match your search' : 'No schemas found'}
+                          {searchQuery
+                            ? 'No schemas match your search'
+                            : 'No schemas found'}
                         </p>
                       </div>
                     </div>
@@ -1871,7 +2023,9 @@ export function Build(): React.JSX.Element {
                                 className="relative flex items-center gap-2 px-4 py-3 data-[state=active]:bg-accent/50 whitespace-nowrap shrink-0"
                               >
                                 <FileText className="w-4 h-4" />
-                                <span className="text-sm">{tab.schema.name}</span>
+                                <span className="text-sm">
+                                  {tab.schema.name}
+                                </span>
                                 {tab.isDirty && (
                                   <div className="w-2 h-2 bg-orange-500 rounded-full" />
                                 )}
@@ -1893,18 +2047,26 @@ export function Build(): React.JSX.Element {
                         </div>
                       </ContextMenuTrigger>
                       <ContextMenuContent className="w-56">
-                        <ContextMenuItem onClick={() => activeTabId && handleSaveTab(activeTabId)}>
+                        <ContextMenuItem
+                          onClick={() =>
+                            activeTabId && handleSaveTab(activeTabId)
+                          }
+                        >
                           <Save className="w-4 h-4 mr-2" />
                           Save Tab
                         </ContextMenuItem>
                         <ContextMenuItem
-                          onClick={() => activeTabId && handleFormatTab(activeTabId)}
+                          onClick={() =>
+                            activeTabId && handleFormatTab(activeTabId)
+                          }
                         >
                           <Code className="w-4 h-4 mr-2" />
                           Format Tab
                         </ContextMenuItem>
                         <ContextMenuSeparator />
-                        <ContextMenuItem onClick={() => activeTabId && closeTab(activeTabId)}>
+                        <ContextMenuItem
+                          onClick={() => activeTabId && closeTab(activeTabId)}
+                        >
                           <X className="w-4 h-4 mr-2" />
                           Close Tab
                         </ContextMenuItem>
@@ -1915,33 +2077,47 @@ export function Build(): React.JSX.Element {
                         </ContextMenuItem>
                         <ContextMenuSeparator />
                         <ContextMenuItem
-                          onClick={() => activeTabId && closeTabsToLeft(activeTabId)}
+                          onClick={() =>
+                            activeTabId && closeTabsToLeft(activeTabId)
+                          }
                           disabled={
-                            !activeTabId || editorTabs.findIndex((t) => t.id === activeTabId) === 0
+                            !activeTabId ||
+                            editorTabs.findIndex(
+                              (t) => t.id === activeTabId,
+                            ) === 0
                           }
                         >
                           <ArrowLeft className="w-4 h-4 mr-2" />
                           Close Tabs to Left
                         </ContextMenuItem>
                         <ContextMenuItem
-                          onClick={() => activeTabId && closeTabsToRight(activeTabId)}
+                          onClick={() =>
+                            activeTabId && closeTabsToRight(activeTabId)
+                          }
                           disabled={
                             !activeTabId ||
-                            editorTabs.findIndex((t) => t.id === activeTabId) ===
-                            editorTabs.length - 1
+                            editorTabs.findIndex(
+                              (t) => t.id === activeTabId,
+                            ) ===
+                              editorTabs.length - 1
                           }
                         >
                           <ArrowRight className="w-4 h-4 mr-2" />
                           Close Tabs to Right
                         </ContextMenuItem>
                         <ContextMenuItem
-                          onClick={() => activeTabId && closeOtherTabs(activeTabId)}
+                          onClick={() =>
+                            activeTabId && closeOtherTabs(activeTabId)
+                          }
                           disabled={!activeTabId || editorTabs.length <= 1}
                         >
                           <Minus className="w-4 h-4 mr-2" />
                           Close Other Tabs
                         </ContextMenuItem>
-                        <ContextMenuItem onClick={handleSaveAll} disabled={isSaving}>
+                        <ContextMenuItem
+                          onClick={handleSaveAll}
+                          disabled={isSaving}
+                        >
                           <Save className="w-4 h-4 mr-2" />
                           Save All Tabs
                         </ContextMenuItem>
@@ -1965,18 +2141,30 @@ export function Build(): React.JSX.Element {
 
               {/* Tab Content */}
               {editorTabs.map((tab) => (
-                <TabsContent key={tab.id} value={tab.id} className="mt-0 flex-1 min-h-0">
+                <TabsContent
+                  key={tab.id}
+                  value={tab.id}
+                  className="mt-0 flex-1 min-h-0"
+                >
                   <div className="h-full flex flex-col">
-                    <div className={`flex-1 ${showPreview ? 'grid grid-cols-2 gap-4' : ''}`}>
+                    <div
+                      className={`flex-1 ${showPreview ? 'grid grid-cols-2 gap-4' : ''}`}
+                    >
                       {/* Monaco Editor */}
                       <div className="flex flex-col h-full">
                         <SchemaEditor
                           schema={tab.schema}
                           content={tab.content}
                           isDirty={tab.isDirty}
-                          onContentChange={(content) => handleTabContentChange(tab.id, content)}
-                          onDirtyChange={(isDirty) => handleTabDirtyChange(tab.id, isDirty)}
-                          onValidationChange={(errors) => handleTabValidationChange(tab.id, errors)}
+                          onContentChange={(content) =>
+                            handleTabContentChange(tab.id, content)
+                          }
+                          onDirtyChange={(isDirty) =>
+                            handleTabDirtyChange(tab.id, isDirty)
+                          }
+                          onValidationChange={(errors) =>
+                            handleTabValidationChange(tab.id, errors)
+                          }
                           errors={tabValidationErrors[tab.id] || []}
                           availableSchemas={
                             currentProject?.schemas?.map((schema) => ({
@@ -2038,12 +2226,17 @@ export function Build(): React.JSX.Element {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{confirmationDialog.title}</DialogTitle>
-              <DialogDescription>{confirmationDialog.message}</DialogDescription>
+              <DialogDescription>
+                {confirmationDialog.message}
+              </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button
                 variant="outline"
-                onClick={confirmationDialog.cancelAction || (() => setConfirmationDialog(null))}
+                onClick={
+                  confirmationDialog.cancelAction ||
+                  (() => setConfirmationDialog(null))
+                }
               >
                 Close
               </Button>
@@ -2060,7 +2253,9 @@ export function Build(): React.JSX.Element {
             <DialogTitle>
               Rename {contextMenuItem?.type === 'folder' ? 'Folder' : 'Schema'}
             </DialogTitle>
-            <DialogDescription>Enter a new name for "{contextMenuItem?.name}"</DialogDescription>
+            <DialogDescription>
+              Enter a new name for "{contextMenuItem?.name}"
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Input
@@ -2071,10 +2266,16 @@ export function Build(): React.JSX.Element {
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsRenameDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsRenameDialogOpen(false)}
+            >
               Cancel
             </Button>
-            <Button onClick={handleRenameConfirm} disabled={!renameValue.trim()}>
+            <Button
+              onClick={handleRenameConfirm}
+              disabled={!renameValue.trim()}
+            >
               Rename
             </Button>
           </DialogFooter>
@@ -2089,12 +2290,15 @@ export function Build(): React.JSX.Element {
               Delete {contextMenuItem?.type === 'folder' ? 'Folder' : 'Schema'}
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{contextMenuItem?.name}"? This action cannot be
-              undone.
+              Are you sure you want to delete "{contextMenuItem?.name}"? This
+              action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
               Cancel
             </Button>
             <Button variant="destructive" onClick={handleDeleteConfirm}>
@@ -2105,13 +2309,16 @@ export function Build(): React.JSX.Element {
       </Dialog>
 
       {/* Create Schema Dialog */}
-      <Dialog open={isCreateSchemaDialogOpen} onOpenChange={setIsCreateSchemaDialogOpen}>
+      <Dialog
+        open={isCreateSchemaDialogOpen}
+        onOpenChange={setIsCreateSchemaDialogOpen}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create New Schema</DialogTitle>
             <DialogDescription>
-              Create a new schema in "{contextMenuItem?.name}". The .schema.json extension will be
-              added automatically.
+              Create a new schema in "{contextMenuItem?.name}". The .schema.json
+              extension will be added automatically.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -2129,10 +2336,16 @@ export function Build(): React.JSX.Element {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateSchemaDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsCreateSchemaDialogOpen(false)}
+            >
               Cancel
             </Button>
-            <Button onClick={handleCreateSchemaConfirm} disabled={!newSchemaName.trim()}>
+            <Button
+              onClick={handleCreateSchemaConfirm}
+              disabled={!newSchemaName.trim()}
+            >
               Create Schema
             </Button>
           </DialogFooter>
@@ -2140,11 +2353,16 @@ export function Build(): React.JSX.Element {
       </Dialog>
 
       {/* Create Folder Dialog */}
-      <Dialog open={isCreateFolderDialogOpen} onOpenChange={setIsCreateFolderDialogOpen}>
+      <Dialog
+        open={isCreateFolderDialogOpen}
+        onOpenChange={setIsCreateFolderDialogOpen}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create New Folder</DialogTitle>
-            <DialogDescription>Create a new folder in "{contextMenuItem?.name}"</DialogDescription>
+            <DialogDescription>
+              Create a new folder in "{contextMenuItem?.name}"
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Input
@@ -2155,10 +2373,16 @@ export function Build(): React.JSX.Element {
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateFolderDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsCreateFolderDialogOpen(false)}
+            >
               Cancel
             </Button>
-            <Button onClick={handleCreateFolderConfirm} disabled={!newFolderName.trim()}>
+            <Button
+              onClick={handleCreateFolderConfirm}
+              disabled={!newFolderName.trim()}
+            >
               Create Folder
             </Button>
           </DialogFooter>
@@ -2166,13 +2390,16 @@ export function Build(): React.JSX.Element {
       </Dialog>
 
       {/* Create Root Schema Dialog */}
-      <Dialog open={isCreateRootSchemaDialogOpen} onOpenChange={setIsCreateRootSchemaDialogOpen}>
+      <Dialog
+        open={isCreateRootSchemaDialogOpen}
+        onOpenChange={setIsCreateRootSchemaDialogOpen}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create New Schema</DialogTitle>
             <DialogDescription>
-              Create a new schema in the root directory. The .schema.json extension will be added
-              automatically.
+              Create a new schema in the root directory. The .schema.json
+              extension will be added automatically.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -2190,10 +2417,16 @@ export function Build(): React.JSX.Element {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateRootSchemaDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsCreateRootSchemaDialogOpen(false)}
+            >
               Cancel
             </Button>
-            <Button onClick={handleCreateRootSchemaConfirm} disabled={!rootSchemaName.trim()}>
+            <Button
+              onClick={handleCreateRootSchemaConfirm}
+              disabled={!rootSchemaName.trim()}
+            >
               Create Schema
             </Button>
           </DialogFooter>
@@ -2201,11 +2434,16 @@ export function Build(): React.JSX.Element {
       </Dialog>
 
       {/* Create Root Folder Dialog */}
-      <Dialog open={isCreateRootFolderDialogOpen} onOpenChange={setIsCreateRootFolderDialogOpen}>
+      <Dialog
+        open={isCreateRootFolderDialogOpen}
+        onOpenChange={setIsCreateRootFolderDialogOpen}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create New Folder</DialogTitle>
-            <DialogDescription>Create a new folder in the root directory</DialogDescription>
+            <DialogDescription>
+              Create a new folder in the root directory
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Input
@@ -2216,10 +2454,16 @@ export function Build(): React.JSX.Element {
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateRootFolderDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsCreateRootFolderDialogOpen(false)}
+            >
               Cancel
             </Button>
-            <Button onClick={handleCreateRootFolderConfirm} disabled={!rootFolderName.trim()}>
+            <Button
+              onClick={handleCreateRootFolderConfirm}
+              disabled={!rootFolderName.trim()}
+            >
               Create Folder
             </Button>
           </DialogFooter>
@@ -2227,16 +2471,23 @@ export function Build(): React.JSX.Element {
       </Dialog>
 
       {/* Create Template Schema Dialog */}
-      <Dialog open={isCreateTemplateDialogOpen} onOpenChange={setIsCreateTemplateDialogOpen}>
+      <Dialog
+        open={isCreateTemplateDialogOpen}
+        onOpenChange={setIsCreateTemplateDialogOpen}
+      >
         <DialogContent size="lg" className="max-h-[95vh] w-[900px]">
           <DialogHeader>
             <DialogTitle>Create Schema from Template</DialogTitle>
-            <DialogDescription>Create a new schema using a predefined template</DialogDescription>
+            <DialogDescription>
+              Create a new schema using a predefined template
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">Schema Name</label>
+                <label className="text-sm font-medium mb-2 block">
+                  Schema Name
+                </label>
                 <div className="relative">
                   <Input
                     value={templateSchemaName}
@@ -2251,15 +2502,22 @@ export function Build(): React.JSX.Element {
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium mb-2 block">Template Type</label>
-                <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                <label className="text-sm font-medium mb-2 block">
+                  Template Type
+                </label>
+                <Select
+                  value={selectedTemplate}
+                  onValueChange={setSelectedTemplate}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="simple-object">Simple Object</SelectItem>
                     <SelectItem value="simple-array">Simple Array</SelectItem>
-                    <SelectItem value="complex-object">Complex Object</SelectItem>
+                    <SelectItem value="complex-object">
+                      Complex Object
+                    </SelectItem>
                     <SelectItem value="complex-array">Complex Array</SelectItem>
                     <SelectItem value="enum">Enum</SelectItem>
                     <SelectItem value="basic">Basic (Empty)</SelectItem>
@@ -2269,18 +2527,26 @@ export function Build(): React.JSX.Element {
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-2 block">Template Preview</label>
+              <label className="text-sm font-medium mb-2 block">
+                Template Preview
+              </label>
               <div className="border rounded-md p-4 bg-muted/50 max-h-80 overflow-auto">
                 <pre className="text-xs">
                   {templateSchemaName.trim()
-                    ? getTemplatePreview(templateSchemaName.trim(), selectedTemplate)
+                    ? getTemplatePreview(
+                        templateSchemaName.trim(),
+                        selectedTemplate,
+                      )
                     : 'Enter a schema name to see preview'}
                 </pre>
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateTemplateDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsCreateTemplateDialogOpen(false)}
+            >
               Cancel
             </Button>
             <Button

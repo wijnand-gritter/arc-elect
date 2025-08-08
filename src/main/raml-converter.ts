@@ -250,7 +250,9 @@ export class SimpleRamlParser {
   toPascalCase(str: string) {
     return (
       str.charAt(0).toUpperCase() +
-      str.slice(1).replace(/[_-]([a-z])/g, (match, letter) => letter.toUpperCase())
+      str
+        .slice(1)
+        .replace(/[_-]([a-z])/g, (match, letter) => letter.toUpperCase())
     );
   }
 
@@ -280,7 +282,9 @@ export class SimpleRamlParser {
       } else if (propDef.type === 'array' && propDef.items) {
         schema.properties[propName] = {
           type: 'array',
-          items: propDef.items.$ref ? { $ref: propDef.items.$ref } : { type: propDef.items.type },
+          items: propDef.items.$ref
+            ? { $ref: propDef.items.$ref }
+            : { type: propDef.items.type },
         };
       } else if (propDef.type === 'any' || propDef.originalType === 'any') {
         schema.properties[propName] = {
@@ -318,7 +322,10 @@ export class SimpleRamlParser {
   }
 }
 
-export async function convertRamlToJsonSchemas(ramlDir: string, outputDir: string) {
+export async function convertRamlToJsonSchemas(
+  ramlDir: string,
+  outputDir: string,
+) {
   const parser = new SimpleRamlParser();
   const enumTypes = new Map<string, any>();
   const payloadTypes = new Map<string, any>();
@@ -326,7 +333,10 @@ export async function convertRamlToJsonSchemas(ramlDir: string, outputDir: strin
   const OUTPUT_BUSINESS_OBJECTS = path.join(SCHEMAS_ROOT, 'business-objects');
   const OUTPUT_COMMON = path.join(SCHEMAS_ROOT, 'common');
   const OUTPUT_ENUMS = path.join(OUTPUT_COMMON, 'enums');
-  const DATAMODEL_OBJECTS_FILE = path.join(SCHEMAS_ROOT, 'datamodelObjects.schema.json');
+  const DATAMODEL_OBJECTS_FILE = path.join(
+    SCHEMAS_ROOT,
+    'datamodelObjects.schema.json',
+  );
   const MESSAGE_SCHEMA_FILE = path.join(SCHEMAS_ROOT, 'message.schema.json');
   const METADATA_SCHEMA_FILE = path.join(SCHEMAS_ROOT, 'metadata.schema.json');
 
@@ -389,12 +399,16 @@ export async function convertRamlToJsonSchemas(ramlDir: string, outputDir: strin
 
   // Find all RAML files
   const files = await fs.readdir(ramlDir);
-  const ramlFiles = files.filter((f: string) => f.endsWith('.raml') && f !== 'cdm.raml');
+  const ramlFiles = files.filter(
+    (f: string) => f.endsWith('.raml') && f !== 'cdm.raml',
+  );
   // Also process enum files
   const enumDir = path.join(ramlDir, 'enums');
   let enumRamlFiles: string[] = [];
   if (await fsExtra.pathExists(enumDir)) {
-    enumRamlFiles = (await fs.readdir(enumDir)).filter((f: string) => f.endsWith('.raml'));
+    enumRamlFiles = (await fs.readdir(enumDir)).filter((f: string) =>
+      f.endsWith('.raml'),
+    );
   }
   const allFiles = [...ramlFiles, ...enumRamlFiles.map((f) => `enums/${f}`)];
   for (const file of allFiles) {
@@ -417,7 +431,10 @@ export async function convertRamlToJsonSchemas(ramlDir: string, outputDir: strin
   // Write enums
   for (const [name, schema] of enumTypes) {
     const filename = `${name}Enum.schema.json`;
-    await fs.writeFile(path.join(OUTPUT_ENUMS, filename), JSON.stringify(schema, null, 2));
+    await fs.writeFile(
+      path.join(OUTPUT_ENUMS, filename),
+      JSON.stringify(schema, null, 2),
+    );
   }
   // Write business objects (formerly payloads)
   for (const [name, schema] of payloadTypes) {
@@ -442,7 +459,10 @@ export async function convertRamlToJsonSchemas(ramlDir: string, outputDir: strin
       $ref: `./business-objects/${name}.schema.json`,
     };
   }
-  await fs.writeFile(DATAMODEL_OBJECTS_FILE, JSON.stringify(datamodelObjects, null, 2));
+  await fs.writeFile(
+    DATAMODEL_OBJECTS_FILE,
+    JSON.stringify(datamodelObjects, null, 2),
+  );
   return {
     enums: Array.from(enumTypes.keys()),
     payloads: Array.from(payloadTypes.keys()),
@@ -531,7 +551,11 @@ export class RamlConverter {
         }
       }
 
-      await fs.writeFile(outputPath, JSON.stringify(outputSchema, null, 2), 'utf-8');
+      await fs.writeFile(
+        outputPath,
+        JSON.stringify(outputSchema, null, 2),
+        'utf-8',
+      );
 
       logger.info('RamlConverter: File conversion completed successfully', {
         sourcePath,
@@ -555,7 +579,8 @@ export class RamlConverter {
         success: false,
         inputFile: sourcePath,
         outputFile: destinationPath,
-        error: error instanceof Error ? error.message : 'Unknown conversion error',
+        error:
+          error instanceof Error ? error.message : 'Unknown conversion error',
       };
     }
   }
@@ -624,7 +649,11 @@ export class RamlConverter {
           phase: 'converting',
         });
 
-        const result = await this.convertFile(filePath, destinationDirectory, options);
+        const result = await this.convertFile(
+          filePath,
+          destinationDirectory,
+          options,
+        );
         results.push(result);
 
         if (result.success) {
@@ -677,10 +706,14 @@ export class RamlConverter {
       case 'kebab-case':
         return name.toLowerCase().replace(/[_\s]+/g, '-');
       case 'camelCase':
-        return name.replace(/[-_\s]+(.)?/g, (_, char) => (char ? char.toUpperCase() : ''));
+        return name.replace(/[-_\s]+(.)?/g, (_, char) =>
+          char ? char.toUpperCase() : '',
+        );
       case 'PascalCase':
         return name
-          .replace(/[-_\s]+(.)?/g, (_, char) => (char ? char.toUpperCase() : ''))
+          .replace(/[-_\s]+(.)?/g, (_, char) =>
+            char ? char.toUpperCase() : '',
+          )
           .replace(/^./, (char) => char.toUpperCase());
       case 'snake_case':
         return name.toLowerCase().replace(/[-\s]+/g, '_');

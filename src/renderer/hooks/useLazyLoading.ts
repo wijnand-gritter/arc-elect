@@ -58,7 +58,11 @@ interface LazyLoadingResult<T> {
   /** Function to reset to initial state */
   reset: () => void;
   /** Function to trigger load when scrolling */
-  onScroll: (scrollTop: number, containerHeight: number, totalHeight: number) => void;
+  onScroll: (
+    scrollTop: number,
+    containerHeight: number,
+    totalHeight: number,
+  ) => void;
 }
 
 /**
@@ -168,7 +172,9 @@ export function useLazyLoading<T>(
 
       setLoadedCount(newCount);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load more items');
+      setError(
+        err instanceof Error ? err.message : 'Failed to load more items',
+      );
     } finally {
       setIsLoading(false);
       loadingRef.current = false;
@@ -306,7 +312,11 @@ export function useInfiniteScroll<T>(
         const entry = entries[0];
         setIsIntersecting(entry.isIntersecting);
 
-        if (entry.isIntersecting && lazyResult.hasMore && !lazyResult.isLoading) {
+        if (
+          entry.isIntersecting &&
+          lazyResult.hasMore &&
+          !lazyResult.isLoading
+        ) {
           lazyResult.loadMore();
         }
       },
@@ -322,7 +332,13 @@ export function useInfiniteScroll<T>(
       observer.unobserve(sentinel);
       observer.disconnect();
     };
-  }, [rootMargin, threshold, lazyResult.hasMore, lazyResult.isLoading, lazyResult.loadMore]);
+  }, [
+    rootMargin,
+    threshold,
+    lazyResult.hasMore,
+    lazyResult.isLoading,
+    lazyResult.loadMore,
+  ]);
 
   return {
     ...lazyResult,

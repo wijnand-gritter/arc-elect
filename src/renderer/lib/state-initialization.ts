@@ -124,7 +124,9 @@ export function validateSchemaFiltersState(filters: unknown): SchemaFilters {
     return filters;
   }
 
-  logger.warn('Invalid schema filters state detected, using default', { filters });
+  logger.warn('Invalid schema filters state detected, using default', {
+    filters,
+  });
   return DEFAULT_SCHEMA_FILTERS;
 }
 
@@ -144,11 +146,16 @@ export function validateSearchQueryState(query: unknown): string {
  * Validates and sanitizes search history state.
  */
 export function validateSearchHistoryState(history: unknown): string[] {
-  if (Array.isArray(history) && history.every((item) => typeof item === 'string')) {
+  if (
+    Array.isArray(history) &&
+    history.every((item) => typeof item === 'string')
+  ) {
     return history;
   }
 
-  logger.warn('Invalid search history state detected, using default', { history });
+  logger.warn('Invalid search history state detected, using default', {
+    history,
+  });
   return DEFAULT_SEARCH_HISTORY;
 }
 
@@ -172,7 +179,9 @@ export function validateSavedSearchesState(searches: unknown): SavedSearch[] {
     }
   }
 
-  logger.warn('Invalid saved searches state detected, using default', { searches });
+  logger.warn('Invalid saved searches state detected, using default', {
+    searches,
+  });
   return DEFAULT_SAVED_SEARCHES;
 }
 
@@ -184,7 +193,9 @@ export function validateModalStackState(stack: unknown): SchemaDetailModal[] {
     // Basic validation - in a real app, you'd use a proper type guard
     const validModals = stack.filter(
       (modal) =>
-        typeof modal === 'object' && modal !== null && typeof (modal as any).id === 'string',
+        typeof modal === 'object' &&
+        modal !== null &&
+        typeof (modal as any).id === 'string',
     );
 
     if (validModals.length === stack.length) {
@@ -204,7 +215,9 @@ export function validateCurrentModalIndexState(index: unknown): number {
     return index;
   }
 
-  logger.warn('Invalid current modal index state detected, using default', { index });
+  logger.warn('Invalid current modal index state detected, using default', {
+    index,
+  });
   return DEFAULT_CURRENT_MODAL_INDEX;
 }
 
@@ -216,7 +229,9 @@ export function validateSelectedSchemaIdState(id: unknown): string | null {
     return id;
   }
 
-  logger.warn('Invalid selected schema ID state detected, using default', { id });
+  logger.warn('Invalid selected schema ID state detected, using default', {
+    id,
+  });
   return DEFAULT_SELECTED_SCHEMA_ID;
 }
 
@@ -239,7 +254,9 @@ export function validateRecentProjectsState(projects: unknown): Project[] {
     }
   }
 
-  logger.warn('Invalid recent projects state detected, using default', { projects });
+  logger.warn('Invalid recent projects state detected, using default', {
+    projects,
+  });
   return DEFAULT_RECENT_PROJECTS;
 }
 
@@ -253,12 +270,17 @@ export function validateCurrentProjectState(project: unknown): Project | null {
 
   if (typeof project === 'object' && project !== null) {
     const projectObj = project as any;
-    if (typeof projectObj.id === 'string' && typeof projectObj.name === 'string') {
+    if (
+      typeof projectObj.id === 'string' &&
+      typeof projectObj.name === 'string'
+    ) {
       return project as Project;
     }
   }
 
-  logger.warn('Invalid current project state detected, using default', { project });
+  logger.warn('Invalid current project state detected, using default', {
+    project,
+  });
   return DEFAULT_CURRENT_PROJECT;
 }
 
@@ -270,7 +292,9 @@ export function validateIsLoadingProjectState(isLoading: unknown): boolean {
     return isLoading;
   }
 
-  logger.warn('Invalid project loading state detected, using default', { isLoading });
+  logger.warn('Invalid project loading state detected, using default', {
+    isLoading,
+  });
   return DEFAULT_IS_LOADING_PROJECT;
 }
 
@@ -371,7 +395,9 @@ export function validateAppState(state: unknown): AppState {
 
     // Modal navigation
     modalStack: validateModalStackState(stateObj.modalStack),
-    currentModalIndex: validateCurrentModalIndexState(stateObj.currentModalIndex),
+    currentModalIndex: validateCurrentModalIndexState(
+      stateObj.currentModalIndex,
+    ),
     selectedSchemaId: validateSelectedSchemaIdState(stateObj.selectedSchemaId),
 
     // Actions (these will be set by the store)
@@ -439,7 +465,14 @@ export function createStateValidator<T>(
 // ============================================================================
 
 type Theme = 'light' | 'dark' | 'system';
-type Page = 'home' | 'about' | 'settings' | 'project' | 'explore' | 'build' | 'analytics';
+type Page =
+  | 'home'
+  | 'about'
+  | 'settings'
+  | 'project'
+  | 'explore'
+  | 'build'
+  | 'analytics';
 
 interface SchemaFilters {
   status: string[];
@@ -460,7 +493,12 @@ interface SavedSearch {
 
 interface SchemaDetailModal {
   schema: Schema;
-  activeTab: 'overview' | 'content' | 'properties' | 'references' | 'validation';
+  activeTab:
+    | 'overview'
+    | 'content'
+    | 'properties'
+    | 'references'
+    | 'validation';
   id: string;
 }
 
@@ -531,8 +569,14 @@ interface AppState {
   loadSavedSearch: (searchId: string) => void;
   deleteSavedSearch: (searchId: string) => void;
   clearSearchHistory: () => void;
-  openSchemaModal: (schema: Schema, tab?: SchemaDetailModal['activeTab']) => void;
-  navigateToSchema: (schema: Schema, tab?: SchemaDetailModal['activeTab']) => void;
+  openSchemaModal: (
+    schema: Schema,
+    tab?: SchemaDetailModal['activeTab'],
+  ) => void;
+  navigateToSchema: (
+    schema: Schema,
+    tab?: SchemaDetailModal['activeTab'],
+  ) => void;
   goBack: () => void;
   closeAllModals: () => void;
   setActiveModalTab: (tab: SchemaDetailModal['activeTab']) => void;

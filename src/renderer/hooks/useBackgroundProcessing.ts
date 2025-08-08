@@ -151,7 +151,9 @@ export function useBackgroundProcessing(
     onIdle,
   } = options;
 
-  const [results, setResults] = useState<Map<string, TaskResult<any>>>(new Map());
+  const [results, setResults] = useState<Map<string, TaskResult<any>>>(
+    new Map(),
+  );
   const [queue, setQueue] = useState<BackgroundTask<any, any>[]>([]);
   const [running, setRunning] = useState<BackgroundTask<any, any>[]>([]);
   const [isPaused, setIsPaused] = useState(false);
@@ -171,7 +173,8 @@ export function useBackgroundProcessing(
   const overallProgress = useMemo(() => {
     if (metricsRef.current.totalTasks === 0) return 0;
 
-    const completed = metricsRef.current.completedTasks + metricsRef.current.failedTasks;
+    const completed =
+      metricsRef.current.completedTasks + metricsRef.current.failedTasks;
     return Math.round((completed / metricsRef.current.totalTasks) * 100);
   }, [results]);
 
@@ -179,8 +182,13 @@ export function useBackgroundProcessing(
    * Calculate performance metrics.
    */
   const metrics = useMemo(() => {
-    const { totalTasks, completedTasks, failedTasks, totalDuration, startTime } =
-      metricsRef.current;
+    const {
+      totalTasks,
+      completedTasks,
+      failedTasks,
+      totalDuration,
+      startTime,
+    } = metricsRef.current;
     const elapsed = (Date.now() - startTime) / 1000; // seconds
 
     return {
@@ -201,7 +209,9 @@ export function useBackgroundProcessing(
    * Execute a single task.
    */
   const executeTask = useCallback(
-    async <TInput, TOutput>(task: BackgroundTask<TInput, TOutput>): Promise<void> => {
+    async <TInput, TOutput>(
+      task: BackgroundTask<TInput, TOutput>,
+    ): Promise<void> => {
       const { id, input, processor, timeout = defaultTimeout } = task;
       const abortController = new AbortController();
       abortControllersRef.current.set(id, abortController);
@@ -254,7 +264,8 @@ export function useBackgroundProcessing(
         );
       } catch (error) {
         const duration = Date.now() - startTime;
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
 
         // Update metrics
         if (enableMonitoring) {
@@ -386,7 +397,13 @@ export function useBackgroundProcessing(
         }
       }
     },
-    [enableQueue, enableMonitoring, running.length, maxConcurrency, executeTask],
+    [
+      enableQueue,
+      enableMonitoring,
+      running.length,
+      maxConcurrency,
+      executeTask,
+    ],
   );
 
   /**

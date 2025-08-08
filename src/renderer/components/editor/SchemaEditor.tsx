@@ -18,7 +18,15 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { ScrollArea } from '../ui/scroll-area';
-import { Save, RotateCcw, Code, AlertTriangle, FileText, Zap, HelpCircle } from 'lucide-react';
+import {
+  Save,
+  RotateCcw,
+  Code,
+  AlertTriangle,
+  FileText,
+  Zap,
+  HelpCircle,
+} from 'lucide-react';
 import { MonacoEditor, ValidationError } from './MonacoEditor';
 import { EditorShortcutsModal } from './EditorShortcutsModal';
 
@@ -182,7 +190,8 @@ export function SchemaEditor({
           const validation = editorRef.current.validateJson();
           if (!validation.valid) {
             toast.error('Cannot save invalid JSON', {
-              description: validation.error || 'Please fix JSON syntax errors first',
+              description:
+                validation.error || 'Please fix JSON syntax errors first',
             });
             setIsSaving(false);
             return;
@@ -267,7 +276,10 @@ export function SchemaEditor({
       title: { type: 'string' },
       description: { type: 'string' },
       type: {
-        oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }],
+        oneOf: [
+          { type: 'string' },
+          { type: 'array', items: { type: 'string' } },
+        ],
       },
       properties: { type: 'object' },
       required: { type: 'array', items: { type: 'string' } },
@@ -317,8 +329,14 @@ export function SchemaEditor({
       <div className="flex items-center justify-between p-3 border-b border-border/50 bg-muted/20 flex-shrink-0">
         <div className="flex items-center gap-2">
           <FileText className="w-4 h-4 text-muted-foreground" />
-          <Badge variant="outline">{schema.metadata.title || schema.name}</Badge>
-          <Badge variant={schema.validationStatus === 'valid' ? 'default' : 'destructive'}>
+          <Badge variant="outline">
+            {schema.metadata.title || schema.name}
+          </Badge>
+          <Badge
+            variant={
+              schema.validationStatus === 'valid' ? 'default' : 'destructive'
+            }
+          >
             {schema.validationStatus}
           </Badge>
           {isDirty && (
@@ -374,7 +392,10 @@ export function SchemaEditor({
             size="sm"
             onClick={handleSave}
             disabled={
-              !isDirty || isSaving || globalIsSaving || errors.some((e) => e.severity === 'error')
+              !isDirty ||
+              isSaving ||
+              globalIsSaving ||
+              errors.some((e) => e.severity === 'error')
             }
           >
             {isSaving || globalIsSaving ? (
@@ -428,7 +449,9 @@ export function SchemaEditor({
               {errors.map((error, index) => (
                 <Alert
                   key={index}
-                  variant={error.severity === 'error' ? 'destructive' : 'default'}
+                  variant={
+                    error.severity === 'error' ? 'destructive' : 'default'
+                  }
                   className="cursor-pointer hover:bg-accent/50 transition-colors"
                   onClick={() => handleErrorClick(error)}
                 >
@@ -436,7 +459,9 @@ export function SchemaEditor({
                   <AlertTitle className="text-sm">
                     Line {error.line}, Column {error.column}
                   </AlertTitle>
-                  <AlertDescription className="text-sm">{error.message}</AlertDescription>
+                  <AlertDescription className="text-sm">
+                    {error.message}
+                  </AlertDescription>
                 </Alert>
               ))}
             </div>
@@ -445,7 +470,10 @@ export function SchemaEditor({
       )}
 
       {/* Shortcuts Modal */}
-      <EditorShortcutsModal open={showShortcutsModal} onOpenChange={setShowShortcutsModal} />
+      <EditorShortcutsModal
+        open={showShortcutsModal}
+        onOpenChange={setShowShortcutsModal}
+      />
     </div>
   );
 }

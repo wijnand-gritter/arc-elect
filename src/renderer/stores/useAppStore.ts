@@ -12,8 +12,18 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import logger from '../lib/renderer-logger';
-import { isProject, isTheme, isPage, validateWithLogging } from '../lib/type-guards';
-import type { Project, ProjectConfig, Schema, SchemaFilters } from '../../types/schema-editor';
+import {
+  isProject,
+  isTheme,
+  isPage,
+  validateWithLogging,
+} from '../lib/type-guards';
+import type {
+  Project,
+  ProjectConfig,
+  Schema,
+  SchemaFilters,
+} from '../../types/schema-editor';
 
 /**
  * Available theme options for the application.
@@ -23,7 +33,14 @@ export type Theme = 'light' | 'dark' | 'system';
 /**
  * Available page routes in the application.
  */
-export type Page = 'home' | 'about' | 'settings' | 'project' | 'explore' | 'build' | 'analytics';
+export type Page =
+  | 'home'
+  | 'about'
+  | 'settings'
+  | 'project'
+  | 'explore'
+  | 'build'
+  | 'analytics';
 
 /**
  * Saved search configuration.
@@ -48,7 +65,12 @@ export interface SchemaDetailModal {
   /** Schema being displayed */
   schema: Schema;
   /** Modal tab */
-  activeTab: 'overview' | 'content' | 'properties' | 'references' | 'validation';
+  activeTab:
+    | 'overview'
+    | 'content'
+    | 'properties'
+    | 'references'
+    | 'validation';
   /** Modal ID for navigation */
   id: string;
 }
@@ -134,9 +156,15 @@ interface AppState {
 
   // Modal actions
   /** Function to open schema detail modal */
-  openSchemaModal: (schema: Schema, tab?: SchemaDetailModal['activeTab']) => void;
+  openSchemaModal: (
+    schema: Schema,
+    tab?: SchemaDetailModal['activeTab'],
+  ) => void;
   /** Function to navigate to a schema in modal */
-  navigateToSchema: (schema: Schema, tab?: SchemaDetailModal['activeTab']) => void;
+  navigateToSchema: (
+    schema: Schema,
+    tab?: SchemaDetailModal['activeTab'],
+  ) => void;
   /** Function to go back in modal stack */
   goBack: () => void;
   /** Function to close all modals */
@@ -205,8 +233,16 @@ export const useAppStore = create<AppState>()(
             const result = await window.api.loadProject(projectPath);
             if (result.success && result.project) {
               // Validate project data with type guards
-              if (!validateWithLogging(result.project, isProject, 'loadProject result')) {
-                throw new Error('Invalid project data received from main process');
+              if (
+                !validateWithLogging(
+                  result.project,
+                  isProject,
+                  'loadProject result',
+                )
+              ) {
+                throw new Error(
+                  'Invalid project data received from main process',
+                );
               }
 
               // Debug: Log schema IDs to verify they're properly transferred
@@ -236,16 +272,21 @@ export const useAppStore = create<AppState>()(
               // Save the current project for persistence
               get().saveCurrentProject();
 
-              logger.info(`Store: Project loaded in ${Date.now() - startTime}ms`);
+              logger.info(
+                `Store: Project loaded in ${Date.now() - startTime}ms`,
+              );
             } else {
               set({
                 projectError: result.error || 'Failed to load project',
                 isLoadingProject: false,
               });
-              logger.error('Store: Failed to load project', { error: result.error });
+              logger.error('Store: Failed to load project', {
+                error: result.error,
+              });
             }
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            const errorMessage =
+              error instanceof Error ? error.message : 'Unknown error';
             set({
               projectError: `Failed to load project: ${errorMessage}`,
               isLoadingProject: false,
@@ -261,13 +302,18 @@ export const useAppStore = create<AppState>()(
          */
         setCurrentProject: (project: Project | null) => {
           // Validate project data if not null
-          if (project && !validateWithLogging(project, isProject, 'setCurrentProject')) {
+          if (
+            project &&
+            !validateWithLogging(project, isProject, 'setCurrentProject')
+          ) {
             logger.error('Store: Invalid project data in setCurrentProject');
             return;
           }
 
           set({ currentProject: project });
-          logger.info('Store: Current project updated', { projectId: project?.id });
+          logger.info('Store: Current project updated', {
+            projectId: project?.id,
+          });
 
           // Save the current project for persistence if it exists
           if (project) {
@@ -345,7 +391,10 @@ export const useAppStore = create<AppState>()(
             if (result.success && result.project) {
               set({
                 currentProject: result.project,
-                recentProjects: [result.project, ...get().recentProjects.slice(0, 9)], // Keep max 10 recent projects
+                recentProjects: [
+                  result.project,
+                  ...get().recentProjects.slice(0, 9),
+                ], // Keep max 10 recent projects
                 isLoadingProject: false,
                 currentPage: 'project',
               });
@@ -353,16 +402,21 @@ export const useAppStore = create<AppState>()(
               // Save the current project for persistence
               get().saveCurrentProject();
 
-              logger.info(`Store: Project created in ${Date.now() - startTime}ms`);
+              logger.info(
+                `Store: Project created in ${Date.now() - startTime}ms`,
+              );
             } else {
               set({
                 projectError: result.error || 'Failed to create project',
                 isLoadingProject: false,
               });
-              logger.error('Store: Failed to create project', { error: result.error });
+              logger.error('Store: Failed to create project', {
+                error: result.error,
+              });
             }
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            const errorMessage =
+              error instanceof Error ? error.message : 'Unknown error';
             set({
               projectError: `Failed to create project: ${errorMessage}`,
               isLoadingProject: false,
@@ -418,31 +472,41 @@ export const useAppStore = create<AppState>()(
           set({ isLoadingProject: true, projectError: null });
 
           try {
-            const result = await window.api.loadProject(state.currentProject.path);
+            const result = await window.api.loadProject(
+              state.currentProject.path,
+            );
             if (result.success && result.project) {
               set({
                 currentProject: result.project,
                 recentProjects: [
                   result.project,
-                  ...state.recentProjects.filter((p) => p.id !== result.project!.id).slice(0, 9),
+                  ...state.recentProjects
+                    .filter((p) => p.id !== result.project!.id)
+                    .slice(0, 9),
                 ],
                 isLoadingProject: false,
                 currentPage: 'project',
               });
-              logger.info(`Store: Last project loaded in ${Date.now() - startTime}ms`);
+              logger.info(
+                `Store: Last project loaded in ${Date.now() - startTime}ms`,
+              );
             } else {
               // If the project can't be loaded (e.g., directory was moved/deleted),
               // clear it from current project but keep it in recent projects
               set({
                 currentProject: null,
-                projectError: result.error || 'Last project could not be loaded',
+                projectError:
+                  result.error || 'Last project could not be loaded',
                 isLoadingProject: false,
                 currentPage: 'home',
               });
-              logger.warn('Store: Last project could not be loaded', { error: result.error });
+              logger.warn('Store: Last project could not be loaded', {
+                error: result.error,
+              });
             }
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            const errorMessage =
+              error instanceof Error ? error.message : 'Unknown error';
             set({
               currentProject: null,
               projectError: `Failed to load last project: ${errorMessage}`,
@@ -469,41 +533,61 @@ export const useAppStore = create<AppState>()(
 
             // Always remove from recent projects list, even if main process fails
             const state = get();
-            const updatedRecentProjects = state.recentProjects.filter((p) => p.id !== projectId);
+            const updatedRecentProjects = state.recentProjects.filter(
+              (p) => p.id !== projectId,
+            );
 
             // If the deleted project was the current project, clear it
             const shouldClearCurrent = state.currentProject?.id === projectId;
 
             set({
               recentProjects: updatedRecentProjects,
-              ...(shouldClearCurrent && { currentProject: null, currentPage: 'home' }),
+              ...(shouldClearCurrent && {
+                currentProject: null,
+                currentPage: 'home',
+              }),
             });
 
             if (result.success) {
-              logger.info(`Store: Project deleted in ${Date.now() - startTime}ms`, { projectId });
+              logger.info(
+                `Store: Project deleted in ${Date.now() - startTime}ms`,
+                { projectId },
+              );
             } else {
               // Log warning but don't throw error - project was removed from UI anyway
-              logger.warn('Store: Project removed from UI but main process deletion failed', {
-                projectId,
-                error: result.error,
-              });
+              logger.warn(
+                'Store: Project removed from UI but main process deletion failed',
+                {
+                  projectId,
+                  error: result.error,
+                },
+              );
             }
           } catch (error) {
             // Even if main process fails, remove from UI
             const state = get();
-            const updatedRecentProjects = state.recentProjects.filter((p) => p.id !== projectId);
+            const updatedRecentProjects = state.recentProjects.filter(
+              (p) => p.id !== projectId,
+            );
             const shouldClearCurrent = state.currentProject?.id === projectId;
 
             set({
               recentProjects: updatedRecentProjects,
-              ...(shouldClearCurrent && { currentProject: null, currentPage: 'home' }),
+              ...(shouldClearCurrent && {
+                currentProject: null,
+                currentPage: 'home',
+              }),
             });
 
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            logger.warn('Store: Project removed from UI despite main process error', {
-              projectId,
-              error: errorMessage,
-            });
+            const errorMessage =
+              error instanceof Error ? error.message : 'Unknown error';
+            logger.warn(
+              'Store: Project removed from UI despite main process error',
+              {
+                projectId,
+                error: errorMessage,
+              },
+            );
           }
         },
 
@@ -515,12 +599,17 @@ export const useAppStore = create<AppState>()(
          */
         forceClearProject: (projectId: string) => {
           const state = get();
-          const updatedRecentProjects = state.recentProjects.filter((p) => p.id !== projectId);
+          const updatedRecentProjects = state.recentProjects.filter(
+            (p) => p.id !== projectId,
+          );
           const shouldClearCurrent = state.currentProject?.id === projectId;
 
           set({
             recentProjects: updatedRecentProjects,
-            ...(shouldClearCurrent && { currentProject: null, currentPage: 'home' }),
+            ...(shouldClearCurrent && {
+              currentProject: null,
+              currentPage: 'home',
+            }),
           });
 
           logger.info('Store: Force cleared corrupted project', { projectId });
@@ -561,7 +650,8 @@ export const useAppStore = create<AppState>()(
           set((state) => ({
             savedSearches: state.savedSearches.filter((s) => s.id !== searchId),
             searchHistory: state.searchHistory.filter(
-              (h) => h !== get().savedSearches.find((s) => s.id === searchId)?.name,
+              (h) =>
+                h !== get().savedSearches.find((s) => s.id === searchId)?.name,
             ),
           }));
         },
@@ -570,9 +660,16 @@ export const useAppStore = create<AppState>()(
         },
 
         // Modal actions
-        openSchemaModal: (schema: Schema, tab?: SchemaDetailModal['activeTab']) => {
+        openSchemaModal: (
+          schema: Schema,
+          tab?: SchemaDetailModal['activeTab'],
+        ) => {
           set((state) => {
-            const newModal = { schema, activeTab: tab || 'overview', id: Date.now().toString() };
+            const newModal = {
+              schema,
+              activeTab: tab || 'overview',
+              id: Date.now().toString(),
+            };
             const newModalStack = [...state.modalStack, newModal];
             return {
               modalStack: newModalStack,
@@ -581,11 +678,18 @@ export const useAppStore = create<AppState>()(
             };
           });
         },
-        navigateToSchema: (schema: Schema, tab?: SchemaDetailModal['activeTab']) => {
+        navigateToSchema: (
+          schema: Schema,
+          tab?: SchemaDetailModal['activeTab'],
+        ) => {
           set((state) => ({
             modalStack: [
               ...state.modalStack,
-              { schema, activeTab: tab || 'overview', id: Date.now().toString() },
+              {
+                schema,
+                activeTab: tab || 'overview',
+                id: Date.now().toString(),
+              },
             ],
             currentModalIndex: state.modalStack.length,
             selectedSchemaId: schema.id,
@@ -596,7 +700,9 @@ export const useAppStore = create<AppState>()(
             const newStack = state.modalStack.slice(0, -1);
             const newIndex = Math.max(0, state.modalStack.length - 2);
             const selectedSchemaId =
-              newStack.length > 0 ? (newStack[newIndex]?.schema.id ?? null) : null;
+              newStack.length > 0
+                ? (newStack[newIndex]?.schema.id ?? null)
+                : null;
 
             return {
               modalStack: newStack,
@@ -611,7 +717,9 @@ export const useAppStore = create<AppState>()(
         setActiveModalTab: (tab: SchemaDetailModal['activeTab']) => {
           set((state) => ({
             modalStack: state.modalStack.map((modal, index) =>
-              index === state.currentModalIndex ? { ...modal, activeTab: tab } : modal,
+              index === state.currentModalIndex
+                ? { ...modal, activeTab: tab }
+                : modal,
             ),
           }));
         },

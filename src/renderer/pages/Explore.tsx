@@ -59,7 +59,11 @@ function getSchemaType(schema: Schema): {
 
   // Check for common patterns in the path
   if (path.includes('business-objects') || path.includes('businessobjects')) {
-    return { type: 'business-object', label: 'Business Object', variant: 'default' };
+    return {
+      type: 'business-object',
+      label: 'Business Object',
+      variant: 'default',
+    };
   }
 
   if (path.includes('common/enums') || path.includes('enums')) {
@@ -83,7 +87,13 @@ function getSchemaType(schema: Schema): {
 }
 
 // SortButton component defined outside to avoid recreation
-type SortField = 'name' | 'title' | 'fileSize' | 'lastModified' | 'validationStatus' | 'type';
+type SortField =
+  | 'name'
+  | 'title'
+  | 'fileSize'
+  | 'lastModified'
+  | 'validationStatus'
+  | 'type';
 
 interface SortButtonProps {
   field: SortField;
@@ -171,7 +181,10 @@ export function Explore(): React.JSX.Element {
   // Get unique types and statuses for filter options
   const availableTypes = useMemo(() => {
     if (!currentProject?.schemas) return [];
-    const typeMap = new Map<string, { type: string; label: string; variant: string }>();
+    const typeMap = new Map<
+      string,
+      { type: string; label: string; variant: string }
+    >();
 
     currentProject.schemas.forEach((schema: Schema) => {
       const typeInfo = getSchemaType(schema);
@@ -184,7 +197,9 @@ export function Explore(): React.JSX.Element {
       });
     });
 
-    return Array.from(typeMap.values()).sort((a, b) => a.label.localeCompare(b.label));
+    return Array.from(typeMap.values()).sort((a, b) =>
+      a.label.localeCompare(b.label),
+    );
   }, [currentProject?.schemas]);
 
   const availableStatuses = useMemo(() => {
@@ -206,7 +221,9 @@ export function Explore(): React.JSX.Element {
         return obj.toLowerCase().includes(query.toLowerCase());
       }
       if (typeof obj === 'object' && obj !== null) {
-        return Object.values(obj).some((value) => searchInSchemaContent(value, query));
+        return Object.values(obj).some((value) =>
+          searchInSchemaContent(value, query),
+        );
       }
       return false;
     };
@@ -220,7 +237,8 @@ export function Explore(): React.JSX.Element {
         const searchLower = searchQuery.toLowerCase();
         return (
           schema.name.toLowerCase().includes(searchLower) ||
-          (schema.metadata.title && schema.metadata.title.toLowerCase().includes(searchLower)) ||
+          (schema.metadata.title &&
+            schema.metadata.title.toLowerCase().includes(searchLower)) ||
           searchInSchemaContent(schema.content, searchQuery)
         );
       });
@@ -281,7 +299,14 @@ export function Explore(): React.JSX.Element {
     });
 
     return filtered;
-  }, [currentProject?.schemas, searchQuery, typeFilter, statusFilter, sortField, sortDirection]);
+  }, [
+    currentProject?.schemas,
+    searchQuery,
+    typeFilter,
+    statusFilter,
+    sortField,
+    sortDirection,
+  ]);
 
   // Pagination
   const totalItems = filteredAndSortedSchemas.length;
@@ -325,7 +350,9 @@ export function Explore(): React.JSX.Element {
         <div className="text-center">
           <Database className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
           <h3 className="text-lg font-medium mb-2">No project loaded</h3>
-          <p className="text-muted-foreground">Load a project to explore schemas</p>
+          <p className="text-muted-foreground">
+            Load a project to explore schemas
+          </p>
         </div>
       </div>
     );
@@ -378,8 +405,15 @@ export function Explore(): React.JSX.Element {
               </Select>
 
               {/* Clear Filters */}
-              {(searchQuery || typeFilter !== 'all' || statusFilter !== 'all') && (
-                <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 px-2">
+              {(searchQuery ||
+                typeFilter !== 'all' ||
+                statusFilter !== 'all') && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="h-8 px-2"
+                >
                   <X className="h-4 w-4 mr-1" />
                   Clear
                 </Button>
@@ -388,7 +422,10 @@ export function Explore(): React.JSX.Element {
 
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Show:</span>
-              <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+              <Select
+                value={pageSize.toString()}
+                onValueChange={handlePageSizeChange}
+              >
                 <SelectTrigger className="w-20">
                   <SelectValue />
                 </SelectTrigger>
@@ -477,7 +514,10 @@ export function Explore(): React.JSX.Element {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant={schemaType.variant} className="text-xs">
+                            <Badge
+                              variant={schemaType.variant}
+                              className="text-xs"
+                            >
                               {schemaType.label}
                             </Badge>
                           </TableCell>
@@ -486,7 +526,9 @@ export function Explore(): React.JSX.Element {
                           </TableCell>
                           <TableCell className="text-muted-foreground text-sm">
                             {schema.metadata.lastModified
-                              ? new Date(schema.metadata.lastModified).toLocaleDateString()
+                              ? new Date(
+                                  schema.metadata.lastModified,
+                                ).toLocaleDateString()
                               : 'Unknown'}
                           </TableCell>
                           <TableCell>
@@ -537,7 +579,9 @@ export function Explore(): React.JSX.Element {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={6} className="h-24 text-center">
-                        {searchQuery || typeFilter !== 'all' || statusFilter !== 'all'
+                        {searchQuery ||
+                        typeFilter !== 'all' ||
+                        statusFilter !== 'all'
                           ? 'No schemas match your filters.'
                           : 'No schemas found.'}
                       </TableCell>
@@ -551,7 +595,8 @@ export function Explore(): React.JSX.Element {
           {/* Pagination and Results info - Fixed at bottom */}
           <div className="flex items-center justify-between px-2 py-3 flex-shrink-0 border-t mt-3">
             <div className="text-muted-foreground text-sm">
-              Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} schema(s)
+              Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of{' '}
+              {totalItems} schema(s)
               {searchQuery && ` matching "${searchQuery}"`}
             </div>
 
@@ -593,7 +638,9 @@ export function Explore(): React.JSX.Element {
                     return (
                       <Button
                         key={pageNum}
-                        variant={currentPage === pageNum ? 'default' : 'outline'}
+                        variant={
+                          currentPage === pageNum ? 'default' : 'outline'
+                        }
                         size="sm"
                         onClick={() => handlePageChange(pageNum)}
                         className="h-8 w-8 p-0"
@@ -630,7 +677,11 @@ export function Explore(): React.JSX.Element {
 
       {/* Schema Detail Modal */}
       {modalStack.length > 0 && (
-        <SchemaDetailModal isOpen={true} onClose={closeAllModals} onEdit={handleSchemaEdit} />
+        <SchemaDetailModal
+          isOpen={true}
+          onClose={closeAllModals}
+          onEdit={handleSchemaEdit}
+        />
       )}
     </div>
   );

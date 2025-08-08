@@ -129,7 +129,8 @@ function getMemoryUsage(): MemoryUsage | null {
       };
     }
   ).memory;
-  const usagePercentage = (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100;
+  const usagePercentage =
+    (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100;
 
   return {
     usedJSHeapSize: memory.usedJSHeapSize,
@@ -168,7 +169,9 @@ function getMemoryUsage(): MemoryUsage | null {
  * });
  * ```
  */
-export function useMemoryManagement(options: MemoryManagementOptions = {}): MemoryManagementResult {
+export function useMemoryManagement(
+  options: MemoryManagementOptions = {},
+): MemoryManagementResult {
   const {
     enableMonitoring = true,
     checkInterval = 5000,
@@ -227,7 +230,9 @@ export function useMemoryManagement(options: MemoryManagementOptions = {}): Memo
     if (!memoryUsage) return suggestions;
 
     if (memoryUsage.usagePercentage >= criticalThreshold) {
-      suggestions.push('Memory usage is critical - consider closing unused tabs or applications');
+      suggestions.push(
+        'Memory usage is critical - consider closing unused tabs or applications',
+      );
       suggestions.push('Clear cache and temporary data');
       suggestions.push('Reduce the number of simultaneously loaded schemas');
     } else if (memoryUsage.usagePercentage >= warningThreshold) {
@@ -236,11 +241,19 @@ export function useMemoryManagement(options: MemoryManagementOptions = {}): Memo
     }
 
     if (cache.size >= cacheLimit) {
-      suggestions.push('Cache is full - oldest items will be automatically removed');
+      suggestions.push(
+        'Cache is full - oldest items will be automatically removed',
+      );
     }
 
     return suggestions;
-  }, [memoryUsage, criticalThreshold, warningThreshold, cache.size, cacheLimit]);
+  }, [
+    memoryUsage,
+    criticalThreshold,
+    warningThreshold,
+    cache.size,
+    cacheLimit,
+  ]);
 
   /**
    * Update memory usage.
@@ -282,7 +295,13 @@ export function useMemoryManagement(options: MemoryManagementOptions = {}): Memo
     if (enableLogging) {
       logger.info('Memory monitoring started', { checkInterval });
     }
-  }, [isMonitoring, enableMonitoring, updateMemoryUsage, checkInterval, enableLogging]);
+  }, [
+    isMonitoring,
+    enableMonitoring,
+    updateMemoryUsage,
+    checkInterval,
+    enableLogging,
+  ]);
 
   /**
    * Stop memory monitoring.

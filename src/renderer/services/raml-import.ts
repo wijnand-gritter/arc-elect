@@ -63,7 +63,10 @@ export class RamlImportService {
   /**
    * Validate RAML import configuration.
    */
-  validateConfig(config: RamlImportConfig): { isValid: boolean; errors: string[] } {
+  validateConfig(config: RamlImportConfig): {
+    isValid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
 
     if (!config.sourcePath) {
@@ -100,7 +103,9 @@ export class RamlImportService {
       // Validate configuration
       const validation = this.validateConfig(config);
       if (!validation.isValid) {
-        throw new Error(`Invalid configuration: ${validation.errors.join(', ')}`);
+        throw new Error(
+          `Invalid configuration: ${validation.errors.join(', ')}`,
+        );
       }
 
       // Initialize import state
@@ -141,7 +146,11 @@ export class RamlImportService {
 
       // Phase 3: Convert RAML files
       onStatusChange?.('converting');
-      const conversionResult = await this.convertRamlFilesBatch(ramlFiles, config, onProgress);
+      const conversionResult = await this.convertRamlFilesBatch(
+        ramlFiles,
+        config,
+        onProgress,
+      );
 
       // Phase 4: Validate output schemas
       if (config.transformationOptions.validateOutput) {
@@ -154,7 +163,9 @@ export class RamlImportService {
       const duration = Date.now() - this.currentImport.startTime;
 
       const result: ImportResult = {
-        success: !this.currentImport.cancelled && this.currentImport.errors.length === 0,
+        success:
+          !this.currentImport.cancelled &&
+          this.currentImport.errors.length === 0,
         processedFiles: this.currentImport.processedFiles,
         convertedFiles: conversionResult.convertedCount,
         failedFiles: this.currentImport.errors.length,
@@ -182,7 +193,9 @@ export class RamlImportService {
     } catch (error) {
       logger.error('RAML import failed', { error, config });
 
-      const duration = this.currentImport ? Date.now() - this.currentImport.startTime : 0;
+      const duration = this.currentImport
+        ? Date.now() - this.currentImport.startTime
+        : 0;
       const result: ImportResult = {
         success: false,
         processedFiles: this.currentImport?.processedFiles || 0,
@@ -242,12 +255,17 @@ export class RamlImportService {
       const result = await window.api.clearDirectory(destinationPath);
 
       if (!result.success) {
-        throw new Error(result.error || 'Failed to clear destination directory');
+        throw new Error(
+          result.error || 'Failed to clear destination directory',
+        );
       }
 
       logger.info('Destination directory cleared successfully');
     } catch (error) {
-      logger.error('Failed to clear destination directory', { destinationPath, error });
+      logger.error('Failed to clear destination directory', {
+        destinationPath,
+        error,
+      });
       throw error;
     }
   }
@@ -282,7 +300,10 @@ export class RamlImportService {
           processedCount: i,
           totalCount: ramlFiles.length,
           percentage: Math.round((i / ramlFiles.length) * 100),
-          estimatedTimeRemaining: this.calculateEstimatedTime(i, ramlFiles.length),
+          estimatedTimeRemaining: this.calculateEstimatedTime(
+            i,
+            ramlFiles.length,
+          ),
         });
 
         // PLACEHOLDER: Call the actual RAML conversion script
@@ -305,7 +326,8 @@ export class RamlImportService {
 
         this.currentImport.errors.push({
           filePath: file.path,
-          message: error instanceof Error ? error.message : 'Unknown conversion error',
+          message:
+            error instanceof Error ? error.message : 'Unknown conversion error',
           type: 'conversion',
         });
       }
@@ -460,7 +482,10 @@ export class RamlImportService {
   /**
    * Calculate estimated time remaining for import operation.
    */
-  private calculateEstimatedTime(processed: number, total: number): number | undefined {
+  private calculateEstimatedTime(
+    processed: number,
+    total: number,
+  ): number | undefined {
     if (!this.currentImport || processed === 0) {
       return undefined;
     }

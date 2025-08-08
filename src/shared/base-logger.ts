@@ -13,13 +13,27 @@ export const colorMap = {
 };
 
 export type Color = keyof typeof colorMap;
-export type LogLevel = 'info' | 'warn' | 'error' | 'debug' | 'verbose' | 'silly';
+export type LogLevel =
+  | 'info'
+  | 'warn'
+  | 'error'
+  | 'debug'
+  | 'verbose'
+  | 'silly';
 
 export abstract class BaseLogger {
   protected context: string;
-  protected abstract logImpl(level: LogLevel, message: unknown, ...args: unknown[]): void;
+  protected abstract logImpl(
+    level: LogLevel,
+    message: unknown,
+    ...args: unknown[]
+  ): void;
   // Nieuwe abstracte transport-methode voor console output
-  protected abstract consoleTransport(level: LogLevel, fmt: string, ...fmtArgs: unknown[]): void;
+  protected abstract consoleTransport(
+    level: LogLevel,
+    fmt: string,
+    ...fmtArgs: unknown[]
+  ): void;
 
   constructor(context: string) {
     this.context = context;
@@ -51,7 +65,12 @@ export abstract class BaseLogger {
     ...args: unknown[]
   ) {
     this.logImpl(level, `[${this.context}] ${message}`, ...args);
-    const [fmt, ...fmtArgs] = this.formatConsoleMessage(level, message, color, ...args);
+    const [fmt, ...fmtArgs] = this.formatConsoleMessage(
+      level,
+      message,
+      color,
+      ...args,
+    );
     this.consoleTransport(level, fmt, ...fmtArgs);
   }
 

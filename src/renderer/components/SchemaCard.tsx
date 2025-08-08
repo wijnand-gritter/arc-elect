@@ -10,10 +10,23 @@
  */
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileText, Calendar, AlertCircle, CheckCircle, Clock, ExternalLink } from 'lucide-react';
+import {
+  FileText,
+  Calendar,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  ExternalLink,
+} from 'lucide-react';
 import type { Schema, ValidationStatus } from '../../types/schema-editor';
 
 /**
@@ -150,7 +163,9 @@ export function SchemaCard({
             </div>
           </div>
           <Badge
-            variant={schema.validationStatus === 'valid' ? 'default' : 'destructive'}
+            variant={
+              schema.validationStatus === 'valid' ? 'default' : 'destructive'
+            }
             className="flex items-center gap-1 flex-shrink-0"
           >
             {validationStatus.icon}
@@ -172,7 +187,9 @@ export function SchemaCard({
             </div>
             {schema.metadata.$schema && (
               <Badge variant="outline" className="text-xs">
-                {schema.metadata.$schema.includes('draft-07') ? 'Draft 7' : 'JSON Schema'}
+                {schema.metadata.$schema.includes('draft-07')
+                  ? 'Draft 7'
+                  : 'JSON Schema'}
               </Badge>
             )}
           </div>

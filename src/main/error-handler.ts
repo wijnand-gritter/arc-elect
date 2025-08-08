@@ -78,7 +78,8 @@ export function withErrorHandling<T extends unknown[], R>(
 
       return { success: true, data: result };
     } catch (error) {
-      const errorObj = error instanceof Error ? error : new Error(String(error));
+      const errorObj =
+        error instanceof Error ? error : new Error(String(error));
       const duration = Date.now() - startTime;
 
       logger.error(`${context} - FAILED`, {
@@ -92,7 +93,8 @@ export function withErrorHandling<T extends unknown[], R>(
         success: false,
         error: errorObj.message,
         code: errorObj.name,
-        details: process.env.NODE_ENV === 'development' ? errorObj.stack : undefined,
+        details:
+          process.env.NODE_ENV === 'development' ? errorObj.stack : undefined,
       };
     }
   };
@@ -132,7 +134,10 @@ export function validateInput(
         return { valid: false, error: 'Parameter must be a string' };
       }
       if (maxLength && value.length > maxLength) {
-        return { valid: false, error: `String too long (max ${maxLength} characters)` };
+        return {
+          valid: false,
+          error: `String too long (max ${maxLength} characters)`,
+        };
       }
       break;
 

@@ -40,7 +40,11 @@ interface SyncEvent {
 /**
  * Conflict resolution strategy.
  */
-type ConflictResolution = 'last-write-wins' | 'user-choice' | 'merge' | 'reject';
+type ConflictResolution =
+  | 'last-write-wins'
+  | 'user-choice'
+  | 'merge'
+  | 'reject';
 
 /**
  * Synchronization conflict.
@@ -94,7 +98,10 @@ interface StateSyncResult {
   /** Function to emit sync event */
   emitEvent: (type: SyncEventType, data: any, source?: string) => void;
   /** Function to resolve conflict */
-  resolveConflict: (conflictId: string, resolution: 'local' | 'remote' | 'merge') => void;
+  resolveConflict: (
+    conflictId: string,
+    resolution: 'local' | 'remote' | 'merge',
+  ) => void;
   /** Function to force synchronization */
   forceSync: () => Promise<void>;
   /** Function to enable/disable sync */
@@ -147,13 +154,17 @@ export function useStateSync(options: StateSyncOptions = {}): StateSyncResult {
   const [conflicts, setConflicts] = useState<SyncConflict[]>([]);
   const [history, setHistory] = useState<SyncEvent[]>([]);
   const [lastSync, setLastSync] = useState<Date | null>(null);
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'error' | 'conflict'>('idle');
+  const [syncStatus, setSyncStatus] = useState<
+    'idle' | 'syncing' | 'error' | 'conflict'
+  >('idle');
   const [pendingChanges, setPendingChanges] = useState<Set<string>>(new Set());
 
   const eventQueue = useRef<SyncEvent[]>([]);
   const debounceTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const versionCounters = useRef<Map<string, number>>(new Map());
-  const eventListeners = useRef<Map<string, Set<(event: SyncEvent) => void>>>(new Map());
+  const eventListeners = useRef<Map<string, Set<(event: SyncEvent) => void>>>(
+    new Map(),
+  );
 
   // App store access
   const currentProject = useAppStore((state) => state.currentProject);
@@ -211,7 +222,11 @@ export function useStateSync(options: StateSyncOptions = {}): StateSyncResult {
         processEventQueue();
       }, debounceDelay);
 
-      logger.debug('Sync event emitted', { type, source, version: event.version });
+      logger.debug('Sync event emitted', {
+        type,
+        source,
+        version: event.version,
+      });
     },
     [isActive, getNextVersion, addToHistory, debounceDelay],
   );
@@ -248,7 +263,8 @@ export function useStateSync(options: StateSyncOptions = {}): StateSyncResult {
 
       try {
         // Check for conflicts
-        const existingVersion = versionCounters.current.get(`${type}-${data.id || 'global'}`) || 0;
+        const existingVersion =
+          versionCounters.current.get(`${type}-${data.id || 'global'}`) || 0;
 
         if (version < existingVersion && source !== 'local') {
           // Potential conflict detected
@@ -365,8 +381,12 @@ export function useStateSync(options: StateSyncOptions = {}): StateSyncResult {
           // Update validation status for affected schemas
           if (currentProject && data.results) {
             const updatedSchemas = currentProject.schemas.map((schema) => {
-              const result = data.results.find((r: any) => r.schemaId === schema.id);
-              return result ? { ...schema, validationStatus: result.status } : schema;
+              const result = data.results.find(
+                (r: any) => r.schemaId === schema.id,
+              );
+              return result
+                ? { ...schema, validationStatus: result.status }
+                : schema;
             });
             setCurrentProject({
               ...currentProject,
@@ -414,7 +434,8 @@ export function useStateSync(options: StateSyncOptions = {}): StateSyncResult {
               timestamp: Date.now(),
               data: merged,
               source: 'conflict-resolution',
-              version: Math.max(conflict.localVersion, conflict.remoteVersion) + 1,
+              version:
+                Math.max(conflict.localVersion, conflict.remoteVersion) + 1,
             });
           }
           break;
@@ -444,7 +465,11 @@ export function useStateSync(options: StateSyncOptions = {}): StateSyncResult {
       const merged = { ...local };
 
       for (const [key, value] of Object.entries(remote)) {
-        if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        if (
+          typeof value === 'object' &&
+          value !== null &&
+          !Array.isArray(value)
+        ) {
           merged[key] = mergeData(merged[key], value);
         } else if (value !== undefined) {
           merged[key] = value;
@@ -481,7 +506,8 @@ export function useStateSync(options: StateSyncOptions = {}): StateSyncResult {
             break;
           case 'merge':
             dataToApply = mergeData(conflict.localData, conflict.remoteData);
-            version = Math.max(conflict.localVersion, conflict.remoteVersion) + 1;
+            version =
+              Math.max(conflict.localVersion, conflict.remoteVersion) + 1;
             break;
         }
 

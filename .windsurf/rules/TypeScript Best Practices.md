@@ -241,7 +241,10 @@ interface ApiOptions<T> {
   timeout?: number;
 }
 
-async function apiCall<T>(url: string, options: ApiOptions<T> = {}): Promise<T> {
+async function apiCall<T>(
+  url: string,
+  options: ApiOptions<T> = {},
+): Promise<T> {
   try {
     const response = await fetch(url);
     if (!response.ok) {
@@ -398,7 +401,9 @@ class ValidationError extends Error {
 }
 
 // ✅ Good: Result type for error handling
-type Result<T, E = Error> = { success: true; data: T } | { success: false; error: E };
+type Result<T, E = Error> =
+  | { success: true; data: T }
+  | { success: false; error: E };
 
 async function safeApiCall<T>(url: string): Promise<Result<T, ApiError>> {
   try {
@@ -448,7 +453,8 @@ type CreateUserRequest = Pick<User, 'name' | 'email'>;
 type UserResponse = Omit<User, 'password'>;
 
 // Make specific properties readonly
-type ReadonlyUser = Readonly<Pick<User, 'id' | 'createdAt'>> & Omit<User, 'id' | 'createdAt'>;
+type ReadonlyUser = Readonly<Pick<User, 'id' | 'createdAt'>> &
+  Omit<User, 'id' | 'createdAt'>;
 
 // ✅ Good: Custom utility types
 type DeepPartial<T> = {
@@ -459,7 +465,9 @@ type NonNullableFields<T> = {
   [P in keyof T]: NonNullable<T[P]>;
 };
 
-type AsyncReturnType<T> = T extends (...args: any[]) => Promise<infer R> ? R : never;
+type AsyncReturnType<T> = T extends (...args: any[]) => Promise<infer R>
+  ? R
+  : never;
 ```
 
 # TypeScript Best Practices
@@ -699,7 +707,10 @@ interface ApiOptions<T> {
   timeout?: number;
 }
 
-async function apiCall<T>(url: string, options: ApiOptions<T> = {}): Promise<T> {
+async function apiCall<T>(
+  url: string,
+  options: ApiOptions<T> = {},
+): Promise<T> {
   try {
     const response = await fetch(url);
     if (!response.ok) {
@@ -856,7 +867,9 @@ class ValidationError extends Error {
 }
 
 // ✅ Good: Result type for error handling
-type Result<T, E = Error> = { success: true; data: T } | { success: false; error: E };
+type Result<T, E = Error> =
+  | { success: true; data: T }
+  | { success: false; error: E };
 
 async function safeApiCall<T>(url: string): Promise<Result<T, ApiError>> {
   try {
@@ -906,7 +919,8 @@ type CreateUserRequest = Pick<User, 'name' | 'email'>;
 type UserResponse = Omit<User, 'password'>;
 
 // Make specific properties readonly
-type ReadonlyUser = Readonly<Pick<User, 'id' | 'createdAt'>> & Omit<User, 'id' | 'createdAt'>;
+type ReadonlyUser = Readonly<Pick<User, 'id' | 'createdAt'>> &
+  Omit<User, 'id' | 'createdAt'>;
 
 // ✅ Good: Custom utility types
 type DeepPartial<T> = {
@@ -917,5 +931,7 @@ type NonNullableFields<T> = {
   [P in keyof T]: NonNullable<T[P]>;
 };
 
-type AsyncReturnType<T> = T extends (...args: any[]) => Promise<infer R> ? R : never;
+type AsyncReturnType<T> = T extends (...args: any[]) => Promise<infer R>
+  ? R
+  : never;
 ```

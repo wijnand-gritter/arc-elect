@@ -10,7 +10,9 @@ import { AppLayout } from './components/AppLayout';
 
 // Lazy load heavy providers
 const QueryProviderLazy = React.lazy(() =>
-  import('./components/QueryProvider').then((module) => ({ default: module.QueryProvider })),
+  import('./components/QueryProvider').then((module) => ({
+    default: module.QueryProvider,
+  })),
 );
 
 export function App() {

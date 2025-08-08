@@ -170,7 +170,9 @@ export function isValidationError(value: unknown): value is ValidationError {
 /**
  * Type guard for checking if a value is a valid ValidationError array.
  */
-export function isValidationErrorArray(value: unknown): value is ValidationError[] {
+export function isValidationErrorArray(
+  value: unknown,
+): value is ValidationError[] {
   return isArray(value) && value.every(isValidationError);
 }
 
@@ -199,7 +201,9 @@ export function isAnalyticsResult(value: unknown): value is AnalyticsResult {
 /**
  * Type guard for checking if a value is a valid ComplexityMetrics object.
  */
-export function isComplexityMetrics(value: unknown): value is ComplexityMetrics {
+export function isComplexityMetrics(
+  value: unknown,
+): value is ComplexityMetrics {
   if (!isObject(value)) return false;
 
   const metrics = value as Record<string, unknown>;
@@ -222,7 +226,9 @@ export function isComplexityMetrics(value: unknown): value is ComplexityMetrics 
 /**
  * Type guard for checking if a value is a valid IPC success response.
  */
-export function isIpcSuccessResponse<T>(value: unknown): value is { success: true; data: T } {
+export function isIpcSuccessResponse<T>(
+  value: unknown,
+): value is { success: true; data: T } {
   if (!isObject(value)) return false;
 
   const response = value as Record<string, unknown>;
@@ -233,7 +239,9 @@ export function isIpcSuccessResponse<T>(value: unknown): value is { success: tru
 /**
  * Type guard for checking if a value is a valid IPC error response.
  */
-export function isIpcErrorResponse(value: unknown): value is { success: false; error: string } {
+export function isIpcErrorResponse(
+  value: unknown,
+): value is { success: false; error: string } {
   if (!isObject(value)) return false;
 
   const response = value as Record<string, unknown>;
@@ -265,7 +273,15 @@ export function isTheme(value: unknown): value is Theme {
 export function isPage(value: unknown): value is Page {
   return (
     isString(value) &&
-    ['home', 'about', 'settings', 'project', 'explore', 'build', 'analytics'].includes(value)
+    [
+      'home',
+      'about',
+      'settings',
+      'project',
+      'explore',
+      'build',
+      'analytics',
+    ].includes(value)
   );
 }
 
@@ -317,7 +333,9 @@ export function isSavedSearch(value: unknown): value is SavedSearch {
 /**
  * Type guard for checking if a value is a valid SchemaDetailModal object.
  */
-export function isSchemaDetailModal(value: unknown): value is SchemaDetailModal {
+export function isSchemaDetailModal(
+  value: unknown,
+): value is SchemaDetailModal {
   if (!isObject(value)) return false;
 
   const modal = value as Record<string, unknown>;
@@ -325,7 +343,9 @@ export function isSchemaDetailModal(value: unknown): value is SchemaDetailModal 
   return (
     isSchema(modal.schema) &&
     isString(modal.activeTab) &&
-    ['overview', 'content', 'properties', 'references', 'validation'].includes(modal.activeTab) &&
+    ['overview', 'content', 'properties', 'references', 'validation'].includes(
+      modal.activeTab,
+    ) &&
     isString(modal.id)
   );
 }
@@ -491,11 +511,20 @@ interface ComplexityMetrics {
   averageBreadth: number;
 }
 
-type IpcResponse<T> = { success: true; data: T } | { success: false; error: string };
+type IpcResponse<T> =
+  | { success: true; data: T }
+  | { success: false; error: string };
 
 type Theme = 'light' | 'dark' | 'system';
 
-type Page = 'home' | 'about' | 'settings' | 'project' | 'explore' | 'build' | 'analytics';
+type Page =
+  | 'home'
+  | 'about'
+  | 'settings'
+  | 'project'
+  | 'explore'
+  | 'build'
+  | 'analytics';
 
 interface SchemaFilters {
   status: string[];
@@ -516,6 +545,11 @@ interface SavedSearch {
 
 interface SchemaDetailModal {
   schema: Schema;
-  activeTab: 'overview' | 'content' | 'properties' | 'references' | 'validation';
+  activeTab:
+    | 'overview'
+    | 'content'
+    | 'properties'
+    | 'references'
+    | 'validation';
   id: string;
 }

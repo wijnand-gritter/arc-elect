@@ -40,7 +40,11 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
 import { toast } from 'sonner';
-import type { Schema, SchemaReference, ValidationStatus } from '../../../types/schema-editor';
+import type {
+  Schema,
+  SchemaReference,
+  ValidationStatus,
+} from '../../../types/schema-editor';
 
 /**
  * Schema detail modal props.
@@ -81,10 +85,16 @@ export function SchemaDetailModal({
   onClose,
   onEdit: _onEdit,
 }: SchemaDetailModalProps): React.JSX.Element {
-  const { currentProject, modalStack, currentModalIndex, navigateToSchema, goBack } = useAppStore();
-  const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'properties' | 'validation'>(
-    'overview',
-  );
+  const {
+    currentProject,
+    modalStack,
+    currentModalIndex,
+    navigateToSchema,
+    goBack,
+  } = useAppStore();
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'content' | 'properties' | 'validation'
+  >('overview');
 
   // Get the current schema from the modal stack
   const currentModal = modalStack[currentModalIndex];
@@ -112,7 +122,9 @@ export function SchemaDetailModal({
     if (!schema) return;
 
     try {
-      await navigator.clipboard.writeText(JSON.stringify(schema.content, null, 2));
+      await navigator.clipboard.writeText(
+        JSON.stringify(schema.content, null, 2),
+      );
       toast.success('Schema content copied to clipboard');
     } catch (_error) {
       toast.error('Failed to copy schema content');
@@ -202,7 +214,9 @@ export function SchemaDetailModal({
 
   // Check if schema is an enum
   const isEnumSchema = (schema: Schema): boolean => {
-    return schema.content.type === 'string' && Array.isArray(schema.content.enum);
+    return (
+      schema.content.type === 'string' && Array.isArray(schema.content.enum)
+    );
   };
 
   const lastModifiedDateTime = schema.metadata.lastModified
@@ -214,12 +228,18 @@ export function SchemaDetailModal({
   // Find schemas that reference this schema by looking up the IDs in this schema's referencedBy array
   const referencedBy =
     schema.referencedBy
-      ?.map((referencedById) => currentProject.schemas.find((s) => s.id === referencedById))
+      ?.map((referencedById) =>
+        currentProject.schemas.find((s) => s.id === referencedById),
+      )
       .filter((s): s is Schema => s !== undefined) || [];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent size="lg" layout="flex" className="max-h-[95vh] overflow-hidden w-[900px]">
+      <DialogContent
+        size="lg"
+        layout="flex"
+        className="max-h-[95vh] overflow-hidden w-[900px]"
+      >
         <DialogHeader className="flex-shrink-0 pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -231,10 +251,12 @@ export function SchemaDetailModal({
               <div className="flex items-center gap-2">
                 <FileText className="w-5 h-5" />
                 <div>
-                  <DialogTitle>{schema.metadata.title || schema.name}</DialogTitle>
+                  <DialogTitle>
+                    {schema.metadata.title || schema.name}
+                  </DialogTitle>
                   <DialogDescription>
-                    View detailed information about this JSON Schema including properties,
-                    validation, and references.
+                    View detailed information about this JSON Schema including
+                    properties, validation, and references.
                   </DialogDescription>
                 </div>
               </div>
@@ -246,7 +268,9 @@ export function SchemaDetailModal({
           <Tabs
             value={activeTab}
             onValueChange={(value) =>
-              setActiveTab(value as 'overview' | 'content' | 'properties' | 'validation')
+              setActiveTab(
+                value as 'overview' | 'content' | 'properties' | 'validation',
+              )
             }
             className="h-full flex flex-col"
           >
@@ -281,7 +305,9 @@ export function SchemaDetailModal({
                             <label className="text-sm font-medium text-muted-foreground">
                               Title
                             </label>
-                            <p className="text-sm">{schema.metadata.title || 'No title'}</p>
+                            <p className="text-sm">
+                              {schema.metadata.title || 'No title'}
+                            </p>
                           </div>
                           {/* Validation Status */}
                           <div className="space-y-4">
@@ -309,7 +335,9 @@ export function SchemaDetailModal({
                               <label className="text-sm font-medium text-muted-foreground">
                                 Description
                               </label>
-                              <p className="text-sm">{schema.metadata.description}</p>
+                              <p className="text-sm">
+                                {schema.metadata.description}
+                              </p>
                             </div>
                           )}
                         </div>
@@ -356,7 +384,9 @@ export function SchemaDetailModal({
                             <Copy className="h-4 w-4" />
                           </Button>
                           <pre className="bg-muted p-4 rounded text-xs overflow-x-auto">
-                            <code>{JSON.stringify(schema.content, null, 2)}</code>
+                            <code>
+                              {JSON.stringify(schema.content, null, 2)}
+                            </code>
                           </pre>
                         </div>
                       </div>
@@ -386,11 +416,17 @@ export function SchemaDetailModal({
                                 </Badge>
                               </div>
                               <div className="ml-4 p-2 bg-muted/50 rounded">
-                                <p className="text-xs text-muted-foreground mb-1">Enum values:</p>
+                                <p className="text-xs text-muted-foreground mb-1">
+                                  Enum values:
+                                </p>
                                 <div className="flex flex-wrap gap-1">
                                   {(schema.content.enum as unknown[]).map(
                                     (enumValue: unknown, index: number) => (
-                                      <Badge key={index} variant="outline" className="text-xs">
+                                      <Badge
+                                        key={index}
+                                        variant="outline"
+                                        className="text-xs"
+                                      >
                                         {String(enumValue)}
                                       </Badge>
                                     ),
@@ -406,60 +442,83 @@ export function SchemaDetailModal({
                           <div>
                             <h4 className="font-medium mb-2">Properties</h4>
                             <div className="space-y-2">
-                              {Object.entries(schema.content.properties).map(([key, prop]) => {
-                                const propertyType = getPropertyType(prop);
-                                const isEnum = propertyType === 'enum' && Array.isArray(prop.enum);
-                                const enumValues = isEnum ? prop.enum : [];
-                                const displayType = isEnum
-                                  ? `${prop.type || 'string'} enum`
-                                  : propertyType;
+                              {Object.entries(schema.content.properties).map(
+                                ([key, prop]) => {
+                                  const propertyType = getPropertyType(prop);
+                                  const isEnum =
+                                    propertyType === 'enum' &&
+                                    Array.isArray(prop.enum);
+                                  const enumValues = isEnum ? prop.enum : [];
+                                  const displayType = isEnum
+                                    ? `${prop.type || 'string'} enum`
+                                    : propertyType;
 
-                                return (
-                                  <div key={key} className="space-y-2">
-                                    <div className="flex items-center justify-between p-2 border rounded">
-                                      <span className="font-mono text-sm">{key}</span>
-                                      <Badge variant="secondary" className="text-xs">
-                                        {displayType}
-                                      </Badge>
-                                    </div>
-                                    {isEnum && enumValues.length > 0 && (
-                                      <div className="ml-4 p-2 bg-muted/50 rounded">
-                                        <p className="text-xs text-muted-foreground mb-1">
-                                          Enum values:
-                                        </p>
-                                        <div className="flex flex-wrap gap-1">
-                                          {enumValues.map((enumValue: unknown, index: number) => (
-                                            <Badge
-                                              key={index}
-                                              variant="outline"
-                                              className="text-xs"
-                                            >
-                                              {String(enumValue)}
-                                            </Badge>
-                                          ))}
-                                        </div>
+                                  return (
+                                    <div key={key} className="space-y-2">
+                                      <div className="flex items-center justify-between p-2 border rounded">
+                                        <span className="font-mono text-sm">
+                                          {key}
+                                        </span>
+                                        <Badge
+                                          variant="secondary"
+                                          className="text-xs"
+                                        >
+                                          {displayType}
+                                        </Badge>
                                       </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
+                                      {isEnum && enumValues.length > 0 && (
+                                        <div className="ml-4 p-2 bg-muted/50 rounded">
+                                          <p className="text-xs text-muted-foreground mb-1">
+                                            Enum values:
+                                          </p>
+                                          <div className="flex flex-wrap gap-1">
+                                            {enumValues.map(
+                                              (
+                                                enumValue: unknown,
+                                                index: number,
+                                              ) => (
+                                                <Badge
+                                                  key={index}
+                                                  variant="outline"
+                                                  className="text-xs"
+                                                >
+                                                  {String(enumValue)}
+                                                </Badge>
+                                              ),
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                },
+                              )}
                             </div>
                           </div>
                         )}
 
                         {/* Required Fields */}
-                        {schema.content.required && Array.isArray(schema.content.required) && (
-                          <div>
-                            <h4 className="font-medium mb-2">Required Fields</h4>
-                            <div className="flex flex-wrap gap-1">
-                              {(schema.content.required as string[]).map((field) => (
-                                <Badge key={field} variant="destructive" className="text-xs">
-                                  {field}
-                                </Badge>
-                              ))}
+                        {schema.content.required &&
+                          Array.isArray(schema.content.required) && (
+                            <div>
+                              <h4 className="font-medium mb-2">
+                                Required Fields
+                              </h4>
+                              <div className="flex flex-wrap gap-1">
+                                {(schema.content.required as string[]).map(
+                                  (field) => (
+                                    <Badge
+                                      key={field}
+                                      variant="destructive"
+                                      className="text-xs"
+                                    >
+                                      {field}
+                                    </Badge>
+                                  ),
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
 
                         <Separator />
 
@@ -475,7 +534,9 @@ export function SchemaDetailModal({
                                   onClick={() => handleReferenceClick(ref)}
                                 >
                                   <FileText className="w-4 h-4 text-muted-foreground" />
-                                  <span className="text-sm">{ref.schemaName}</span>
+                                  <span className="text-sm">
+                                    {ref.schemaName}
+                                  </span>
                                 </div>
                               ))}
                             </div>
@@ -491,7 +552,9 @@ export function SchemaDetailModal({
                                 <div
                                   key={schema.id}
                                   className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-accent"
-                                  onClick={() => navigateToSchema(schema, 'overview')}
+                                  onClick={() =>
+                                    navigateToSchema(schema, 'overview')
+                                  }
                                 >
                                   <FileText className="w-4 h-4 text-muted-foreground" />
                                   <span className="text-sm">
@@ -503,9 +566,12 @@ export function SchemaDetailModal({
                           </div>
                         )}
 
-                        {references.length === 0 && referencedBy.length === 0 && (
-                          <div className="text-sm text-muted-foreground">No references found</div>
-                        )}
+                        {references.length === 0 &&
+                          referencedBy.length === 0 && (
+                            <div className="text-sm text-muted-foreground">
+                              No references found
+                            </div>
+                          )}
                       </div>
                     </CardContent>
                   </Card>
@@ -523,7 +589,9 @@ export function SchemaDetailModal({
                       <div className="space-y-4">
                         <div className="flex items-center gap-2">
                           {validationStatus.icon}
-                          <span className="font-medium">{validationStatus.text}</span>
+                          <span className="font-medium">
+                            {validationStatus.text}
+                          </span>
                         </div>
 
                         {/* Show actual validation errors */}
@@ -531,7 +599,9 @@ export function SchemaDetailModal({
                           schema.validationErrors &&
                           schema.validationErrors.length > 0 && (
                             <div className="mt-4 space-y-2">
-                              <h4 className="font-medium text-destructive">Validation Errors:</h4>
+                              <h4 className="font-medium text-destructive">
+                                Validation Errors:
+                              </h4>
                               {schema.validationErrors.map((error, index) => (
                                 <div
                                   key={index}
@@ -542,7 +612,9 @@ export function SchemaDetailModal({
                                       ? `Path: ${error.instancePath}`
                                       : 'Schema Error'}
                                   </p>
-                                  <p className="text-sm text-destructive mt-1">{error.message}</p>
+                                  <p className="text-sm text-destructive mt-1">
+                                    {error.message}
+                                  </p>
                                   {error.keyword && (
                                     <p className="text-xs text-muted-foreground mt-1">
                                       Keyword: {error.keyword}
@@ -555,11 +627,12 @@ export function SchemaDetailModal({
 
                         {/* Fallback for invalid schemas without specific errors */}
                         {schema.validationStatus === 'invalid' &&
-                          (!schema.validationErrors || schema.validationErrors.length === 0) && (
+                          (!schema.validationErrors ||
+                            schema.validationErrors.length === 0) && (
                             <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded">
                               <p className="text-sm text-destructive">
-                                This schema contains validation errors. Check the schema content for
-                                issues.
+                                This schema contains validation errors. Check
+                                the schema content for issues.
                               </p>
                             </div>
                           )}

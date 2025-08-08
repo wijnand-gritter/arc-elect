@@ -11,12 +11,24 @@
  */
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ModeToggle } from '@/components/ModeToggle';
 import { Button } from '@/components/ui/button';
-import { Settings as SettingsIcon, Palette, Monitor, Keyboard, Type } from 'lucide-react';
+import {
+  Settings as SettingsIcon,
+  Palette,
+  Monitor,
+  Keyboard,
+  Type,
+} from 'lucide-react';
 
 /**
  * Settings page component.
@@ -32,32 +44,41 @@ export default function Settings() {
   const fonts = [
     {
       name: 'JetBrains Mono',
-      family: '"JetBrains Mono", "Fira Code", "Consolas", "Courier New", monospace',
-      description: 'Modern programming font with ligatures and excellent readability',
+      family:
+        '"JetBrains Mono", "Fira Code", "Consolas", "Courier New", monospace',
+      description:
+        'Modern programming font with ligatures and excellent readability',
       sample: 'const example = () => { return "Hello World"; }',
     },
     {
       name: 'Fira Code',
-      family: '"Fira Code", "JetBrains Mono", "Consolas", "Courier New", monospace',
-      description: 'Free programming font with ligatures and good character distinction',
+      family:
+        '"Fira Code", "JetBrains Mono", "Consolas", "Courier New", monospace',
+      description:
+        'Free programming font with ligatures and good character distinction',
       sample: 'const example = () => { return "Hello World"; }',
     },
     {
       name: 'Source Code Pro',
-      family: '"Source Code Pro", "JetBrains Mono", "Consolas", "Courier New", monospace',
-      description: "Adobe's open-source monospace font with excellent legibility",
+      family:
+        '"Source Code Pro", "JetBrains Mono", "Consolas", "Courier New", monospace',
+      description:
+        "Adobe's open-source monospace font with excellent legibility",
       sample: 'const example = () => { return "Hello World"; }',
     },
     {
       name: 'Roboto Mono',
-      family: '"Roboto Mono", "JetBrains Mono", "Consolas", "Courier New", monospace',
+      family:
+        '"Roboto Mono", "JetBrains Mono", "Consolas", "Courier New", monospace',
       description: "Google's monospace font with clean, modern design",
       sample: 'const example = () => { return "Hello World"; }',
     },
     {
       name: 'IBM Plex Mono',
-      family: '"IBM Plex Mono", "JetBrains Mono", "Consolas", "Courier New", monospace',
-      description: "IBM's open-source monospace font with excellent readability",
+      family:
+        '"IBM Plex Mono", "JetBrains Mono", "Consolas", "Courier New", monospace',
+      description:
+        "IBM's open-source monospace font with excellent readability",
       sample: 'const example = () => { return "Hello World"; }',
     },
   ];
@@ -82,7 +103,9 @@ export default function Settings() {
               <Palette className="h-5 w-5" />
               Theme
             </CardTitle>
-            <CardDescription>Customize the appearance of the application.</CardDescription>
+            <CardDescription>
+              Customize the appearance of the application.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
@@ -104,7 +127,9 @@ export default function Settings() {
               <Monitor className="h-5 w-5" />
               Display
             </CardTitle>
-            <CardDescription>Configure display and interface settings.</CardDescription>
+            <CardDescription>
+              Configure display and interface settings.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
@@ -120,7 +145,9 @@ export default function Settings() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium">Line Height</p>
-                <p className="text-sm text-muted-foreground">Control the spacing between lines.</p>
+                <p className="text-sm text-muted-foreground">
+                  Control the spacing between lines.
+                </p>
               </div>
               <Badge variant="secondary">1.5</Badge>
             </div>
@@ -134,7 +161,9 @@ export default function Settings() {
               <Keyboard className="h-5 w-5" />
               Keyboard Shortcuts
             </CardTitle>
-            <CardDescription>View and customize keyboard shortcuts.</CardDescription>
+            <CardDescription>
+              View and customize keyboard shortcuts.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -168,7 +197,9 @@ export default function Settings() {
               <SettingsIcon className="h-5 w-5" />
               Editor
             </CardTitle>
-            <CardDescription>Configure editor behavior and features.</CardDescription>
+            <CardDescription>
+              Configure editor behavior and features.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -201,7 +232,8 @@ export default function Settings() {
             Font Comparison
           </CardTitle>
           <CardDescription>
-            Compare different programming fonts. All fonts shown are free and open-source.
+            Compare different programming fonts. All fonts shown are free and
+            open-source.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -211,17 +243,29 @@ export default function Settings() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-semibold">{font.name}</h3>
-                    <p className="text-sm text-muted-foreground">{font.description}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {font.description}
+                    </p>
                   </div>
                   <Badge variant="outline">Free & Open Source</Badge>
                 </div>
-                <div className="p-4 bg-muted rounded-lg border" style={{ fontFamily: font.family }}>
-                  <div className="text-sm text-muted-foreground mb-2">Sample Code:</div>
+                <div
+                  className="p-4 bg-muted rounded-lg border"
+                  style={{ fontFamily: font.family }}
+                >
+                  <div className="text-sm text-muted-foreground mb-2">
+                    Sample Code:
+                  </div>
                   <div className="text-sm leading-relaxed">{font.sample}</div>
                   <div className="text-sm text-muted-foreground mt-2">
                     <span className="font-mono">0123456789</span> •
-                    <span className="font-mono">ABCDEFGHIJKLMNOPQRSTUVWXYZ</span> •
-                    <span className="font-mono">abcdefghijklmnopqrstuvwxyz</span>
+                    <span className="font-mono">
+                      ABCDEFGHIJKLMNOPQRSTUVWXYZ
+                    </span>{' '}
+                    •
+                    <span className="font-mono">
+                      abcdefghijklmnopqrstuvwxyz
+                    </span>
                   </div>
                 </div>
                 {index < fonts.length - 1 && <Separator />}

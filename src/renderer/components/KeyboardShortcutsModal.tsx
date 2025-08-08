@@ -10,12 +10,25 @@
  */
 
 import React, { useMemo } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from './ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Keyboard, Navigation, Search, Edit, FolderOpen, Settings } from 'lucide-react';
+import {
+  Keyboard,
+  Navigation,
+  Search,
+  Edit,
+  FolderOpen,
+  Settings,
+} from 'lucide-react';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 
 /**
@@ -145,29 +158,50 @@ export function KeyboardShortcutsModal({
   /**
    * Get category order for consistent display.
    */
-  const categoryOrder = ['navigation', 'search', 'editor', 'project', 'general'];
-  const sortedCategories = categoryOrder.filter((cat) => shortcutsByCategory[cat]);
+  const categoryOrder = [
+    'navigation',
+    'search',
+    'editor',
+    'project',
+    'general',
+  ];
+  const sortedCategories = categoryOrder.filter(
+    (cat) => shortcutsByCategory[cat],
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent size="lg" layout="flex" className="max-h-[90vh] overflow-hidden w-[800px]">
+      <DialogContent
+        size="lg"
+        layout="flex"
+        className="max-h-[90vh] overflow-hidden w-[800px]"
+      >
         <DialogHeader className="flex-shrink-0 pb-4">
           <DialogTitle className="flex items-center space-x-2">
             <Keyboard className="h-5 w-5" />
             <span>Keyboard Shortcuts</span>
           </DialogTitle>
           <DialogDescription>
-            Use these shortcuts to navigate, search, edit, and manage your JSON Schema.
+            Use these shortcuts to navigate, search, edit, and manage your JSON
+            Schema.
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 min-h-0">
-          <Tabs defaultValue={sortedCategories[0]} className="h-full flex flex-col">
+          <Tabs
+            defaultValue={sortedCategories[0]}
+            className="h-full flex flex-col"
+          >
             <TabsList className="grid w-full grid-cols-5 mb-4">
               {sortedCategories.map((category) => {
-                const Icon = categoryIcons[category as keyof typeof categoryIcons];
+                const Icon =
+                  categoryIcons[category as keyof typeof categoryIcons];
                 return (
-                  <TabsTrigger key={category} value={category} className="flex items-center gap-2">
+                  <TabsTrigger
+                    key={category}
+                    value={category}
+                    className="flex items-center gap-2"
+                  >
                     <Icon className="h-4 w-4" />
                     <span className="capitalize">{category}</span>
                   </TabsTrigger>
@@ -180,12 +214,18 @@ export function KeyboardShortcutsModal({
                 {sortedCategories.map((category) => {
                   const shortcuts = shortcutsByCategory[category];
                   return (
-                    <TabsContent key={category} value={category} className="h-full mt-0">
+                    <TabsContent
+                      key={category}
+                      value={category}
+                      className="h-full mt-0"
+                    >
                       <Card className="h-full">
                         <CardHeader className="pb-3">
                           <CardTitle className="flex items-center space-x-2">
                             {React.createElement(
-                              categoryIcons[category as keyof typeof categoryIcons],
+                              categoryIcons[
+                                category as keyof typeof categoryIcons
+                              ],
                               {
                                 className: 'h-5 w-5 text-primary',
                               },
@@ -201,7 +241,9 @@ export function KeyboardShortcutsModal({
                                 className="flex items-center justify-between py-2 px-2 rounded-md hover:bg-muted/50 transition-colors"
                               >
                                 <div className="flex-1">
-                                  <p className="text-sm font-medium">{shortcut.description}</p>
+                                  <p className="text-sm font-medium">
+                                    {shortcut.description}
+                                  </p>
                                 </div>
                                 <Badge
                                   variant="outline"
@@ -213,7 +255,9 @@ export function KeyboardShortcutsModal({
                             ))
                           ) : (
                             <div className="flex items-center justify-center h-full text-muted-foreground">
-                              <p className="text-sm">No shortcuts available for this category.</p>
+                              <p className="text-sm">
+                                No shortcuts available for this category.
+                              </p>
                             </div>
                           )}
                         </CardContent>

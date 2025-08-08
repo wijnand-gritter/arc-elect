@@ -29,7 +29,12 @@ function checkImageMagick() {
 
 // Create directories if they don't exist
 function ensureDirectories() {
-  const dirs = ['build/icons', 'build/icons/mac', 'build/icons/win', 'build/icons/linux'];
+  const dirs = [
+    'build/icons',
+    'build/icons/mac',
+    'build/icons/win',
+    'build/icons/linux',
+  ];
 
   dirs.forEach((dir) => {
     if (!fs.existsSync(dir)) {
@@ -154,7 +159,9 @@ function main() {
   }
 
   if (!fs.existsSync('src/assets/arc-elect-icon-white-bg.png')) {
-    console.error('❌ Source icon not found: src/assets/arc-elect-icon-white-bg.png');
+    console.error(
+      '❌ Source icon not found: src/assets/arc-elect-icon-white-bg.png',
+    );
     process.exit(1);
   }
 

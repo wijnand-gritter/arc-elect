@@ -37,5 +37,8 @@ JSX element representing the navigation bar
 ## Example
 
 ```tsx
-<TopNavigationBar logo={{ title: 'My App', url: '#', src: '', alt: 'logo' }} menu={customMenu} />
+<TopNavigationBar
+  logo={{ title: 'My App', url: '#', src: '', alt: 'logo' }}
+  menu={customMenu}
+/>
 ```

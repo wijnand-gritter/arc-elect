@@ -77,7 +77,8 @@ contextBridge.exposeInMainWorld('api', {
    * @param data - Data to write to the file
    * @returns Promise resolving to success status or error
    */
-  writeFile: (filePath: string, data: string) => ipcRenderer.invoke('file:write', filePath, data),
+  writeFile: (filePath: string, data: string) =>
+    ipcRenderer.invoke('file:write', filePath, data),
 
   /**
    * Creates a new schema file from a template.
@@ -88,8 +89,10 @@ contextBridge.exposeInMainWorld('api', {
    */
   createSchema: (filePath: string, templateType?: string) =>
     ipcRenderer.invoke('file:createSchema', filePath, templateType),
-  createFolder: (folderPath: string) => ipcRenderer.invoke('file:createFolder', folderPath),
-  rename: (oldPath: string, newPath: string) => ipcRenderer.invoke('file:rename', oldPath, newPath),
+  createFolder: (folderPath: string) =>
+    ipcRenderer.invoke('file:createFolder', folderPath),
+  rename: (oldPath: string, newPath: string) =>
+    ipcRenderer.invoke('file:rename', oldPath, newPath),
   delete: (filePath: string) => ipcRenderer.invoke('file:delete', filePath),
 
   // Settings API
@@ -107,7 +110,8 @@ contextBridge.exposeInMainWorld('api', {
    * @param theme - The theme to set ('light', 'dark', or 'system')
    * @returns Promise resolving to success status or error
    */
-  setTheme: (theme: 'light' | 'dark' | 'system') => ipcRenderer.invoke('settings:setTheme', theme),
+  setTheme: (theme: 'light' | 'dark' | 'system') =>
+    ipcRenderer.invoke('settings:setTheme', theme),
 
   /**
    * Clears all application settings and data.
@@ -139,7 +143,8 @@ contextBridge.exposeInMainWorld('api', {
    * @param config - Project configuration
    * @returns Promise resolving to created project or error
    */
-  createProject: (config: unknown) => ipcRenderer.invoke('project:create', config),
+  createProject: (config: unknown) =>
+    ipcRenderer.invoke('project:create', config),
 
   /**
    * Loads a project from the specified path.
@@ -147,7 +152,8 @@ contextBridge.exposeInMainWorld('api', {
    * @param projectPath - Path to the project directory
    * @returns Promise resolving to loaded project or error
    */
-  loadProject: (projectPath: string) => ipcRenderer.invoke('project:load', projectPath),
+  loadProject: (projectPath: string) =>
+    ipcRenderer.invoke('project:load', projectPath),
 
   /**
    * Saves project configuration and state.
@@ -155,7 +161,8 @@ contextBridge.exposeInMainWorld('api', {
    * @param project - Project to save
    * @returns Promise resolving to success status or error
    */
-  saveProject: (project: unknown) => ipcRenderer.invoke('project:save', project),
+  saveProject: (project: unknown) =>
+    ipcRenderer.invoke('project:save', project),
 
   /**
    * Gets a list of recently opened projects.
@@ -170,7 +177,8 @@ contextBridge.exposeInMainWorld('api', {
    * @param projectId - ID of the project to delete
    * @returns Promise resolving to success status or error
    */
-  deleteProject: (projectId: string) => ipcRenderer.invoke('project:delete', projectId),
+  deleteProject: (projectId: string) =>
+    ipcRenderer.invoke('project:delete', projectId),
 
   // File System Operations API
 
@@ -190,7 +198,8 @@ contextBridge.exposeInMainWorld('api', {
    * @param filePath - Path to the schema file
    * @returns Promise resolving to parsed schema or error
    */
-  readSchema: (filePath: string) => ipcRenderer.invoke('fs:readSchema', filePath),
+  readSchema: (filePath: string) =>
+    ipcRenderer.invoke('fs:readSchema', filePath),
 
   /**
    * Validates a JSON schema file.
@@ -198,7 +207,8 @@ contextBridge.exposeInMainWorld('api', {
    * @param filePath - Path to the schema file
    * @returns Promise resolving to validation result or error
    */
-  validateSchema: (filePath: string) => ipcRenderer.invoke('fs:validate', filePath),
+  validateSchema: (filePath: string) =>
+    ipcRenderer.invoke('fs:validate', filePath),
 
   // Dialog Operations API
 
@@ -219,7 +229,8 @@ contextBridge.exposeInMainWorld('api', {
    * @param directoryPath - Path to directory to scan
    * @returns Promise resolving to RAML file information or error
    */
-  scanRamlFiles: (directoryPath: string) => ipcRenderer.invoke('raml:scan', directoryPath),
+  scanRamlFiles: (directoryPath: string) =>
+    ipcRenderer.invoke('raml:scan', directoryPath),
 
   /**
    * Converts a single RAML file to JSON Schema.
@@ -268,7 +279,8 @@ contextBridge.exposeInMainWorld('api', {
    * @param title - Dialog title
    * @returns Promise resolving to selected folder path or error
    */
-  selectFolder: (title: string) => ipcRenderer.invoke('dialog:selectFolder', title),
+  selectFolder: (title: string) =>
+    ipcRenderer.invoke('dialog:selectFolder', title),
 
   /**
    * Selects a destination folder using the system dialog (allows creating new folders).
@@ -285,5 +297,6 @@ contextBridge.exposeInMainWorld('api', {
    * @param dirPath - Path to the directory to create
    * @returns Promise resolving to success status or error
    */
-  createDirectory: (dirPath: string) => ipcRenderer.invoke('fs:createDirectory', dirPath),
+  createDirectory: (dirPath: string) =>
+    ipcRenderer.invoke('fs:createDirectory', dirPath),
 });

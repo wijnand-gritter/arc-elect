@@ -324,7 +324,12 @@ export interface SchemaViewConfig {
 /**
  * Available sort fields for schemas.
  */
-export type SortField = 'name' | 'title' | 'lastModified' | 'fileSize' | 'validationStatus';
+export type SortField =
+  | 'name'
+  | 'title'
+  | 'lastModified'
+  | 'fileSize'
+  | 'validationStatus';
 
 /**
  * Filters for schema display.

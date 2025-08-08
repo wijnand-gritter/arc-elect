@@ -36,7 +36,11 @@ interface ArcElectLogoProps {
  * <ArcElectLogo className="h-8 w-auto" />
  * ```
  */
-const ArcElectLogo: React.FC<ArcElectLogoProps> = ({ className = '', width, height }) => {
+const ArcElectLogo: React.FC<ArcElectLogoProps> = ({
+  className = '',
+  width,
+  height,
+}) => {
   return (
     <svg
       viewBox="0 0 600 150"

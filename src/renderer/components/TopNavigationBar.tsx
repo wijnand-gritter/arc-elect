@@ -10,10 +10,23 @@
  * @version 1.0.0
  */
 
-import { Menu, FolderOpen, Search, Edit, Settings, BarChart3, HelpCircle } from 'lucide-react';
+import {
+  Menu,
+  FolderOpen,
+  Search,
+  Edit,
+  Settings,
+  BarChart3,
+  HelpCircle,
+} from 'lucide-react';
 import { ArcElectLogo } from './ui/arc-elect-logo';
 
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from './ui/accordion';
 import { Button } from './ui/button';
 import {
   NavigationMenu,
@@ -24,7 +37,13 @@ import {
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from './ui/navigation-menu';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from './ui/sheet';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 import { useAppStore } from '../stores/useAppStore';
@@ -169,7 +188,9 @@ const TopNavigationBar = ({
    *
    * @param page - The page to navigate to
    */
-  const handlePageChange = (page: 'project' | 'explore' | 'build' | 'settings' | 'analytics') => {
+  const handlePageChange = (
+    page: 'project' | 'explore' | 'build' | 'settings' | 'analytics',
+  ) => {
     setPage(page);
   };
 
@@ -189,7 +210,9 @@ const TopNavigationBar = ({
             <div className="flex items-center">
               <NavigationMenu>
                 <NavigationMenuList>
-                  {menu.map((item) => renderMenuItem(item, currentPage, handlePageChange))}
+                  {menu.map((item) =>
+                    renderMenuItem(item, currentPage, handlePageChange),
+                  )}
                 </NavigationMenuList>
               </NavigationMenu>
             </div>
@@ -260,7 +283,9 @@ const TopNavigationBar = ({
               </SheetHeader>
               <div className="mt-6">
                 <Accordion type="single" collapsible>
-                  {menu.map((item) => renderMobileMenuItem(item, currentPage, handlePageChange))}
+                  {menu.map((item) =>
+                    renderMobileMenuItem(item, currentPage, handlePageChange),
+                  )}
                 </Accordion>
               </div>
             </SheetContent>
@@ -282,7 +307,9 @@ const TopNavigationBar = ({
 const renderMenuItem = (
   item: MenuItem,
   currentPage: string,
-  handlePageChange: (page: 'project' | 'explore' | 'build' | 'settings' | 'analytics') => void,
+  handlePageChange: (
+    page: 'project' | 'explore' | 'build' | 'settings' | 'analytics',
+  ) => void,
 ) => {
   if (item.items) {
     return (
@@ -299,7 +326,9 @@ const renderMenuItem = (
               <li key={subItem.title}>
                 <NavigationMenuLink asChild>
                   <button
-                    onClick={() => subItem.page && handlePageChange(subItem.page)}
+                    onClick={() =>
+                      subItem.page && handlePageChange(subItem.page)
+                    }
                     className="flex flex-row items-center gap-2 w-full text-left hover:bg-accent hover:text-accent-foreground rounded-md p-2 transition-colors text-sm font-medium"
                   >
                     {subItem.icon}
@@ -342,7 +371,9 @@ const renderMenuItem = (
 const renderMobileMenuItem = (
   item: MenuItem,
   currentPage: string,
-  handlePageChange: (page: 'project' | 'explore' | 'build' | 'settings' | 'analytics') => void,
+  handlePageChange: (
+    page: 'project' | 'explore' | 'build' | 'settings' | 'analytics',
+  ) => void,
 ) => {
   if (item.items) {
     return (

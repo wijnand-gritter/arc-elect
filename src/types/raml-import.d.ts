@@ -90,7 +90,12 @@ export interface ImportWarning {
   /** Warning message */
   message: string;
   /** Warning type */
-  type: 'deprecation' | 'compatibility' | 'performance' | 'best-practice' | 'validation';
+  type:
+    | 'deprecation'
+    | 'compatibility'
+    | 'performance'
+    | 'best-practice'
+    | 'validation';
   /** Suggestion for resolving the warning */
   suggestion?: string;
 }

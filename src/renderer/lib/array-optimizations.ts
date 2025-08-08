@@ -21,13 +21,21 @@ import logger from './renderer-logger';
 const performanceMetrics = {
   operations: 0,
   totalTime: 0,
-  slowOperations: [] as Array<{ operation: string; duration: number; size: number }>,
+  slowOperations: [] as Array<{
+    operation: string;
+    duration: number;
+    size: number;
+  }>,
 };
 
 /**
  * Wraps an array operation with performance monitoring.
  */
-function withPerformanceMonitoring<T>(operation: string, fn: () => T, arraySize: number): T {
+function withPerformanceMonitoring<T>(
+  operation: string,
+  fn: () => T,
+  arraySize: number,
+): T {
   const startTime = performance.now();
   const result = fn();
   const duration = performance.now() - startTime;
@@ -115,7 +123,9 @@ export function optimizedMap<T, U>(
       if (array.length > chunkSize) {
         for (let i = 0; i < array.length; i += chunkSize) {
           const chunk = array.slice(i, i + chunkSize);
-          const mappedChunk = chunk.map((item, index) => mapper(item, i + index));
+          const mappedChunk = chunk.map((item, index) =>
+            mapper(item, i + index),
+          );
           result.push(...mappedChunk);
         }
       } else {
@@ -135,7 +145,10 @@ export function optimizedMap<T, U>(
  * @param compareFn - Comparison function
  * @returns Sorted array
  */
-export function optimizedSort<T>(array: T[], compareFn?: (a: T, b: T) => number): T[] {
+export function optimizedSort<T>(
+  array: T[],
+  compareFn?: (a: T, b: T) => number,
+): T[] {
   return withPerformanceMonitoring(
     'sort',
     () => {
@@ -160,7 +173,10 @@ export function optimizedSort<T>(array: T[], compareFn?: (a: T, b: T) => number)
  * @param keyFn - Function to extract key for comparison
  * @returns Deduplicated array
  */
-export function optimizedDeduplicate<T>(array: T[], keyFn?: (item: T) => string | number): T[] {
+export function optimizedDeduplicate<T>(
+  array: T[],
+  keyFn?: (item: T) => string | number,
+): T[] {
   return withPerformanceMonitoring(
     'deduplicate',
     () => {
@@ -289,11 +305,15 @@ export function optimizedSchemaFilter(
   return withPerformanceMonitoring(
     'schemaFilter',
     () => {
-      const { searchQuery, status, type, showValid, showInvalid, showError } = filters;
+      const { searchQuery, status, type, showValid, showInvalid, showError } =
+        filters;
 
       return schemas.filter((schema) => {
         // Search query filter
-        if (searchQuery && !schema.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+        if (
+          searchQuery &&
+          !schema.name.toLowerCase().includes(searchQuery.toLowerCase())
+        ) {
           return false;
         }
 
@@ -360,14 +380,18 @@ export function optimizedSchemaSort(
             comparison = a.name.localeCompare(b.name);
             break;
           case 'size':
-            comparison = (a.metadata.fileSize || 0) - (b.metadata.fileSize || 0);
+            comparison =
+              (a.metadata.fileSize || 0) - (b.metadata.fileSize || 0);
             break;
           case 'modified':
             comparison =
-              (a.metadata.lastModified?.getTime() || 0) - (b.metadata.lastModified?.getTime() || 0);
+              (a.metadata.lastModified?.getTime() || 0) -
+              (b.metadata.lastModified?.getTime() || 0);
             break;
           case 'status':
-            comparison = (a.metadata.status || '').localeCompare(b.metadata.status || '');
+            comparison = (a.metadata.status || '').localeCompare(
+              b.metadata.status || '',
+            );
             break;
         }
 
@@ -417,7 +441,9 @@ export function optimizedSchemaSearch(
           score += 30;
         }
         // Description contains query
-        else if (schema.metadata.description?.toLowerCase().includes(queryLower)) {
+        else if (
+          schema.metadata.description?.toLowerCase().includes(queryLower)
+        ) {
           score += 10;
         }
 

@@ -13,8 +13,20 @@ import React, { useState, useCallback } from 'react';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '../ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select';
 import { ScrollArea } from '../ui/scroll-area';
 import { Search, Filter, X, Save, Clock, Trash2, Bookmark } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
@@ -203,7 +215,9 @@ export function SchemaSearch({
               <Filter className="w-5 h-5" />
               Advanced Filters
             </CardTitle>
-            <CardDescription>Refine your search with specific criteria</CardDescription>
+            <CardDescription>
+              Refine your search with specific criteria
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -230,7 +244,10 @@ export function SchemaSearch({
               {/* Sort By */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Sort By</label>
-                <Select value={searchFilters.sortBy} onValueChange={handleSortByChange}>
+                <Select
+                  value={searchFilters.sortBy}
+                  onValueChange={handleSortByChange}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -238,7 +255,9 @@ export function SchemaSearch({
                     <SelectItem value="name">Name</SelectItem>
                     <SelectItem value="lastModified">Last Modified</SelectItem>
                     <SelectItem value="fileSize">File Size</SelectItem>
-                    <SelectItem value="validationStatus">Validation Status</SelectItem>
+                    <SelectItem value="validationStatus">
+                      Validation Status
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -301,7 +320,9 @@ export function SchemaSearch({
                         >
                           <div className="flex items-center gap-2">
                             <Bookmark className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm font-medium">{search.name}</span>
+                            <span className="text-sm font-medium">
+                              {search.name}
+                            </span>
                             <Badge variant="outline" className="text-xs">
                               {search.query || 'No query'}
                             </Badge>

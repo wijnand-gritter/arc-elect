@@ -162,7 +162,9 @@ export class AnalyticsService {
     this.isAnalyzing = true;
 
     try {
-      logger.info('Analytics: Starting schema analysis', { schemaCount: schemas.length });
+      logger.info('Analytics: Starting schema analysis', {
+        schemaCount: schemas.length,
+      });
 
       // Perform analysis
       const circularReferences = this.detectCircularReferences(schemas);
@@ -236,7 +238,9 @@ export class AnalyticsService {
         normalizedCycle.pop(); // Remove the duplicate at the end
 
         // Find the lexicographically smallest ID to use as the starting point
-        const minId = normalizedCycle.reduce((min, current) => (current < min ? current : min));
+        const minId = normalizedCycle.reduce((min, current) =>
+          current < min ? current : min,
+        );
         const minIndex = normalizedCycle.indexOf(minId);
         const rotatedCycle = [
           ...normalizedCycle.slice(minIndex),
@@ -287,9 +291,16 @@ export class AnalyticsService {
         });
 
         for (const ref of schema.references) {
-          const referencedSchema = schemas.find((s) => s.name === ref.schemaName);
+          const referencedSchema = schemas.find(
+            (s) => s.name === ref.schemaName,
+          );
           if (referencedSchema) {
-            dfs(referencedSchema.id, [...path, schemaId], visited, recursionStack);
+            dfs(
+              referencedSchema.id,
+              [...path, schemaId],
+              visited,
+              recursionStack,
+            );
           } else {
             logger.debug('Referenced schema not found', {
               referenceName: ref.schemaName,
@@ -326,7 +337,9 @@ export class AnalyticsService {
   /**
    * Calculates complexity metrics for each schema.
    */
-  public calculateComplexityMetrics(schemas: Schema[]): Map<string, ComplexityMetrics> {
+  public calculateComplexityMetrics(
+    schemas: Schema[],
+  ): Map<string, ComplexityMetrics> {
     const metrics = new Map<string, ComplexityMetrics>();
 
     for (const schema of schemas) {
@@ -355,7 +368,10 @@ export class AnalyticsService {
     const complexityScore = Math.min(
       100,
       Math.round(
-        propertyCount * 0.3 + maxDepth * 5 + referenceCount * 2 + (sizeBytes / 1000) * 0.1,
+        propertyCount * 0.3 +
+          maxDepth * 5 +
+          referenceCount * 2 +
+          (sizeBytes / 1000) * 0.1,
       ),
     );
 
@@ -397,7 +413,10 @@ export class AnalyticsService {
             type: ref.$ref.startsWith('#/') ? 'nested' : 'direct',
           });
 
-          inDegreeMap.set(targetSchema.id, (inDegreeMap.get(targetSchema.id) || 0) + 1);
+          inDegreeMap.set(
+            targetSchema.id,
+            (inDegreeMap.get(targetSchema.id) || 0) + 1,
+          );
         }
       }
     }
@@ -449,10 +468,13 @@ export class AnalyticsService {
     const totalSchemas = schemas.length;
 
     // Calculate average complexity
-    const complexityScores = Array.from(complexityMetrics.values()).map((m) => m.complexityScore);
+    const complexityScores = Array.from(complexityMetrics.values()).map(
+      (m) => m.complexityScore,
+    );
     const averageComplexity =
       complexityScores.length > 0
-        ? complexityScores.reduce((sum, score) => sum + score, 0) / complexityScores.length
+        ? complexityScores.reduce((sum, score) => sum + score, 0) /
+          complexityScores.length
         : 0;
 
     // Find most complex schema
@@ -471,7 +493,10 @@ export class AnalyticsService {
       for (const ref of schema.references) {
         const targetSchema = schemas.find((s) => s.name === ref.schemaName);
         if (targetSchema) {
-          referenceCounts.set(targetSchema.name, (referenceCounts.get(targetSchema.name) || 0) + 1);
+          referenceCounts.set(
+            targetSchema.name,
+            (referenceCounts.get(targetSchema.name) || 0) + 1,
+          );
         }
       }
     }
@@ -490,14 +515,16 @@ export class AnalyticsService {
       .filter(
         (schema) =>
           schema.references.length === 0 &&
-          !schemas.some((s) => s.references.some((ref) => ref.schemaName === schema.name)),
+          !schemas.some((s) =>
+            s.references.some((ref) => ref.schemaName === schema.name),
+          ),
       )
       .map((schema) => schema.name);
 
     // Find schemas involved in circular references
-    const circularSchemas = Array.from(new Set(circularReferences.flatMap((cr) => cr.path))).filter(
-      Boolean,
-    ); // Path now contains schema names directly
+    const circularSchemas = Array.from(
+      new Set(circularReferences.flatMap((cr) => cr.path)),
+    ).filter(Boolean); // Path now contains schema names directly
 
     return {
       totalSchemas,
@@ -542,7 +569,9 @@ export class AnalyticsService {
     let count = 0;
 
     if (objRecord.properties && typeof objRecord.properties === 'object') {
-      for (const prop of Object.values(objRecord.properties as Record<string, unknown>)) {
+      for (const prop of Object.values(
+        objRecord.properties as Record<string, unknown>,
+      )) {
         count += this.countProperties(prop, visited);
       }
     }
@@ -551,14 +580,21 @@ export class AnalyticsService {
       count += this.countProperties(objRecord.items, visited);
     }
 
-    if (objRecord.additionalProperties && typeof objRecord.additionalProperties === 'object') {
+    if (
+      objRecord.additionalProperties &&
+      typeof objRecord.additionalProperties === 'object'
+    ) {
       count += this.countProperties(objRecord.additionalProperties, visited);
     }
 
     return count;
   }
 
-  private calculateMaxDepth(obj: unknown, currentDepth = 0, visited = new Set()): number {
+  private calculateMaxDepth(
+    obj: unknown,
+    currentDepth = 0,
+    visited = new Set(),
+  ): number {
     if (typeof obj !== 'object' || obj === null || visited.has(obj)) {
       return currentDepth;
     }
@@ -568,8 +604,13 @@ export class AnalyticsService {
     let maxDepth = currentDepth;
 
     if (objRecord.properties && typeof objRecord.properties === 'object') {
-      for (const prop of Object.values(objRecord.properties as Record<string, unknown>)) {
-        maxDepth = Math.max(maxDepth, this.calculateMaxDepth(prop, currentDepth + 1, visited));
+      for (const prop of Object.values(
+        objRecord.properties as Record<string, unknown>,
+      )) {
+        maxDepth = Math.max(
+          maxDepth,
+          this.calculateMaxDepth(prop, currentDepth + 1, visited),
+        );
       }
     }
 
@@ -595,7 +636,9 @@ export class AnalyticsService {
     }
 
     if (objRecord.properties && typeof objRecord.properties === 'object') {
-      for (const prop of Object.values(objRecord.properties as Record<string, unknown>)) {
+      for (const prop of Object.values(
+        objRecord.properties as Record<string, unknown>,
+      )) {
         count += this.countRequiredProperties(prop);
       }
     }
@@ -603,7 +646,11 @@ export class AnalyticsService {
     return count;
   }
 
-  private calculateCentrality(nodeId: string, schemas: Schema[], edges: ReferenceEdge[]): number {
+  private calculateCentrality(
+    nodeId: string,
+    schemas: Schema[],
+    edges: ReferenceEdge[],
+  ): number {
     // Simple degree centrality calculation
     const inDegree = edges.filter((e) => e.target === nodeId).length;
     const outDegree = edges.filter((e) => e.source === nodeId).length;
@@ -613,7 +660,10 @@ export class AnalyticsService {
     return maxPossibleDegree > 0 ? totalDegree / maxPossibleDegree : 0;
   }
 
-  private countConnectedComponents(nodes: ReferenceNode[], edges: ReferenceEdge[]): number {
+  private countConnectedComponents(
+    nodes: ReferenceNode[],
+    edges: ReferenceEdge[],
+  ): number {
     const visited = new Set<string>();
     let components = 0;
 
@@ -622,7 +672,9 @@ export class AnalyticsService {
       visited.add(nodeId);
 
       // Find connected nodes
-      const connectedEdges = edges.filter((e) => e.source === nodeId || e.target === nodeId);
+      const connectedEdges = edges.filter(
+        (e) => e.source === nodeId || e.target === nodeId,
+      );
       for (const edge of connectedEdges) {
         const nextNode = edge.source === nodeId ? edge.target : edge.source;
         dfs(nextNode);

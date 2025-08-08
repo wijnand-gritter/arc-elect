@@ -13,7 +13,13 @@
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '../ui/card';
 import { Button } from '../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { ScrollArea } from '../ui/scroll-area';
@@ -118,7 +124,9 @@ class SampleDataGenerator {
 
   private static generateString(schema: JSONSchema): string {
     if (schema.enum) {
-      return String(schema.enum[Math.floor(Math.random() * schema.enum.length)]);
+      return String(
+        schema.enum[Math.floor(Math.random() * schema.enum.length)],
+      );
     }
     if (schema.format) {
       switch (schema.format) {
@@ -141,7 +149,9 @@ class SampleDataGenerator {
 
   private static generateNumber(schema: JSONSchema): number {
     if (schema.enum) {
-      return Number(schema.enum[Math.floor(Math.random() * schema.enum.length)]);
+      return Number(
+        schema.enum[Math.floor(Math.random() * schema.enum.length)],
+      );
     }
     const min = schema.minimum || 0;
     const max = schema.maximum || 100;
@@ -152,7 +162,8 @@ class SampleDataGenerator {
   private static generateArray(schema: JSONSchema, depth: number): unknown[] {
     const minItems = schema.minItems || 1;
     const maxItems = schema.maxItems || 3;
-    const length = Math.floor(Math.random() * (maxItems - minItems + 1)) + minItems;
+    const length =
+      Math.floor(Math.random() * (maxItems - minItems + 1)) + minItems;
 
     const items = [];
     if (schema.items) {
@@ -166,7 +177,10 @@ class SampleDataGenerator {
     return items;
   }
 
-  private static generateObject(schema: JSONSchema, depth: number): Record<string, unknown> {
+  private static generateObject(
+    schema: JSONSchema,
+    depth: number,
+  ): Record<string, unknown> {
     const obj: Record<string, unknown> = {};
 
     if (schema.properties) {
@@ -185,7 +199,10 @@ class SampleDataGenerator {
       // Add some optional properties (50% chance each)
       for (const [key, propSchema] of Object.entries(schema.properties)) {
         if (!required.includes(key) && Math.random() > 0.5) {
-          const value = this.generateSample(propSchema as JSONSchema, depth + 1);
+          const value = this.generateSample(
+            propSchema as JSONSchema,
+            depth + 1,
+          );
           if (value !== null) {
             obj[key] = value;
           }
@@ -200,7 +217,12 @@ class SampleDataGenerator {
 /**
  * Live Preview component.
  */
-export function LivePreview({ schemaContent, schemaName, isValid, errors = [] }: LivePreviewProps) {
+export function LivePreview({
+  schemaContent,
+  schemaName,
+  isValid,
+  errors = [],
+}: LivePreviewProps) {
   const [previewMode, setPreviewMode] = useState<PreviewMode>('example');
   const [sampleData, setSampleData] = useState<unknown>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -266,7 +288,10 @@ export function LivePreview({ schemaContent, schemaName, isValid, errors = [] }:
   );
 
   // Render schema structure
-  const renderSchemaStructure = (schema: JSONSchema, depth = 0): React.ReactNode => {
+  const renderSchemaStructure = (
+    schema: JSONSchema,
+    depth = 0,
+  ): React.ReactNode => {
     if (!schema || depth > 5) return null;
 
     const indent = '  '.repeat(depth);
@@ -278,18 +303,26 @@ export function LivePreview({ schemaContent, schemaName, isValid, errors = [] }:
             {indent}
             {'{'}
           </div>
-          {Object.entries(schema.properties).map(([key, prop]: [string, JSONSchema]) => (
-            <div key={key} className="ml-4">
-              <span className="text-blue-600">"{key}"</span>:
-              <span className="text-green-600 ml-1">{prop.type || 'any'}</span>
-              {prop.description && (
-                <span className="text-muted-foreground ml-2">// {prop.description}</span>
-              )}
-              {prop.type === 'object' && prop.properties && (
-                <div className="ml-4">{renderSchemaStructure(prop, depth + 1)}</div>
-              )}
-            </div>
-          ))}
+          {Object.entries(schema.properties).map(
+            ([key, prop]: [string, JSONSchema]) => (
+              <div key={key} className="ml-4">
+                <span className="text-blue-600">"{key}"</span>:
+                <span className="text-green-600 ml-1">
+                  {prop.type || 'any'}
+                </span>
+                {prop.description && (
+                  <span className="text-muted-foreground ml-2">
+                    // {prop.description}
+                  </span>
+                )}
+                {prop.type === 'object' && prop.properties && (
+                  <div className="ml-4">
+                    {renderSchemaStructure(prop, depth + 1)}
+                  </div>
+                )}
+              </div>
+            ),
+          )}
           <div>
             {indent}
             {'}'}
@@ -302,7 +335,9 @@ export function LivePreview({ schemaContent, schemaName, isValid, errors = [] }:
       return (
         <div className="font-mono text-sm">
           <div>{indent}[</div>
-          <div className="ml-4">{renderSchemaStructure(schema.items, depth + 1)}</div>
+          <div className="ml-4">
+            {renderSchemaStructure(schema.items, depth + 1)}
+          </div>
           <div>{indent}]</div>
         </div>
       );
@@ -319,13 +354,17 @@ export function LivePreview({ schemaContent, schemaName, isValid, errors = [] }:
             <AlertCircle className="w-4 h-4 text-destructive" />
             Preview Unavailable
           </CardTitle>
-          <CardDescription>Cannot preview schema due to validation errors</CardDescription>
+          <CardDescription>
+            Cannot preview schema due to validation errors
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
             {errors.map((error, index) => (
               <div key={index} className="text-sm text-destructive">
-                {error.line && error.column ? `Line ${error.line}, Column ${error.column}: ` : ''}
+                {error.line && error.column
+                  ? `Line ${error.line}, Column ${error.column}: `
+                  : ''}
                 {error.message}
               </div>
             ))}
@@ -367,7 +406,10 @@ export function LivePreview({ schemaContent, schemaName, isValid, errors = [] }:
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <Tabs value={previewMode} onValueChange={(value) => setPreviewMode(value as PreviewMode)}>
+        <Tabs
+          value={previewMode}
+          onValueChange={(value) => setPreviewMode(value as PreviewMode)}
+        >
           <div className="px-6 pb-3">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="example" className="text-xs">
@@ -401,7 +443,9 @@ export function LivePreview({ schemaContent, schemaName, isValid, errors = [] }:
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => copyToClipboard(JSON.stringify(sampleData, null, 2))}
+                      onClick={() =>
+                        copyToClipboard(JSON.stringify(sampleData, null, 2))
+                      }
                     >
                       <Copy className="w-3 h-3 mr-1" />
                       Copy
@@ -427,7 +471,9 @@ export function LivePreview({ schemaContent, schemaName, isValid, errors = [] }:
               ) : (
                 <div className="text-center py-8">
                   <FileText className="w-12 h-12 mx-auto text-muted-foreground opacity-50 mb-4" />
-                  <p className="text-sm text-muted-foreground mb-4">No sample data generated yet</p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    No sample data generated yet
+                  </p>
                   <Button onClick={generateSampleData} disabled={isGenerating}>
                     <Shuffle className="w-4 h-4 mr-2" />
                     Generate Sample Data
@@ -444,7 +490,9 @@ export function LivePreview({ schemaContent, schemaName, isValid, errors = [] }:
               ) : (
                 <div className="text-center py-8">
                   <AlertCircle className="w-12 h-12 mx-auto text-muted-foreground opacity-50 mb-4" />
-                  <p className="text-sm text-muted-foreground">Invalid schema structure</p>
+                  <p className="text-sm text-muted-foreground">
+                    Invalid schema structure
+                  </p>
                 </div>
               )}
             </TabsContent>
@@ -452,14 +500,18 @@ export function LivePreview({ schemaContent, schemaName, isValid, errors = [] }:
             <TabsContent value="form" className="mt-0">
               <div className="text-center py-8">
                 <Code className="w-12 h-12 mx-auto text-muted-foreground opacity-50 mb-4" />
-                <p className="text-sm text-muted-foreground">Form preview coming soon</p>
+                <p className="text-sm text-muted-foreground">
+                  Form preview coming soon
+                </p>
               </div>
             </TabsContent>
 
             <TabsContent value="tree" className="mt-0">
               <div className="text-center py-8">
                 <TreePine className="w-12 h-12 mx-auto text-muted-foreground opacity-50 mb-4" />
-                <p className="text-sm text-muted-foreground">Tree view coming soon</p>
+                <p className="text-sm text-muted-foreground">
+                  Tree view coming soon
+                </p>
               </div>
             </TabsContent>
           </ScrollArea>

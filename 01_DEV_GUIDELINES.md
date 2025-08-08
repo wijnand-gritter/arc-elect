@@ -132,7 +132,10 @@ This starter app is designed for rapid, robust Electron + React development, wit
   }
 
   // Write a file
-  const writeResult = await window.api.writeFile('/path/to/file.txt', 'Hello World');
+  const writeResult = await window.api.writeFile(
+    '/path/to/file.txt',
+    'Hello World',
+  );
   if (!writeResult.success) {
     // Show error notification
   }
@@ -371,7 +374,9 @@ With this navigation setup, adding or changing pages is simple, clear, and provi
      })}
    >
      <input {...form.register('name')} />
-     {form.formState.errors.name && <span>{form.formState.errors.name.message}</span>}
+     {form.formState.errors.name && (
+       <span>{form.formState.errors.name.message}</span>
+     )}
      <button type="submit">Submit</button>
    </form>
    ```
@@ -819,7 +824,8 @@ This development workflow provides a smooth development experience while maintai
 const button = document.querySelector('button');
 if (button) {
   // Check for accessible text
-  const hasText = button.textContent?.trim() || button.getAttribute('aria-label');
+  const hasText =
+    button.textContent?.trim() || button.getAttribute('aria-label');
   console.log('Button accessible:', !!hasText);
 }
 ```
@@ -842,7 +848,8 @@ if (button) {
 describe('Accessibility', () => {
   it('should have accessible buttons', () => {
     const button = document.querySelector('button');
-    const hasText = button?.textContent?.trim() || button?.getAttribute('aria-label');
+    const hasText =
+      button?.textContent?.trim() || button?.getAttribute('aria-label');
     expect(hasText).toBeTruthy();
   });
 });
@@ -900,7 +907,11 @@ interface ButtonProps {
   variant?: 'primary' | 'secondary';
 }
 
-export const Button: React.FC<ButtonProps> = ({ children, onClick, variant = 'primary' }) => {
+export const Button: React.FC<ButtonProps> = ({
+  children,
+  onClick,
+  variant = 'primary',
+}) => {
   return (
     <button className={`btn btn-${variant}`} onClick={onClick}>
       {children}

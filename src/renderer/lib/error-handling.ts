@@ -40,12 +40,17 @@ export function safeHandler<T extends (...args: any[]) => any>(
     try {
       return fn(...args) as ReturnType<T>;
     } catch (error) {
-      const errorObj = error instanceof Error ? error : new Error(String(error));
-      logger.error('Error in safeHandler', { error: errorObj.message, stack: errorObj.stack });
+      const errorObj =
+        error instanceof Error ? error : new Error(String(error));
+      logger.error('Error in safeHandler', {
+        error: errorObj.message,
+        stack: errorObj.stack,
+      });
 
       // Show user-friendly error message
       toast.error('An error occurred', {
-        description: error instanceof Error ? error.message : 'Something went wrong',
+        description:
+          error instanceof Error ? error.message : 'Something went wrong',
       });
     }
   };
@@ -71,19 +76,26 @@ export function safeHandler<T extends (...args: any[]) => any>(
  * </button>
  * ```
  */
-export function safeAsyncHandler<T extends (...args: unknown[]) => Promise<unknown>>(
-  fn: T,
-): (...args: Parameters<T>) => Promise<Awaited<ReturnType<T>> | void> {
-  return async (...args: Parameters<T>): Promise<Awaited<ReturnType<T>> | void> => {
+export function safeAsyncHandler<
+  T extends (...args: unknown[]) => Promise<unknown>,
+>(fn: T): (...args: Parameters<T>) => Promise<Awaited<ReturnType<T>> | void> {
+  return async (
+    ...args: Parameters<T>
+  ): Promise<Awaited<ReturnType<T>> | void> => {
     try {
       return (await fn(...args)) as Awaited<ReturnType<T>>;
     } catch (error) {
-      const errorObj = error instanceof Error ? error : new Error(String(error));
-      logger.error('Error in safeAsyncHandler', { error: errorObj.message, stack: errorObj.stack });
+      const errorObj =
+        error instanceof Error ? error : new Error(String(error));
+      logger.error('Error in safeAsyncHandler', {
+        error: errorObj.message,
+        stack: errorObj.stack,
+      });
 
       // Show user-friendly error message
       toast.error('An error occurred', {
-        description: error instanceof Error ? error.message : 'Something went wrong',
+        description:
+          error instanceof Error ? error.message : 'Something went wrong',
       });
     }
   };

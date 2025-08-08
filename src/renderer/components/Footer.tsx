@@ -41,7 +41,9 @@ export const Footer: React.FC = () => {
             <span>© 2024 {appName}</span>
             {appVersion && <span>v{appVersion}</span>}
           </div>
-          <div className="flex items-center gap-4">{appAuthor && <span>by {appAuthor}</span>}</div>
+          <div className="flex items-center gap-4">
+            {appAuthor && <span>by {appAuthor}</span>}
+          </div>
         </div>
       </div>
     </footer>

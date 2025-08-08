@@ -12,7 +12,13 @@
 
 import { Component, ErrorInfo, ReactNode } from 'react';
 import { toast } from 'sonner';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import logger from '@/lib/renderer-logger';
@@ -57,7 +63,10 @@ interface ErrorBoundaryState {
  * </ErrorBoundary>
  * ```
  */
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export class ErrorBoundary extends Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
@@ -134,7 +143,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             </CardHeader>
             <CardContent className="p-6 space-y-4">
               <p className="text-sm text-muted-foreground">
-                We're sorry, but something went wrong. This might be a temporary issue.
+                We're sorry, but something went wrong. This might be a temporary
+                issue.
               </p>
               <div className="flex gap-2">
                 <Button

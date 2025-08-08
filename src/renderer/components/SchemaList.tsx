@@ -86,9 +86,13 @@ export function SchemaList({
         searchQuery === '' ||
         schema.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (schema.metadata.title &&
-          schema.metadata.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          schema.metadata.title
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase())) ||
         (schema.metadata.description &&
-          schema.metadata.description.toLowerCase().includes(searchQuery.toLowerCase()));
+          schema.metadata.description
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()));
 
       // Status filter
       const matchesStatus =
@@ -109,8 +113,12 @@ export function SchemaList({
           bValue = b.name.toLowerCase();
           break;
         case 'lastModified':
-          aValue = a.metadata.lastModified ? new Date(a.metadata.lastModified).getTime() : 0;
-          bValue = b.metadata.lastModified ? new Date(b.metadata.lastModified).getTime() : 0;
+          aValue = a.metadata.lastModified
+            ? new Date(a.metadata.lastModified).getTime()
+            : 0;
+          bValue = b.metadata.lastModified
+            ? new Date(b.metadata.lastModified).getTime()
+            : 0;
           break;
         case 'fileSize':
           aValue = a.metadata.fileSize;

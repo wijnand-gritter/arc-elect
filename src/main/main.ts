@@ -236,14 +236,17 @@ app.on('web-contents-created', (_event, contents) => {
  * In development, we allow self-signed certificates.
  * In production, certificate errors are rejected.
  */
-app.on('certificate-error', (event, _webContents, _url, _error, _certificate, callback) => {
-  if (process.env.NODE_ENV === 'development') {
-    event.preventDefault();
-    callback(true);
-  } else {
-    callback(false);
-  }
-});
+app.on(
+  'certificate-error',
+  (event, _webContents, _url, _error, _certificate, callback) => {
+    if (process.env.NODE_ENV === 'development') {
+      event.preventDefault();
+      callback(true);
+    } else {
+      callback(false);
+    }
+  },
+);
 
 /**
  * Handle renderer process crashes and unresponsiveness.
@@ -338,35 +341,44 @@ ipcMain.handle(
  */
 ipcMain.handle(
   'file:createSchema',
-  withErrorHandling(async (_event, filePath: string, templateType: string = 'basic') => {
-    // Validate inputs
-    const pathValidation = validateInput(filePath, 'string', 512);
-    if (!pathValidation.valid) {
-      throw new Error(pathValidation.error);
-    }
+  withErrorHandling(
+    async (_event, filePath: string, templateType: string = 'basic') => {
+      // Validate inputs
+      const pathValidation = validateInput(filePath, 'string', 512);
+      if (!pathValidation.valid) {
+        throw new Error(pathValidation.error);
+      }
 
-    const templateValidation = validateInput(templateType, 'string', 50);
-    if (!templateValidation.valid) {
-      throw new Error(templateValidation.error);
-    }
+      const templateValidation = validateInput(templateType, 'string', 50);
+      if (!templateValidation.valid) {
+        throw new Error(templateValidation.error);
+      }
 
-    // Basic security check - prevent directory traversal
-    if (filePath.includes('..') || filePath.includes('//')) {
-      throw new Error('Invalid file path');
-    }
+      // Basic security check - prevent directory traversal
+      if (filePath.includes('..') || filePath.includes('//')) {
+        throw new Error('Invalid file path');
+      }
 
-    // Ensure the file has .schema.json extension
-    if (!filePath.endsWith('.schema.json')) {
-      filePath = `${filePath}.schema.json`;
-    }
+      // Ensure the file has .schema.json extension
+      if (!filePath.endsWith('.schema.json')) {
+        filePath = `${filePath}.schema.json`;
+      }
 
-    // Get schema template based on type
-    const schemaContent = getSchemaTemplate(templateType, path.basename(filePath, '.schema.json'));
+      // Get schema template based on type
+      const schemaContent = getSchemaTemplate(
+        templateType,
+        path.basename(filePath, '.schema.json'),
+      );
 
-    await fs.writeFile(filePath, schemaContent, 'utf-8');
-    logger.info('Schema file created successfully', { filePath, templateType });
-    return { success: true, filePath };
-  }, 'file:createSchema'),
+      await fs.writeFile(filePath, schemaContent, 'utf-8');
+      logger.info('Schema file created successfully', {
+        filePath,
+        templateType,
+      });
+      return { success: true, filePath };
+    },
+    'file:createSchema',
+  ),
 );
 
 /**
@@ -535,11 +547,16 @@ const createWindow = async (): Promise<void> => {
       installExtension(REACT_DEVELOPER_TOOLS)
         .then(() => {
           const reactDevToolsTime = Date.now() - reactDevToolsStartTime;
-          logger.debug(`React DevTools installed successfully in ${reactDevToolsTime}ms`);
+          logger.debug(
+            `React DevTools installed successfully in ${reactDevToolsTime}ms`,
+          );
         })
         .catch((err) => {
           const reactDevToolsTime = Date.now() - reactDevToolsStartTime;
-          logger.error(`Failed to install React DevTools in ${reactDevToolsTime}ms:`, err);
+          logger.error(
+            `Failed to install React DevTools in ${reactDevToolsTime}ms:`,
+            err,
+          );
         });
 
       // Install Redux DevTools
@@ -548,16 +565,23 @@ const createWindow = async (): Promise<void> => {
       installExtension(REDUX_DEVTOOLS)
         .then(() => {
           const reduxDevToolsTime = Date.now() - reduxDevToolsStartTime;
-          logger.debug(`Redux DevTools installed successfully in ${reduxDevToolsTime}ms`);
+          logger.debug(
+            `Redux DevTools installed successfully in ${reduxDevToolsTime}ms`,
+          );
         })
         .catch((err) => {
           const reduxDevToolsTime = Date.now() - reduxDevToolsStartTime;
-          logger.error(`Failed to install Redux DevTools in ${reduxDevToolsTime}ms:`, err);
+          logger.error(
+            `Failed to install Redux DevTools in ${reduxDevToolsTime}ms:`,
+            err,
+          );
         });
     }
   } else {
     logger.debug('Loading production build');
-    mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
+    mainWindow.loadFile(
+      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
+    );
   }
 
   performanceMonitor.checkpoint('create-window-complete');

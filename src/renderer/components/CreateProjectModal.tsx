@@ -88,8 +88,12 @@ export function CreateProjectModal({
         }
       }
     } catch (error) {
-      const errorObj = error instanceof Error ? error : new Error(String(error));
-      logger.error('Failed to select folder', { error: errorObj.message, stack: errorObj.stack });
+      const errorObj =
+        error instanceof Error ? error : new Error(String(error));
+      logger.error('Failed to select folder', {
+        error: errorObj.message,
+        stack: errorObj.stack,
+      });
     } finally {
       setIsSelecting(false);
     }
@@ -139,7 +143,9 @@ export function CreateProjectModal({
   const pathValidation = useMemo(() => {
     if (!selectedPath) return null;
 
-    const existingProject = recentProjects.find((project) => project.path === selectedPath);
+    const existingProject = recentProjects.find(
+      (project) => project.path === selectedPath,
+    );
     if (existingProject) {
       return {
         isValid: false,
@@ -151,7 +157,10 @@ export function CreateProjectModal({
   }, [selectedPath, recentProjects]);
 
   const canCreateProject =
-    selectedPath && projectName.trim() && !isLoadingProject && pathValidation?.isValid !== false;
+    selectedPath &&
+    projectName.trim() &&
+    !isLoadingProject &&
+    pathValidation?.isValid !== false;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -159,8 +168,9 @@ export function CreateProjectModal({
         <DialogHeader>
           <DialogTitle>Create New Project</DialogTitle>
           <DialogDescription>
-            Select a folder to create a new project. The application will scan this folder and its
-            subdirectories for JSON files and load them as schemas.
+            Select a folder to create a new project. The application will scan
+            this folder and its subdirectories for JSON files and load them as
+            schemas.
           </DialogDescription>
         </DialogHeader>
 
@@ -172,7 +182,9 @@ export function CreateProjectModal({
               id="modal-project-name"
               placeholder="Enter project name"
               value={projectName}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProjectName(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setProjectName(e.target.value)
+              }
               disabled={isLoadingProject}
             />
           </div>
@@ -215,14 +227,18 @@ export function CreateProjectModal({
           {/* Help Text */}
           {selectedPath && pathValidation?.isValid !== false && (
             <p className="text-xs text-muted-foreground">
-              The application will scan this folder and its subdirectories for JSON files and load
-              them as schemas.
+              The application will scan this folder and its subdirectories for
+              JSON files and load them as schemas.
             </p>
           )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={isLoadingProject}>
+          <Button
+            variant="outline"
+            onClick={handleClose}
+            disabled={isLoadingProject}
+          >
             Cancel
           </Button>
           <Button onClick={handleCreateProject} disabled={!canCreateProject}>

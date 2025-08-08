@@ -9,7 +9,13 @@
  */
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '../ui/card';
 import { Button } from '../ui/button';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
@@ -69,7 +75,9 @@ export function ProjectError({ error }: ProjectErrorProps): React.JSX.Element {
               <AlertTriangle className="w-12 h-12 text-destructive opacity-50" />
             </div>
             <div className="text-center space-y-2">
-              <p className="text-sm text-muted-foreground leading-relaxed">{error}</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {error}
+              </p>
               <p className="text-xs text-muted-foreground">
                 Please check the project path and try again.
               </p>

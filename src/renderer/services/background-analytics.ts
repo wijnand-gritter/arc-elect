@@ -152,76 +152,96 @@ export function useBackgroundAnalytics(
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { addTask, getResult, clearTasks, isProcessing, overallProgress, metrics } =
-    useBackgroundProcessing({
-      maxConcurrency,
-    });
+  const {
+    addTask,
+    getResult,
+    clearTasks,
+    isProcessing,
+    overallProgress,
+    metrics,
+  } = useBackgroundProcessing({
+    maxConcurrency,
+  });
 
   /**
    * Create analytics processor for specific task type.
    */
-  const createAnalyticsProcessor = useCallback((taskType: AnalyticsTaskType) => {
-    return async (input: AnalyticsTaskInput): Promise<unknown> => {
-      const startTime = Date.now();
-      logger.info('Starting analytics processing', { taskType, schemaCount: input.schemas.length });
+  const createAnalyticsProcessor = useCallback(
+    (taskType: AnalyticsTaskType) => {
+      return async (input: AnalyticsTaskInput): Promise<unknown> => {
+        const startTime = Date.now();
+        logger.info('Starting analytics processing', {
+          taskType,
+          schemaCount: input.schemas.length,
+        });
 
-      try {
-        const analyticsService = new AnalyticsService();
+        try {
+          const analyticsService = new AnalyticsService();
 
-        switch (taskType) {
-          case 'circular-references':
-            return analyticsService.detectCircularReferences(input.schemas);
-          case 'complexity-metrics':
-            return analyticsService.calculateComplexityMetrics(input.schemas);
-          case 'reference-graph':
-            return analyticsService.buildReferenceGraph(input.schemas);
-          case 'project-metrics': {
-            const complexityMetrics = analyticsService.calculateComplexityMetrics(input.schemas);
-            const circularReferences = analyticsService.detectCircularReferences(input.schemas);
-            return analyticsService.calculateProjectMetrics(
-              input.schemas,
-              complexityMetrics,
-              circularReferences,
-            );
+          switch (taskType) {
+            case 'circular-references':
+              return analyticsService.detectCircularReferences(input.schemas);
+            case 'complexity-metrics':
+              return analyticsService.calculateComplexityMetrics(input.schemas);
+            case 'reference-graph':
+              return analyticsService.buildReferenceGraph(input.schemas);
+            case 'project-metrics': {
+              const complexityMetrics =
+                analyticsService.calculateComplexityMetrics(input.schemas);
+              const circularReferences =
+                analyticsService.detectCircularReferences(input.schemas);
+              return analyticsService.calculateProjectMetrics(
+                input.schemas,
+                complexityMetrics,
+                circularReferences,
+              );
+            }
+            case 'full-analysis':
+              return await analyticsService.analyzeSchemas(input.schemas);
+            default:
+              throw new Error(`Unknown task type: ${taskType}`);
           }
-          case 'full-analysis':
-            return await analyticsService.analyzeSchemas(input.schemas);
-          default:
-            throw new Error(`Unknown task type: ${taskType}`);
+        } catch (error) {
+          logger.error('Analytics processing failed', { taskType, error });
+          throw error;
+        } finally {
+          const duration = Date.now() - startTime;
+          logger.info('Analytics processing completed', { taskType, duration });
         }
-      } catch (error) {
-        logger.error('Analytics processing failed', { taskType, error });
-        throw error;
-      } finally {
-        const duration = Date.now() - startTime;
-        logger.info('Analytics processing completed', { taskType, duration });
-      }
-    };
-  }, []);
+      };
+    },
+    [],
+  );
 
   /**
    * Update analysis result for specific task type.
    */
-  const updateResult = useCallback((taskType: AnalyticsTaskType, result: unknown) => {
-    setState((prev) => ({
-      ...prev,
-      results: {
-        ...prev.results,
-        [taskType]: result,
-      },
-      lastAnalysis: new Date(),
-      metrics: {
-        ...prev.metrics,
-        totalAnalyses: prev.metrics.totalAnalyses + 1,
-      },
-    }));
-  }, []);
+  const updateResult = useCallback(
+    (taskType: AnalyticsTaskType, result: unknown) => {
+      setState((prev) => ({
+        ...prev,
+        results: {
+          ...prev.results,
+          [taskType]: result,
+        },
+        lastAnalysis: new Date(),
+        metrics: {
+          ...prev.metrics,
+          totalAnalyses: prev.metrics.totalAnalyses + 1,
+        },
+      }));
+    },
+    [],
+  );
 
   /**
    * Execute analysis task.
    */
   const executeAnalysis = useCallback(
-    async (taskType: AnalyticsTaskType, priority: number = 0): Promise<void> => {
+    async (
+      taskType: AnalyticsTaskType,
+      priority: number = 0,
+    ): Promise<void> => {
       if (schemas.length === 0) {
         logger.warn('No schemas provided for analysis');
         return;
@@ -260,7 +280,10 @@ export function useBackgroundAnalytics(
             intervalRef.current = null;
           }
         } else if (result?.status === 'error') {
-          setState((prev) => ({ ...prev, error: result.error || 'Analysis failed' }));
+          setState((prev) => ({
+            ...prev,
+            error: result.error || 'Analysis failed',
+          }));
           if (intervalRef.current) {
             clearInterval(intervalRef.current);
             intervalRef.current = null;
@@ -282,7 +305,14 @@ export function useBackgroundAnalytics(
         }
       }, 300000) as any;
     },
-    [schemas, enableCaching, addTask, createAnalyticsProcessor, getResult, updateResult],
+    [
+      schemas,
+      enableCaching,
+      addTask,
+      createAnalyticsProcessor,
+      getResult,
+      updateResult,
+    ],
   );
 
   /**
@@ -303,7 +333,10 @@ export function useBackgroundAnalytics(
     [executeAnalysis],
   );
 
-  const analyzeAll = useCallback(() => executeAnalysis('full-analysis', 0), [executeAnalysis]);
+  const analyzeAll = useCallback(
+    () => executeAnalysis('full-analysis', 0),
+    [executeAnalysis],
+  );
 
   /**
    * Cancel all analysis tasks.

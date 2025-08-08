@@ -57,7 +57,10 @@ function setupIcons() {
       console.log('⚠️  Linux icon not found, generating...');
       execSync('node scripts/generate-icons.js', { stdio: 'inherit' });
       if (fs.existsSync('build/icons/linux/256x256.png')) {
-        fs.copyFileSync('build/icons/linux/256x256.png', 'build/icons/icon.png');
+        fs.copyFileSync(
+          'build/icons/linux/256x256.png',
+          'build/icons/icon.png',
+        );
         console.log('✅ Copied Linux icon: build/icons/icon.png');
       }
     }

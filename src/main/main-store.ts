@@ -72,7 +72,9 @@ ipcMain.handle(
     }
 
     if (!['light', 'dark', 'system'].includes(theme)) {
-      throw new Error('Invalid theme value. Must be "light", "dark", or "system"');
+      throw new Error(
+        'Invalid theme value. Must be "light", "dark", or "system"',
+      );
     }
 
     settingsStore.set('theme', theme);

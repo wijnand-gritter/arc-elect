@@ -10,7 +10,13 @@
  */
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
@@ -21,7 +27,10 @@ import { FolderOpen, Plus, XCircle, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
 import type { Project, ProjectConfig } from '../../../types/schema-editor';
-import type { ImportResult, RamlImportConfig } from '../../../types/raml-import';
+import type {
+  ImportResult,
+  RamlImportConfig,
+} from '../../../types/raml-import';
 
 /**
  * Project overview component props.
@@ -48,12 +57,15 @@ interface ProjectOverviewProps {
  * <ProjectOverview project={currentProject} /> // Shows project overview
  * ```
  */
-export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.Element {
+export function ProjectOverview({
+  project,
+}: ProjectOverviewProps): React.JSX.Element {
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
   const [isRamlImportOpen, setIsRamlImportOpen] = React.useState(false);
-  const [projectToDelete, setProjectToDelete] = React.useState<{ id: string; name: string } | null>(
-    null,
-  );
+  const [projectToDelete, setProjectToDelete] = React.useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const recentProjects = useAppStore((state) => state.recentProjects);
   const loadProject = useAppStore((state) => state.loadProject);
@@ -78,7 +90,11 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
   /**
    * Handles opening the delete confirmation dialog.
    */
-  const handleDeleteClick = (projectId: string, projectName: string, event: React.MouseEvent) => {
+  const handleDeleteClick = (
+    projectId: string,
+    projectName: string,
+    event: React.MouseEvent,
+  ) => {
     event.stopPropagation(); // Prevent opening the project when clicking delete
     setProjectToDelete({ id: projectId, name: projectName });
   };
@@ -95,7 +111,8 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
         description: `${projectToDelete.name} has been removed from recent projects`,
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       toast.error('Failed to delete project', { description: errorMessage });
     } finally {
       setProjectToDelete(null);
@@ -144,7 +161,10 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
             await createProject(projectConfig);
             toast.success(`Project "${projectName}" created successfully!`);
           } catch (projectError) {
-            console.error('Failed to create project after RAML import:', projectError);
+            console.error(
+              'Failed to create project after RAML import:',
+              projectError,
+            );
             // Don't fail the import if project creation fails
           }
         }
@@ -216,15 +236,16 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
                 Welcome to Arc Elect
               </CardTitle>
               <CardDescription className="text-muted-foreground text-sm">
-                Create your first project to get started with JSON schema management
+                Create your first project to get started with JSON schema
+                management
               </CardDescription>
             </CardHeader>
             <CardContent className="p-4">
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Welcome to the JSON Schema Editor. Create a new project by selecting a folder
-                  containing JSON schema files, or open one of your recent projects to continue
-                  working.
+                  Welcome to the JSON Schema Editor. Create a new project by
+                  selecting a folder containing JSON schema files, or open one
+                  of your recent projects to continue working.
                 </p>
                 <div className="flex justify-center gap-3">
                   <Button
@@ -253,7 +274,9 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
           <Card className="glass-blue border-0">
             <CardHeader>
               <CardTitle>Recent Projects</CardTitle>
-              <CardDescription>Quickly open recently used projects</CardDescription>
+              <CardDescription>
+                Quickly open recently used projects
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {recentProjects.length === 0 ? (
@@ -275,7 +298,9 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <FolderOpen className="w-4 h-4 text-primary" />
-                          <h4 className="font-medium text-sm truncate">{recentProject.name}</h4>
+                          <h4 className="font-medium text-sm truncate">
+                            {recentProject.name}
+                          </h4>
                         </div>
                         <p className="text-xs text-muted-foreground truncate">
                           {recentProject.path}
@@ -284,10 +309,17 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
                       <div className="flex items-center gap-2 shrink-0 ml-4">
                         <div className="text-right text-xs text-muted-foreground">
                           <p>
-                            Last opened: {new Date(recentProject.lastModified).toLocaleDateString()}
+                            Last opened:{' '}
+                            {new Date(
+                              recentProject.lastModified,
+                            ).toLocaleDateString()}
                           </p>
                         </div>
-                        <Button variant="outline" size="sm" className="hover-lift">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="hover-lift"
+                        >
                           <FolderOpen className="h-4 w-4 mr-1" />
                           Open
                         </Button>
@@ -298,7 +330,11 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
                               size="sm"
                               className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover-lift"
                               onClick={(e) =>
-                                handleDeleteClick(recentProject.id, recentProject.name, e)
+                                handleDeleteClick(
+                                  recentProject.id,
+                                  recentProject.name,
+                                  e,
+                                )
                               }
                             >
                               <XCircle className="h-4 w-4" />
@@ -335,8 +371,8 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
             <div className="bg-background border border-border rounded-lg p-6 max-w-md w-full mx-4">
               <h3 className="text-lg font-semibold mb-2">Delete Project</h3>
               <p className="text-muted-foreground mb-4">
-                Are you sure you want to remove "{projectToDelete.name}" from your recent projects?
-                This action cannot be undone.
+                Are you sure you want to remove "{projectToDelete.name}" from
+                your recent projects? This action cannot be undone.
               </p>
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" onClick={handleCancelDelete}>
@@ -387,8 +423,12 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="text-center p-4 rounded-lg bg-primary/5 border border-primary/20">
-                <div className="text-2xl font-bold text-primary">{project.status.totalSchemas}</div>
-                <div className="text-sm text-muted-foreground">Total Schemas</div>
+                <div className="text-2xl font-bold text-primary">
+                  {project.status.totalSchemas}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Total Schemas
+                </div>
               </div>
               <div className="text-center p-4 rounded-lg bg-green-500/5 border border-green-500/20">
                 <div className="text-2xl font-bold text-green-600">
@@ -411,7 +451,9 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>Recent Projects</CardTitle>
-              <CardDescription>Quickly switch between recently opened projects</CardDescription>
+              <CardDescription>
+                Quickly switch between recently opened projects
+              </CardDescription>
             </div>
             <Button
               onClick={handleCreateProject}
@@ -428,7 +470,9 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
               <div className="text-center py-8 text-muted-foreground">
                 <FolderOpen className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No recent projects</p>
-                <p className="text-xs">Create your first project to get started</p>
+                <p className="text-xs">
+                  Create your first project to get started
+                </p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -445,16 +489,23 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <FolderOpen className="w-4 h-4 text-primary" />
-                        <h4 className="font-medium text-sm truncate">{recentProject.name}</h4>
+                        <h4 className="font-medium text-sm truncate">
+                          {recentProject.name}
+                        </h4>
                         {recentProject.id === project.id && (
                           <Badge variant="default" className="text-xs">
                             Current
                           </Badge>
                         )}
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">{recentProject.path}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {recentProject.path}
+                      </p>
                       <p className="text-xs text-muted-foreground">
-                        Last opened: {new Date(recentProject.lastModified).toLocaleDateString()}
+                        Last opened:{' '}
+                        {new Date(
+                          recentProject.lastModified,
+                        ).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0 ml-4">
@@ -465,7 +516,11 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
                             size="sm"
                             className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover-lift"
                             onClick={(e) =>
-                              handleDeleteClick(recentProject.id, recentProject.name, e)
+                              handleDeleteClick(
+                                recentProject.id,
+                                recentProject.name,
+                                e,
+                              )
                             }
                           >
                             <XCircle className="h-4 w-4" />
@@ -485,7 +540,10 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
       </div>
 
       {/* Create Project Modal */}
-      <CreateProjectModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+      <CreateProjectModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+      />
 
       <RamlImportModal
         isOpen={isRamlImportOpen}
@@ -499,8 +557,8 @@ export function ProjectOverview({ project }: ProjectOverviewProps): React.JSX.El
           <div className="bg-background border border-border rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold mb-2">Delete Project</h3>
             <p className="text-muted-foreground mb-4">
-              Are you sure you want to remove "{projectToDelete.name}" from your recent projects?
-              This action cannot be undone.
+              Are you sure you want to remove "{projectToDelete.name}" from your
+              recent projects? This action cannot be undone.
             </p>
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={handleCancelDelete}>

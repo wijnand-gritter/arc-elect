@@ -10,7 +10,13 @@
  */
 
 import React from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog';
 import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
 import { Save, SaveAll, Code, Zap, ArrowRight, Keyboard } from 'lucide-react';
@@ -125,42 +131,48 @@ export function EditorShortcutsModal({
             Editor Keyboard Shortcuts
           </DialogTitle>
           <DialogDescription>
-            Keyboard shortcuts for the JSON Schema editor. Use these shortcuts to work more
-            efficiently.
+            Keyboard shortcuts for the JSON Schema editor. Use these shortcuts
+            to work more efficiently.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
-          {Object.entries(groupedShortcuts).map(([category, categoryShortcuts]) => (
-            <div key={category}>
-              <h3 className="text-sm font-semibold text-foreground mb-3">
-                {categoryLabels[category as keyof typeof categoryLabels]}
-              </h3>
-              <div className="space-y-2">
-                {categoryShortcuts.map((shortcut, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <shortcut.icon className="w-4 h-4 text-muted-foreground" />
-                      <div>
-                        <div className="font-medium text-sm">{shortcut.action}</div>
-                        <div className="text-xs text-muted-foreground">{shortcut.description}</div>
+          {Object.entries(groupedShortcuts).map(
+            ([category, categoryShortcuts]) => (
+              <div key={category}>
+                <h3 className="text-sm font-semibold text-foreground mb-3">
+                  {categoryLabels[category as keyof typeof categoryLabels]}
+                </h3>
+                <div className="space-y-2">
+                  {categoryShortcuts.map((shortcut, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <shortcut.icon className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <div className="font-medium text-sm">
+                            {shortcut.action}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {shortcut.description}
+                          </div>
+                        </div>
                       </div>
+                      <Badge variant="secondary" className="font-mono text-xs">
+                        {shortcut.shortcut}
+                      </Badge>
                     </div>
-                    <Badge variant="secondary" className="font-mono text-xs">
-                      {shortcut.shortcut}
-                    </Badge>
-                  </div>
-                ))}
+                  ))}
+                </div>
+                {category !==
+                  Object.keys(groupedShortcuts)[
+                    Object.keys(groupedShortcuts).length - 1
+                  ] && <Separator className="my-4" />}
               </div>
-              {category !==
-                Object.keys(groupedShortcuts)[Object.keys(groupedShortcuts).length - 1] && (
-                <Separator className="my-4" />
-              )}
-            </div>
-          ))}
+            ),
+          )}
         </div>
 
         <div className="mt-6 p-4 bg-muted/50 rounded-lg">

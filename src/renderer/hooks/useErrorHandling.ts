@@ -176,7 +176,9 @@ const DEFAULT_OPTIONS: ErrorHandlingOptions = {
  * }, { context: { component: 'Button', action: 'click' } });
  * ```
  */
-export function useErrorHandling(options: Partial<ErrorHandlingOptions> = {}): ErrorHandlingResult {
+export function useErrorHandling(
+  options: Partial<ErrorHandlingOptions> = {},
+): ErrorHandlingResult {
   const config = { ...DEFAULT_OPTIONS, ...options };
 
   const [error, setError] = useState<EnhancedError | null>(null);
@@ -192,7 +194,9 @@ export function useErrorHandling(options: Partial<ErrorHandlingOptions> = {}): E
     (error: Error): ErrorCategory => {
       const message = error.message.toLowerCase();
 
-      for (const [pattern, category] of Object.entries(config.categorizationRules)) {
+      for (const [pattern, category] of Object.entries(
+        config.categorizationRules,
+      )) {
         if (message.includes(pattern.toLowerCase())) {
           return category;
         }
@@ -219,34 +223,41 @@ export function useErrorHandling(options: Partial<ErrorHandlingOptions> = {}): E
   /**
    * Determine error severity.
    */
-  const determineSeverity = useCallback((error: Error, category: ErrorCategory): ErrorSeverity => {
-    // Critical errors that prevent app from functioning
-    if (
-      category === 'memory' ||
-      error.message.includes('out of memory') ||
-      error.message.includes('heap out of memory')
-    ) {
-      return 'critical';
-    }
+  const determineSeverity = useCallback(
+    (error: Error, category: ErrorCategory): ErrorSeverity => {
+      // Critical errors that prevent app from functioning
+      if (
+        category === 'memory' ||
+        error.message.includes('out of memory') ||
+        error.message.includes('heap out of memory')
+      ) {
+        return 'critical';
+      }
 
-    // High severity errors that affect core functionality
-    if (
-      category === 'file-system' ||
-      category === 'permission' ||
-      error.message.includes('EACCES') ||
-      error.message.includes('EPERM')
-    ) {
-      return 'high';
-    }
+      // High severity errors that affect core functionality
+      if (
+        category === 'file-system' ||
+        category === 'permission' ||
+        error.message.includes('EACCES') ||
+        error.message.includes('EPERM')
+      ) {
+        return 'high';
+      }
 
-    // Medium severity errors that affect user experience
-    if (category === 'network' || category === 'timeout' || category === 'validation') {
-      return 'medium';
-    }
+      // Medium severity errors that affect user experience
+      if (
+        category === 'network' ||
+        category === 'timeout' ||
+        category === 'validation'
+      ) {
+        return 'medium';
+      }
 
-    // Low severity errors that are recoverable
-    return 'low';
-  }, []);
+      // Low severity errors that are recoverable
+      return 'low';
+    },
+    [],
+  );
 
   /**
    * Check if error is recoverable.
@@ -307,7 +318,11 @@ export function useErrorHandling(options: Partial<ErrorHandlingOptions> = {}): E
         break;
 
       case 'parsing':
-        actions.push('Check JSON syntax', 'Remove invalid characters', 'Use a JSON validator');
+        actions.push(
+          'Check JSON syntax',
+          'Remove invalid characters',
+          'Use a JSON validator',
+        );
         break;
 
       case 'memory':
@@ -327,7 +342,11 @@ export function useErrorHandling(options: Partial<ErrorHandlingOptions> = {}): E
         break;
 
       default:
-        actions.push('Try again', 'Restart the application', 'Contact support with error details');
+        actions.push(
+          'Try again',
+          'Restart the application',
+          'Contact support with error details',
+        );
     }
 
     return actions;
@@ -441,7 +460,10 @@ export function useErrorHandling(options: Partial<ErrorHandlingOptions> = {}): E
    * Execute operation with retry logic.
    */
   const withErrorHandling = useCallback(
-    async <T>(operation: () => Promise<T>, retryOptions?: Partial<RetryOptions>): Promise<T> => {
+    async <T>(
+      operation: () => Promise<T>,
+      retryOptions?: Partial<RetryOptions>,
+    ): Promise<T> => {
       const options: RetryOptions = {
         ...config.defaultRetryOptions,
         ...retryOptions,

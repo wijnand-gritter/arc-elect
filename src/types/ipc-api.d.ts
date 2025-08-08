@@ -10,7 +10,12 @@
  * @version 1.0.0
  */
 
-import type { Project, ProjectConfig, Schema, ValidationResult } from './schema-editor';
+import type {
+  Project,
+  ProjectConfig,
+  Schema,
+  ValidationResult,
+} from './schema-editor';
 import type { RamlFileInfo, TransformationOptions } from './raml-import';
 
 export {};
@@ -110,7 +115,9 @@ declare global {
        * @param json - JSON string containing settings data
        * @returns Promise resolving to success status or error
        */
-      importSettings: (json: string) => Promise<{ success: boolean; error?: string }>;
+      importSettings: (
+        json: string,
+      ) => Promise<{ success: boolean; error?: string }>;
 
       // Project management
       /**
@@ -240,7 +247,10 @@ declare global {
        * @param options - Dialog options
        * @returns Promise resolving to selected path or error
        */
-      showFolderDialog: (options?: { title?: string; defaultPath?: string }) => Promise<{
+      showFolderDialog: (options?: {
+        title?: string;
+        defaultPath?: string;
+      }) => Promise<{
         success: boolean;
         path?: string;
         error?: string;

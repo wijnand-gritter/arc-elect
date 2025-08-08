@@ -76,7 +76,12 @@ export function useVirtualScrolling<T>(
   items: T[],
   options: VirtualScrollOptions,
 ): VirtualScrollResult<T> {
-  const { itemHeight, containerHeight, overscan = 3, smoothScrolling = true } = options;
+  const {
+    itemHeight,
+    containerHeight,
+    overscan = 3,
+    smoothScrolling = true,
+  } = options;
 
   const [scrollTop, setScrollTop] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -201,7 +206,14 @@ interface VirtualGridOptions {
 
 interface VirtualGridResult<T> {
   /** Items currently visible in the viewport */
-  visibleItems: Array<{ item: T; index: number; row: number; col: number; x: number; y: number }>;
+  visibleItems: Array<{
+    item: T;
+    index: number;
+    row: number;
+    col: number;
+    x: number;
+    y: number;
+  }>;
   /** Total height needed for all items */
   totalHeight: number;
   /** Current scroll position */
@@ -223,7 +235,10 @@ interface VirtualGridResult<T> {
  * @param options - Virtual grid configuration
  * @returns Virtual grid utilities and state
  */
-export function useVirtualGrid<T>(items: T[], options: VirtualGridOptions): VirtualGridResult<T> {
+export function useVirtualGrid<T>(
+  items: T[],
+  options: VirtualGridOptions,
+): VirtualGridResult<T> {
   const {
     itemWidth,
     itemHeight,
@@ -261,7 +276,15 @@ export function useVirtualGrid<T>(items: T[], options: VirtualGridOptions): Virt
       startRow: bufferedStartRow,
       endRow: bufferedEndRow,
     };
-  }, [scrollTop, itemHeight, containerHeight, items.length, columnsPerRow, gap, overscan]);
+  }, [
+    scrollTop,
+    itemHeight,
+    containerHeight,
+    items.length,
+    columnsPerRow,
+    gap,
+    overscan,
+  ]);
 
   /**
    * Get visible items with their positions.

@@ -69,7 +69,9 @@ class PerformanceMonitor {
     }
 
     this.checkpoints.push(checkpoint);
-    logger.debug(`Performance checkpoint: ${name}`, { duration: checkpoint.duration });
+    logger.debug(`Performance checkpoint: ${name}`, {
+      duration: checkpoint.duration,
+    });
   }
 
   /**

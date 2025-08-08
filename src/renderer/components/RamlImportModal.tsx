@@ -11,7 +11,13 @@
  */
 
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -25,7 +31,10 @@ import type { RamlImportConfig, ImportResult } from '../../types/raml-import';
 interface RamlImportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onImport: (config: RamlImportConfig, projectName?: string) => Promise<ImportResult>;
+  onImport: (
+    config: RamlImportConfig,
+    projectName?: string,
+  ) => Promise<ImportResult>;
 }
 
 export function RamlImportModal({
@@ -102,7 +111,10 @@ export function RamlImportModal({
         setProjectName('');
       }, 1000);
     } catch (error) {
-      toast.error('Import failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      toast.error(
+        'Import failed: ' +
+          (error instanceof Error ? error.message : 'Unknown error'),
+      );
       setIsImporting(false);
       setImportProgress(0);
       setImportStatus('');
@@ -111,7 +123,9 @@ export function RamlImportModal({
 
   const handleBrowseSource = async () => {
     try {
-      const result = await window.api.selectFolder('Select RAML Source Directory');
+      const result = await window.api.selectFolder(
+        'Select RAML Source Directory',
+      );
       if (result.success && result.data && typeof result.data === 'string') {
         setConfig((prev) => ({
           ...prev,
@@ -125,7 +139,9 @@ export function RamlImportModal({
 
   const handleBrowseDestination = async () => {
     try {
-      const result = await window.api.selectDestinationFolder('Select Destination Directory');
+      const result = await window.api.selectDestinationFolder(
+        'Select Destination Directory',
+      );
       if (result.success && result.data && typeof result.data === 'string') {
         setConfig((prev) => ({
           ...prev,
@@ -147,8 +163,8 @@ export function RamlImportModal({
         <DialogHeader className="flex-shrink-0 pb-4">
           <DialogTitle>Import RAML</DialogTitle>
           <DialogDescription>
-            Import RAML files and convert them to JSON Schema format. Select source and destination
-            paths.
+            Import RAML files and convert them to JSON Schema format. Select
+            source and destination paths.
           </DialogDescription>
         </DialogHeader>
 
@@ -159,7 +175,9 @@ export function RamlImportModal({
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <FolderOpen className="h-5 w-5 text-primary" />
-                  <Label className="text-base font-medium">Source Directory</Label>
+                  <Label className="text-base font-medium">
+                    Source Directory
+                  </Label>
                 </div>
                 <div className="flex gap-2">
                   <Input
@@ -173,7 +191,9 @@ export function RamlImportModal({
                   </Button>
                 </div>
                 {config.sourcePath && (
-                  <p className="text-xs text-muted-foreground">Selected: {config.sourcePath}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Selected: {config.sourcePath}
+                  </p>
                 )}
               </div>
 
@@ -181,13 +201,17 @@ export function RamlImportModal({
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Folder className="h-5 w-5 text-primary" />
-                  <Label className="text-base font-medium">Destination Directory</Label>
+                  <Label className="text-base font-medium">
+                    Destination Directory
+                  </Label>
                 </div>
                 <div className="flex gap-2">
                   <Input
                     placeholder="Select destination directory for JSON Schema files"
                     value={config.destinationPath}
-                    onChange={(e) => handleDestinationPathChange(e.target.value)}
+                    onChange={(e) =>
+                      handleDestinationPathChange(e.target.value)
+                    }
                     className="flex-1"
                   />
                   <Button onClick={handleBrowseDestination} variant="outline">
@@ -215,7 +239,8 @@ export function RamlImportModal({
                 />
                 {projectName && (
                   <p className="text-xs text-muted-foreground">
-                    This will create a new project from the destination directory
+                    This will create a new project from the destination
+                    directory
                   </p>
                 )}
               </div>
@@ -224,11 +249,15 @@ export function RamlImportModal({
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <Settings className="h-5 w-5 text-primary" />
-                  <Label className="text-base font-medium">Import Options</Label>
+                  <Label className="text-base font-medium">
+                    Import Options
+                  </Label>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label htmlFor="clear-destination">Clear destination before import</Label>
+                    <Label htmlFor="clear-destination">
+                      Clear destination before import
+                    </Label>
                     <p className="text-xs text-muted-foreground">
                       Remove existing files in destination directory
                     </p>
@@ -237,7 +266,10 @@ export function RamlImportModal({
                     id="clear-destination"
                     checked={config.clearDestination}
                     onCheckedChange={(checked) =>
-                      setConfig((prev) => ({ ...prev, clearDestination: checked }))
+                      setConfig((prev) => ({
+                        ...prev,
+                        clearDestination: checked,
+                      }))
                     }
                   />
                 </div>
@@ -247,23 +279,32 @@ export function RamlImportModal({
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <Folder className="h-5 w-5 text-primary" />
-                  <Label className="text-base font-medium">Output Structure</Label>
+                  <Label className="text-base font-medium">
+                    Output Structure
+                  </Label>
                 </div>
                 <div className="space-y-3 text-sm">
                   <div className="p-4 bg-muted/50 rounded-lg space-y-3">
                     <div>
-                      <h4 className="font-medium text-foreground mb-2">Base Message Structure</h4>
+                      <h4 className="font-medium text-foreground mb-2">
+                        Base Message Structure
+                      </h4>
                       <p className="text-muted-foreground mb-2">
-                        The conversion creates a standardized message structure with:
+                        The conversion creates a standardized message structure
+                        with:
                       </p>
                       <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-2">
                         <li>
-                          <code className="bg-background px-1 rounded">message.schema.json</code> -
-                          Main message envelope
+                          <code className="bg-background px-1 rounded">
+                            message.schema.json
+                          </code>{' '}
+                          - Main message envelope
                         </li>
                         <li>
-                          <code className="bg-background px-1 rounded">metadata.schema.json</code> -
-                          Message metadata (ID, timestamp, source)
+                          <code className="bg-background px-1 rounded">
+                            metadata.schema.json
+                          </code>{' '}
+                          - Message metadata (ID, timestamp, source)
                         </li>
                         <li>
                           <code className="bg-background px-1 rounded">
@@ -275,20 +316,25 @@ export function RamlImportModal({
                     </div>
 
                     <div>
-                      <h4 className="font-medium text-foreground mb-2">File Organization</h4>
+                      <h4 className="font-medium text-foreground mb-2">
+                        File Organization
+                      </h4>
                       <p className="text-muted-foreground mb-2">
                         Generated schemas are organized as follows:
                       </p>
                       <div className="font-mono text-xs bg-background p-3 rounded border">
-                        destination/ ├── business-objects/ # All business object schemas ├── common/
-                        │ └── enums/ # Reusable enum definitions ├── message.schema.json # Message
-                        envelope ├── metadata.schema.json # Message metadata └──
+                        destination/ ├── business-objects/ # All business object
+                        schemas ├── common/ │ └── enums/ # Reusable enum
+                        definitions ├── message.schema.json # Message envelope
+                        ├── metadata.schema.json # Message metadata └──
                         datamodelObjects.schema.json
                       </div>
                     </div>
 
                     <div>
-                      <h4 className="font-medium text-foreground mb-2">Type Conversions</h4>
+                      <h4 className="font-medium text-foreground mb-2">
+                        Type Conversions
+                      </h4>
                       <p className="text-muted-foreground mb-2">
                         RAML types are converted to JSON Schema with:
                       </p>
@@ -300,11 +346,16 @@ export function RamlImportModal({
                           </code>
                         </li>
                         <li>
-                          Any types → <code className="bg-background px-1 rounded">"type": {}</code>
+                          Any types →{' '}
+                          <code className="bg-background px-1 rounded">
+                            "type": {}
+                          </code>
                         </li>
                         <li>
                           Date/time →{' '}
-                          <code className="bg-background px-1 rounded">"format": "date-time"</code>
+                          <code className="bg-background px-1 rounded">
+                            "format": "date-time"
+                          </code>
                         </li>
                         <li>Enums → Externalized for reusability</li>
                       </ul>
@@ -318,10 +369,14 @@ export function RamlImportModal({
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Upload className="h-5 w-5 text-primary" />
-                    <Label className="text-base font-medium">Import Progress</Label>
+                    <Label className="text-base font-medium">
+                      Import Progress
+                    </Label>
                   </div>
                   <Progress value={importProgress} className="w-full" />
-                  <p className="text-sm text-muted-foreground">{importStatus}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {importStatus}
+                  </p>
                 </div>
               )}
             </div>
@@ -335,7 +390,9 @@ export function RamlImportModal({
             </Button>
             <Button
               onClick={handleImport}
-              disabled={isImporting || !config.sourcePath || !config.destinationPath}
+              disabled={
+                isImporting || !config.sourcePath || !config.destinationPath
+              }
             >
               {isImporting ? (
                 <>
