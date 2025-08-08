@@ -427,23 +427,23 @@ export function Build(): React.JSX.Element {
             useAppStore.setState((state) => ({
               currentProject: state.currentProject
                 ? {
-                    ...state.currentProject,
-                    schemas: state.currentProject.schemas.map((s) =>
-                      s.id === tab.schema.id
-                        ? {
-                            ...s,
-                            content: parsed,
-                            metadata: s.metadata
-                              ? {
-                                  ...s.metadata,
-                                  lastModified: new Date(),
-                                  fileSize: tab.content.length,
-                                }
-                              : s.metadata,
+                  ...state.currentProject,
+                  schemas: state.currentProject.schemas.map((s) =>
+                    s.id === tab.schema.id
+                      ? {
+                        ...s,
+                        content: parsed,
+                        metadata: s.metadata
+                          ? {
+                            ...s.metadata,
+                            lastModified: new Date(),
+                            fileSize: tab.content.length,
                           }
-                        : s,
-                    ),
-                  }
+                          : s.metadata,
+                      }
+                      : s,
+                  ),
+                }
                 : null,
             }));
             logger.info('Updated store schema content after save', {
@@ -1133,23 +1133,23 @@ export function Build(): React.JSX.Element {
                 useAppStore.setState((state) => ({
                   currentProject: state.currentProject
                     ? {
-                        ...state.currentProject,
-                        schemas: state.currentProject.schemas.map((s) =>
-                          s.id === tab.schema.id
-                            ? {
-                                ...s,
-                                content: parsed,
-                                metadata: s.metadata
-                                  ? {
-                                      ...s.metadata,
-                                      lastModified: new Date(),
-                                      fileSize: tab.content.length,
-                                    }
-                                  : s.metadata,
+                      ...state.currentProject,
+                      schemas: state.currentProject.schemas.map((s) =>
+                        s.id === tab.schema.id
+                          ? {
+                            ...s,
+                            content: parsed,
+                            metadata: s.metadata
+                              ? {
+                                ...s.metadata,
+                                lastModified: new Date(),
+                                fileSize: tab.content.length,
                               }
-                            : s,
-                        ),
-                      }
+                              : s.metadata,
+                          }
+                          : s,
+                      ),
+                    }
                     : null,
                 }));
               } catch (_e) {
@@ -1316,14 +1316,14 @@ export function Build(): React.JSX.Element {
         useAppStore.setState((state) => ({
           currentProject: state.currentProject
             ? {
-                ...state.currentProject,
-                schemas: [...state.currentProject.schemas, newSchema],
-                schemaIds: [...state.currentProject.schemaIds, schemaId],
-                status: {
-                  ...state.currentProject.status,
-                  totalSchemas: state.currentProject.status.totalSchemas + 1,
-                },
-              }
+              ...state.currentProject,
+              schemas: [...state.currentProject.schemas, newSchema],
+              schemaIds: [...state.currentProject.schemaIds, schemaId],
+              status: {
+                ...state.currentProject.status,
+                totalSchemas: state.currentProject.status.totalSchemas + 1,
+              },
+            }
             : null,
         }));
 
@@ -1391,18 +1391,18 @@ export function Build(): React.JSX.Element {
       useAppStore.setState((state) => ({
         currentProject: state.currentProject
           ? {
-              ...state.currentProject,
-              schemas: state.currentProject.schemas.filter(
-                (s) => s.id !== schemaToDelete.id,
-              ),
-              schemaIds: state.currentProject.schemaIds.filter(
-                (id) => id !== schemaToDelete.id,
-              ),
-              status: {
-                ...state.currentProject.status,
-                totalSchemas: state.currentProject.status.totalSchemas - 1,
-              },
-            }
+            ...state.currentProject,
+            schemas: state.currentProject.schemas.filter(
+              (s) => s.id !== schemaToDelete.id,
+            ),
+            schemaIds: state.currentProject.schemaIds.filter(
+              (id) => id !== schemaToDelete.id,
+            ),
+            status: {
+              ...state.currentProject.status,
+              totalSchemas: state.currentProject.status.totalSchemas - 1,
+            },
+          }
           : null,
       }));
 
@@ -1469,11 +1469,11 @@ export function Build(): React.JSX.Element {
       useAppStore.setState((state) => ({
         currentProject: state.currentProject
           ? {
-              ...state.currentProject,
-              schemas: state.currentProject.schemas.map((s) =>
-                s.id === schemaToRename.id ? updatedSchema : s,
-              ),
-            }
+            ...state.currentProject,
+            schemas: state.currentProject.schemas.map((s) =>
+              s.id === schemaToRename.id ? updatedSchema : s,
+            ),
+          }
           : null,
       }));
 
@@ -1996,7 +1996,7 @@ export function Build(): React.JSX.Element {
       {/* Main Content - no card wrappers */}
       <div className="flex-1 grid grid-cols-12 gap-2 min-h-0 overflow-hidden">
         {/* Tree View Sidebar */}
-        <div className="col-span-3 bg-muted/10 border-r border-border/50 flex flex-col">
+        <div className="col-span-3 bg-muted/10 border-r border-border/50 flex flex-col min-h-0">
           <div className="p-3 border-b border-border/50 flex-shrink-0">
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -2012,7 +2012,7 @@ export function Build(): React.JSX.Element {
           <div className="flex-1 min-h-0 p-0">
             <ContextMenu>
               <ContextMenuTrigger asChild>
-                <ScrollArea className="h-full px-3">
+                <ScrollArea className="h-full w-full px-3">
                   {filteredTreeItems.length > 0 ? (
                     <div className="space-y-1">
                       {filteredTreeItems.map((item) => renderTreeItem(item))}
@@ -2051,7 +2051,7 @@ export function Build(): React.JSX.Element {
         </div>
 
         {/* Editor Area */}
-        <div className="col-span-9 flex flex-col">
+        <div className="col-span-9 flex flex-col min-h-0">
           {editorTabs.length > 0 ? (
             <Tabs
               value={activeTabId || ''}
@@ -2084,6 +2084,7 @@ export function Build(): React.JSX.Element {
                             scrollbarWidth: 'none',
                             msOverflowStyle: 'none',
                             maxWidth: 'calc(100vw - 400px)', // Ensure it doesn't exceed viewport
+                            overflowY: 'hidden',
                           }}
                           onScroll={updateScrollButtons}
                         >
@@ -2171,7 +2172,7 @@ export function Build(): React.JSX.Element {
                             editorTabs.findIndex(
                               (t) => t.id === activeTabId,
                             ) ===
-                              editorTabs.length - 1
+                            editorTabs.length - 1
                           }
                         >
                           <ArrowRight className="w-4 h-4 mr-2" />
@@ -2244,25 +2245,25 @@ export function Build(): React.JSX.Element {
                               useAppStore.setState((state) => ({
                                 currentProject: state.currentProject
                                   ? {
-                                      ...state.currentProject,
-                                      schemas: state.currentProject.schemas.map(
-                                        (s) =>
-                                          s.id === tab.schema.id
-                                            ? {
-                                                ...s,
-                                                content: parsed,
-                                                metadata: s.metadata
-                                                  ? {
-                                                      ...s.metadata,
-                                                      lastModified: new Date(),
-                                                      fileSize:
-                                                        savedContent.length,
-                                                    }
-                                                  : s.metadata,
+                                    ...state.currentProject,
+                                    schemas: state.currentProject.schemas.map(
+                                      (s) =>
+                                        s.id === tab.schema.id
+                                          ? {
+                                            ...s,
+                                            content: parsed,
+                                            metadata: s.metadata
+                                              ? {
+                                                ...s.metadata,
+                                                lastModified: new Date(),
+                                                fileSize:
+                                                  savedContent.length,
                                               }
-                                            : s,
-                                      ),
-                                    }
+                                              : s.metadata,
+                                          }
+                                          : s,
+                                    ),
+                                  }
                                   : null,
                               }));
                               // Only update tab content if it's actually different from current tab content
@@ -2660,9 +2661,9 @@ export function Build(): React.JSX.Element {
                 <pre className="text-xs">
                   {templateSchemaName.trim()
                     ? getTemplatePreview(
-                        templateSchemaName.trim(),
-                        selectedTemplate,
-                      )
+                      templateSchemaName.trim(),
+                      selectedTemplate,
+                    )
                     : 'Enter a schema name to see preview'}
                 </pre>
               </div>
