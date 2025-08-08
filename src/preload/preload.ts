@@ -68,7 +68,10 @@ contextBridge.exposeInMainWorld('api', {
    * @param filePath - Path to the file to read
    * @returns Promise resolving to file content or error
    */
-  readFile: (filePath: string) => ipcRenderer.invoke('file:read', filePath),
+  readFile: async (filePath: string) => {
+    const res = await ipcRenderer.invoke('file:read', filePath);
+    return res; // withErrorHandling returns { success, data? | error? }
+  },
 
   /**
    * Writes data to a file in the filesystem.
@@ -77,7 +80,7 @@ contextBridge.exposeInMainWorld('api', {
    * @param data - Data to write to the file
    * @returns Promise resolving to success status or error
    */
-  writeFile: (filePath: string, data: string) =>
+  writeFile: async (filePath: string, data: string) =>
     ipcRenderer.invoke('file:write', filePath, data),
 
   /**
@@ -223,14 +226,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // Dialog Operations API
 
-  /**
-   * Shows a folder selection dialog.
-   *
-   * @param options - Dialog options
-   * @returns Promise resolving to selected path or error
-   */
-  showFolderDialog: (options?: { title?: string; defaultPath?: string }) =>
-    ipcRenderer.invoke('dialog:folder', options),
+  // removed unimplemented showFileDialog/watchDirectory/unwatchDirectory/showFolderDialog
 
   // RAML Import Operations API
 

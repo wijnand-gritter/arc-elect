@@ -35,6 +35,8 @@ interface MonacoEditorProps {
   fontFamily?: string;
   availableSchemas?: Array<{ id: string; name: string; path: string }>;
   onRefClick?: (refPath: string) => void;
+  onSave?: () => void;
+  onSaveAll?: () => void;
 }
 
 export const MonacoEditor = React.forwardRef<
@@ -61,6 +63,8 @@ export const MonacoEditor = React.forwardRef<
     fontFamily = '"JetBrains Mono", Consolas, "Courier New", monospace',
     availableSchemas = [],
     onRefClick,
+    onSave,
+    onSaveAll,
   },
   ref,
 ) {
@@ -1517,6 +1521,31 @@ export const MonacoEditor = React.forwardRef<
             editor.getAction('editor.action.formatDocument')?.run();
           },
         });
+
+        // Keyboard shortcuts (Save / Save All)
+        editor.addCommand(
+          monacoInstance.KeyMod.CtrlCmd | monacoInstance.KeyCode.KeyS,
+          () => {
+            try {
+              onSave?.();
+            } catch (e) {
+              logger.error('onSave handler failed', { error: e });
+            }
+          },
+        );
+
+        editor.addCommand(
+          monacoInstance.KeyMod.CtrlCmd |
+            monacoInstance.KeyMod.Shift |
+            monacoInstance.KeyCode.KeyS,
+          () => {
+            try {
+              onSaveAll?.();
+            } catch (e) {
+              logger.error('onSaveAll handler failed', { error: e });
+            }
+          },
+        );
 
         editor.addAction({
           id: 'validate-json',

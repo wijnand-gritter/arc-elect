@@ -359,33 +359,18 @@
     font-family: 'Fira Mono', 'monospace', monospace !important;
   }
 
-  /* Ensure Monaco Editor hover widgets can overflow */
-  .monaco-editor .hoverWidget {
-    z-index: 1000 !important;
+  /* Ensure Monaco Editor widgets render above other elements without breaking positioning */
+  .monaco-editor .hoverWidget,
+  .monaco-editor .hoverWidget .hover-row,
+  .monaco-editor .monaco-hover,
+  .monaco-editor .suggest-widget {
+    z-index: 9999 !important;
   }
 
-  .monaco-editor .hoverWidget .hover-row {
-    z-index: 1000 !important;
-  }
-
-  /* Force hover widgets to render above other elements */
-  .monaco-editor .monaco-hover {
-    z-index: 1000 !important;
-    position: fixed !important;
-    overflow: visible !important;
-  }
-
-  /* Ensure all Monaco Editor widgets can overflow containers */
+  /* Allow widgets to overflow if needed, but let Monaco control positioning */
   .monaco-editor .monaco-hover,
   .monaco-editor .hoverWidget,
   .monaco-editor .suggest-widget {
-    position: fixed !important;
-    z-index: 9999 !important;
-    overflow: visible !important;
-  }
-
-  /* Override any container overflow settings for Monaco widgets */
-  *:has(.monaco-editor) {
     overflow: visible !important;
   }
 

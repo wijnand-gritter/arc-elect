@@ -76,6 +76,12 @@ export function withErrorHandling<T extends unknown[], R>(
         });
       }
 
+      // If handler already returns a standardized { success, ... } object,
+      // pass it through to avoid double-wrapping.
+      if (result && typeof result === 'object' && 'success' in (result as Record<string, unknown>)) {
+        return result as unknown as IpcResponse<R>;
+      }
+
       return { success: true, data: result };
     } catch (error) {
       const errorObj =

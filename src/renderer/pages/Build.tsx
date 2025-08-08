@@ -427,23 +427,23 @@ export function Build(): React.JSX.Element {
             useAppStore.setState((state) => ({
               currentProject: state.currentProject
                 ? {
-                    ...state.currentProject,
-                    schemas: state.currentProject.schemas.map((s) =>
-                      s.id === tab.schema.id
-                        ? {
-                            ...s,
-                            content: parsed,
-                            metadata: s.metadata
-                              ? {
-                                  ...s.metadata,
-                                  lastModified: new Date(),
-                                  fileSize: tab.content.length,
-                                }
-                              : s.metadata,
+                  ...state.currentProject,
+                  schemas: state.currentProject.schemas.map((s) =>
+                    s.id === tab.schema.id
+                      ? {
+                        ...s,
+                        content: parsed,
+                        metadata: s.metadata
+                          ? {
+                            ...s.metadata,
+                            lastModified: new Date(),
+                            fileSize: tab.content.length,
                           }
-                        : s,
-                    ),
-                  }
+                          : s.metadata,
+                      }
+                      : s,
+                  ),
+                }
                 : null,
             }));
             logger.info('Updated store schema content after save', {
@@ -1133,23 +1133,23 @@ export function Build(): React.JSX.Element {
                 useAppStore.setState((state) => ({
                   currentProject: state.currentProject
                     ? {
-                        ...state.currentProject,
-                        schemas: state.currentProject.schemas.map((s) =>
-                          s.id === tab.schema.id
-                            ? {
-                                ...s,
-                                content: parsed,
-                                metadata: s.metadata
-                                  ? {
-                                      ...s.metadata,
-                                      lastModified: new Date(),
-                                      fileSize: tab.content.length,
-                                    }
-                                  : s.metadata,
+                      ...state.currentProject,
+                      schemas: state.currentProject.schemas.map((s) =>
+                        s.id === tab.schema.id
+                          ? {
+                            ...s,
+                            content: parsed,
+                            metadata: s.metadata
+                              ? {
+                                ...s.metadata,
+                                lastModified: new Date(),
+                                fileSize: tab.content.length,
                               }
-                            : s,
-                        ),
-                      }
+                              : s.metadata,
+                          }
+                          : s,
+                      ),
+                    }
                     : null,
                 }));
               } catch (_e) {
@@ -1227,6 +1227,16 @@ export function Build(): React.JSX.Element {
     }),
     [editorTabs],
   );
+
+  // Listen to Monaco-dispatched Save All event
+  useEffect(() => {
+    const listener = () => {
+      void handleSaveAll();
+    };
+    document.addEventListener('build-save-all', listener as EventListener);
+    return () =>
+      document.removeEventListener('build-save-all', listener as EventListener);
+  }, [handleSaveAll]);
 
   // Context menu handlers
   const handleContextMenuOpen = useCallback((item: TreeItem) => {
@@ -1306,14 +1316,14 @@ export function Build(): React.JSX.Element {
         useAppStore.setState((state) => ({
           currentProject: state.currentProject
             ? {
-                ...state.currentProject,
-                schemas: [...state.currentProject.schemas, newSchema],
-                schemaIds: [...state.currentProject.schemaIds, schemaId],
-                status: {
-                  ...state.currentProject.status,
-                  totalSchemas: state.currentProject.status.totalSchemas + 1,
-                },
-              }
+              ...state.currentProject,
+              schemas: [...state.currentProject.schemas, newSchema],
+              schemaIds: [...state.currentProject.schemaIds, schemaId],
+              status: {
+                ...state.currentProject.status,
+                totalSchemas: state.currentProject.status.totalSchemas + 1,
+              },
+            }
             : null,
         }));
 
@@ -1381,18 +1391,18 @@ export function Build(): React.JSX.Element {
       useAppStore.setState((state) => ({
         currentProject: state.currentProject
           ? {
-              ...state.currentProject,
-              schemas: state.currentProject.schemas.filter(
-                (s) => s.id !== schemaToDelete.id,
-              ),
-              schemaIds: state.currentProject.schemaIds.filter(
-                (id) => id !== schemaToDelete.id,
-              ),
-              status: {
-                ...state.currentProject.status,
-                totalSchemas: state.currentProject.status.totalSchemas - 1,
-              },
-            }
+            ...state.currentProject,
+            schemas: state.currentProject.schemas.filter(
+              (s) => s.id !== schemaToDelete.id,
+            ),
+            schemaIds: state.currentProject.schemaIds.filter(
+              (id) => id !== schemaToDelete.id,
+            ),
+            status: {
+              ...state.currentProject.status,
+              totalSchemas: state.currentProject.status.totalSchemas - 1,
+            },
+          }
           : null,
       }));
 
@@ -1459,11 +1469,11 @@ export function Build(): React.JSX.Element {
       useAppStore.setState((state) => ({
         currentProject: state.currentProject
           ? {
-              ...state.currentProject,
-              schemas: state.currentProject.schemas.map((s) =>
-                s.id === schemaToRename.id ? updatedSchema : s,
-              ),
-            }
+            ...state.currentProject,
+            schemas: state.currentProject.schemas.map((s) =>
+              s.id === schemaToRename.id ? updatedSchema : s,
+            ),
+          }
           : null,
       }));
 
@@ -2161,7 +2171,7 @@ export function Build(): React.JSX.Element {
                             editorTabs.findIndex(
                               (t) => t.id === activeTabId,
                             ) ===
-                              editorTabs.length - 1
+                            editorTabs.length - 1
                           }
                         >
                           <ArrowRight className="w-4 h-4 mr-2" />
@@ -2227,6 +2237,36 @@ export function Build(): React.JSX.Element {
                           onValidationChange={(errors) =>
                             handleTabValidationChange(tab.id, errors)
                           }
+                          onSaved={(savedContent) => {
+                            // Persist to store so navigation away/back reflects the save
+                            try {
+                              const parsed = JSON.parse(savedContent);
+                              useAppStore.setState((state) => ({
+                                currentProject: state.currentProject
+                                  ? {
+                                      ...state.currentProject,
+                                      schemas: state.currentProject.schemas.map((s) =>
+                                        s.id === tab.schema.id
+                                          ? {
+                                              ...s,
+                                              content: parsed,
+                                              metadata: s.metadata
+                                                ? {
+                                                    ...s.metadata,
+                                                    lastModified: new Date(),
+                                                    fileSize: savedContent.length,
+                                                  }
+                                                : s.metadata,
+                                            }
+                                          : s,
+                                      ),
+                                    }
+                                  : null,
+                              }));
+                            } catch (_e) {
+                              // ignore
+                            }
+                          }}
                           errors={tabValidationErrors[tab.id] || []}
                           availableSchemas={
                             currentProject?.schemas?.map((schema) => ({
@@ -2595,9 +2635,9 @@ export function Build(): React.JSX.Element {
                 <pre className="text-xs">
                   {templateSchemaName.trim()
                     ? getTemplatePreview(
-                        templateSchemaName.trim(),
-                        selectedTemplate,
-                      )
+                      templateSchemaName.trim(),
+                      selectedTemplate,
+                    )
                     : 'Enter a schema name to see preview'}
                 </pre>
               </div>

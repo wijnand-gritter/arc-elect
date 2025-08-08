@@ -59,6 +59,8 @@ interface SchemaEditorProps {
   onRefClick?: (refPath: string) => void;
   /** Whether save all is in progress */
   isSaving?: boolean;
+  /** Callback after a successful save with the saved content */
+  onSaved?: (content: string) => void;
 }
 
 /**
@@ -75,6 +77,7 @@ export function SchemaEditor({
   availableSchemas = [],
   onRefClick,
   isSaving: globalIsSaving = false,
+  onSaved,
 }: SchemaEditorProps): React.JSX.Element {
   const editorRef = useRef<{
     formatDocument: () => void;
@@ -198,17 +201,28 @@ export function SchemaEditor({
           }
         }
 
+        // Use current editor value to avoid any race with prop updates
+        const currentValue = editorRef.current
+          ? (editorRef.current as any).getValue?.() || content
+          : content;
+
         // Save to file system
-        const result = await window.api.writeFile(schema.path, content);
+        const result = await window.api.writeFile(schema.path, currentValue);
 
         if (result.success) {
-          setLastSavedContent(content);
+          setLastSavedContent(currentValue);
           onDirtyChange(false);
+          // Notify parent so it can update store with latest content
+          try {
+            onSaved?.(currentValue);
+          } catch (_e) {
+            // ignore callback errors
+          }
 
           logger.info('Schema saved successfully', {
             schemaName: schema.name,
             filePath: schema.path,
-            contentLength: content.length,
+            contentLength: currentValue.length,
           });
         } else {
           logger.error('Schema save failed', {
@@ -227,7 +241,7 @@ export function SchemaEditor({
         setIsSaving(false);
       }
     }),
-    [schema.name, schema.path, content, onDirtyChange],
+    [schema.name, schema.path, content, onDirtyChange, onSaved],
   );
 
   /**
@@ -432,6 +446,17 @@ export function SchemaEditor({
           wordWrap={false}
           availableSchemas={availableSchemas}
           {...(onRefClick && { onRefClick })}
+          onSave={handleSave}
+          onSaveAll={() => {
+            // Bubble up to tab-level Save All via keyboard only.
+            // Parent Build binds Save All in tab context menu and header.
+            try {
+              const event = new CustomEvent('build-save-all');
+              document.dispatchEvent(event);
+            } catch (_e) {
+              // ignore
+            }
+          }}
         />
       </div>
 

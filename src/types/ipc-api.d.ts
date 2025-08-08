@@ -224,37 +224,10 @@ declare global {
        * @param path - Directory path to watch
        * @returns Promise resolving to success status or error
        */
-      watchDirectory: (path: string) => Promise<{
-        success: boolean;
-        error?: string;
-      }>;
-
-      /**
-       * Stops watching a directory for file changes.
-       *
-       * @param path - Directory path to stop watching
-       * @returns Promise resolving to success status or error
-       */
-      unwatchDirectory: (path: string) => Promise<{
-        success: boolean;
-        error?: string;
-      }>;
+      // Removed: watchDirectory/unwatchDirectory (not implemented)
 
       // Dialog operations
-      /**
-       * Shows a folder selection dialog.
-       *
-       * @param options - Dialog options
-       * @returns Promise resolving to selected path or error
-       */
-      showFolderDialog: (options?: {
-        title?: string;
-        defaultPath?: string;
-      }) => Promise<{
-        success: boolean;
-        path?: string;
-        error?: string;
-      }>;
+      // Removed: showFolderDialog (not implemented)
 
       /**
        * Shows a file selection dialog.
@@ -262,16 +235,7 @@ declare global {
        * @param options - Dialog options
        * @returns Promise resolving to selected files or error
        */
-      showFileDialog: (options?: {
-        title?: string;
-        defaultPath?: string;
-        filters?: Array<{ name: string; extensions: string[] }>;
-        multiSelections?: boolean;
-      }) => Promise<{
-        success: boolean;
-        paths?: string[];
-        error?: string;
-      }>;
+      // Removed: showFileDialog (not implemented)
 
       // RAML import operations
       /**
@@ -298,7 +262,7 @@ declare global {
         options: TransformationOptions;
       }) => Promise<{
         success: boolean;
-        results: RamlConversionResult[];
+        results: unknown[];
         summary: {
           total: number;
           successful: number;

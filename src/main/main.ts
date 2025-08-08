@@ -193,6 +193,28 @@ function getSchemaTemplate(templateType: string, schemaName: string): string {
   }
 }
 
+/**
+ * Validates and normalizes an absolute filesystem path.
+ * Throws on invalid input. Returns the resolved absolute path.
+ */
+function validateAbsolutePath(inputPath: string, maxLength: number = 512): string {
+  const inputValidation = validateInput(inputPath, 'string', maxLength);
+  if (!inputValidation.valid) {
+    throw new Error(inputValidation.error);
+  }
+  if (inputPath.includes('\0')) {
+    throw new Error('Invalid path');
+  }
+  if (inputPath.startsWith('file://')) {
+    throw new Error('Invalid path scheme');
+  }
+  const resolved = path.resolve(inputPath);
+  if (!path.isAbsolute(resolved)) {
+    throw new Error('Path must be absolute');
+  }
+  return resolved;
+}
+
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
   app.quit();
@@ -282,18 +304,8 @@ app.on('before-quit', () => {
 ipcMain.handle(
   'file:read',
   withErrorHandling(async (_event, filePath: string) => {
-    // Validate input
-    const validation = validateInput(filePath, 'string', 512);
-    if (!validation.valid) {
-      throw new Error(validation.error);
-    }
-
-    // Basic security check - prevent directory traversal
-    if (filePath.includes('..') || filePath.includes('//')) {
-      throw new Error('Invalid file path');
-    }
-
-    const data = await fs.readFile(filePath, 'utf-8');
+    const safePath = validateAbsolutePath(filePath, 2048);
+    const data = await fs.readFile(safePath, 'utf-8');
     return data;
   }, 'file:read'),
 );
@@ -310,23 +322,14 @@ ipcMain.handle(
   'file:write',
   withErrorHandling(async (_event, filePath: string, data: string) => {
     // Validate inputs
-    const pathValidation = validateInput(filePath, 'string', 512);
-    if (!pathValidation.valid) {
-      throw new Error(pathValidation.error);
-    }
-
     const dataValidation = validateInput(data, 'string');
     if (!dataValidation.valid) {
       throw new Error(dataValidation.error);
     }
 
-    // Basic security check - prevent directory traversal
-    if (filePath.includes('..') || filePath.includes('//')) {
-      throw new Error('Invalid file path');
-    }
-
-    await fs.writeFile(filePath, data, 'utf-8');
-    logger.info('File written successfully', { filePath, size: data.length });
+    const safePath = validateAbsolutePath(filePath, 2048);
+    await fs.writeFile(safePath, data, 'utf-8');
+    logger.info('File written successfully', { filePath: safePath, size: data.length });
     return { success: true };
   }, 'file:write'),
 );
@@ -344,38 +347,29 @@ ipcMain.handle(
   withErrorHandling(
     async (_event, filePath: string, templateType: string = 'basic') => {
       // Validate inputs
-      const pathValidation = validateInput(filePath, 'string', 512);
-      if (!pathValidation.valid) {
-        throw new Error(pathValidation.error);
-      }
-
       const templateValidation = validateInput(templateType, 'string', 50);
       if (!templateValidation.valid) {
         throw new Error(templateValidation.error);
       }
 
-      // Basic security check - prevent directory traversal
-      if (filePath.includes('..') || filePath.includes('//')) {
-        throw new Error('Invalid file path');
-      }
-
+      let targetPath = validateAbsolutePath(filePath, 2048);
       // Ensure the file has .schema.json extension
-      if (!filePath.endsWith('.schema.json')) {
-        filePath = `${filePath}.schema.json`;
+      if (!targetPath.endsWith('.schema.json')) {
+        targetPath = `${targetPath}.schema.json`;
       }
 
       // Get schema template based on type
       const schemaContent = getSchemaTemplate(
         templateType,
-        path.basename(filePath, '.schema.json'),
+        path.basename(targetPath, '.schema.json'),
       );
 
-      await fs.writeFile(filePath, schemaContent, 'utf-8');
+      await fs.writeFile(targetPath, schemaContent, 'utf-8');
       logger.info('Schema file created successfully', {
-        filePath,
+        filePath: targetPath,
         templateType,
       });
-      return { success: true, filePath };
+      return { success: true, filePath: targetPath };
     },
     'file:createSchema',
   ),
@@ -391,20 +385,10 @@ ipcMain.handle(
 ipcMain.handle(
   'file:createFolder',
   withErrorHandling(async (_event, folderPath: string) => {
-    // Validate input
-    const validation = validateInput(folderPath, 'string', 512);
-    if (!validation.valid) {
-      throw new Error(validation.error);
-    }
-
-    // Basic security check - prevent directory traversal
-    if (folderPath.includes('..') || folderPath.includes('//')) {
-      throw new Error('Invalid folder path');
-    }
-
-    await fs.mkdir(folderPath, { recursive: true });
-    logger.info('Folder created successfully', { folderPath });
-    return { success: true, folderPath };
+    const safePath = validateAbsolutePath(folderPath, 2048);
+    await fs.mkdir(safePath, { recursive: true });
+    logger.info('Folder created successfully', { folderPath: safePath });
+    return { success: true, folderPath: safePath };
   }, 'file:createFolder'),
 );
 
@@ -419,30 +403,11 @@ ipcMain.handle(
 ipcMain.handle(
   'file:rename',
   withErrorHandling(async (_event, oldPath: string, newPath: string) => {
-    // Validate inputs
-    const oldPathValidation = validateInput(oldPath, 'string', 512);
-    if (!oldPathValidation.valid) {
-      throw new Error(oldPathValidation.error);
-    }
-
-    const newPathValidation = validateInput(newPath, 'string', 512);
-    if (!newPathValidation.valid) {
-      throw new Error(newPathValidation.error);
-    }
-
-    // Basic security check - prevent directory traversal
-    if (
-      oldPath.includes('..') ||
-      oldPath.includes('//') ||
-      newPath.includes('..') ||
-      newPath.includes('//')
-    ) {
-      throw new Error('Invalid file path');
-    }
-
-    await fs.rename(oldPath, newPath);
-    logger.info('File/folder renamed successfully', { oldPath, newPath });
-    return { success: true, oldPath, newPath };
+    const safeOld = validateAbsolutePath(oldPath, 2048);
+    const safeNew = validateAbsolutePath(newPath, 2048);
+    await fs.rename(safeOld, safeNew);
+    logger.info('File/folder renamed successfully', { oldPath: safeOld, newPath: safeNew });
+    return { success: true, oldPath: safeOld, newPath: safeNew };
   }, 'file:rename'),
 );
 
@@ -456,27 +421,10 @@ ipcMain.handle(
 ipcMain.handle(
   'file:delete',
   withErrorHandling(async (_event, filePath: string) => {
-    // Validate input
-    const validation = validateInput(filePath, 'string', 512);
-    if (!validation.valid) {
-      throw new Error(validation.error);
-    }
-
-    // Basic security check - prevent directory traversal
-    if (filePath.includes('..') || filePath.includes('//')) {
-      throw new Error('Invalid file path');
-    }
-
-    const stats = await fs.stat(filePath);
-    if (stats.isDirectory()) {
-      await fs.rmdir(filePath, { recursive: true });
-      logger.info('Folder deleted successfully', { filePath });
-    } else {
-      await fs.unlink(filePath);
-      logger.info('File deleted successfully', { filePath });
-    }
-
-    return { success: true, filePath };
+    const safePath = validateAbsolutePath(filePath, 2048);
+    await fs.rm(safePath, { recursive: true, force: true });
+    logger.info('Path deleted successfully', { filePath: safePath });
+    return { success: true, filePath: safePath };
   }, 'file:delete'),
 );
 

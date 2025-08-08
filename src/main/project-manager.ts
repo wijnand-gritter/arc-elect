@@ -17,6 +17,7 @@ import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import { watch } from 'chokidar';
 import logger from './main-logger';
+import { withErrorHandling, validateInput } from './error-handler';
 import { convertRamlToJsonSchemas } from './raml-converter';
 import * as os from 'os';
 import type {
@@ -131,150 +132,176 @@ class ProjectManager {
    */
   private setupIpcHandlers(): void {
     // Project creation
-    ipcMain.handle('project:create', async (_event, config: ProjectConfig) => {
-      return this.createProject(config);
-    });
+    ipcMain.handle(
+      'project:create',
+      withErrorHandling(async (_event, config: ProjectConfig) => {
+        // Basic validation
+        const valid = config && typeof config === 'object' ? true : false;
+        if (!valid) throw new Error('Invalid project configuration');
+        return this.createProject(config);
+      }, 'project:create'),
+    );
 
     // Project loading
-    ipcMain.handle('project:load', async (_event, projectPath: string) => {
-      return this.loadProject(projectPath);
-    });
+    ipcMain.handle(
+      'project:load',
+      withErrorHandling(async (_event, projectPath: string) => {
+        const validation = validateInput(projectPath, 'string', 2048);
+        if (!validation.valid) throw new Error(validation.error);
+        return this.loadProject(projectPath);
+      }, 'project:load'),
+    );
 
     // Project saving
-    ipcMain.handle('project:save', async (_event, project: Project) => {
-      return this.saveProject(project);
-    });
+    ipcMain.handle(
+      'project:save',
+      withErrorHandling(async (_event, project: Project) => {
+        if (!project || typeof project !== 'object') {
+          throw new Error('Invalid project payload');
+        }
+        return this.saveProject(project);
+      }, 'project:save'),
+    );
 
     // Get recent projects
-    ipcMain.handle('project:getRecent', async () => {
-      return this.getRecentProjects();
-    });
+    ipcMain.handle(
+      'project:getRecent',
+      withErrorHandling(async () => {
+        return this.getRecentProjects();
+      }, 'project:getRecent'),
+    );
 
     // Delete project
-    ipcMain.handle('project:delete', async (_event, projectId: string) => {
-      return this.deleteProject(projectId);
-    });
+    ipcMain.handle(
+      'project:delete',
+      withErrorHandling(async (_event, projectId: string) => {
+        const validation = validateInput(projectId, 'string', 512);
+        if (!validation.valid) throw new Error(validation.error);
+        return this.deleteProject(projectId);
+      }, 'project:delete'),
+    );
 
     // Directory scanning
     ipcMain.handle(
       'fs:scan',
-      async (_event, dirPath: string, pattern: string) => {
+      withErrorHandling(async (_event, dirPath: string, pattern: string) => {
+        const dirValidation = validateInput(dirPath, 'string', 2048);
+        if (!dirValidation.valid) throw new Error(dirValidation.error);
+        const patValidation = validateInput(pattern, 'string', 256);
+        if (!patValidation.valid) throw new Error(patValidation.error);
         return this.scanDirectory(dirPath, pattern);
-      },
+      }, 'fs:scan'),
     );
 
     // Schema reading
-    ipcMain.handle('fs:readSchema', async (_event, filePath: string) => {
-      return this.readSchema(filePath);
-    });
+    ipcMain.handle(
+      'fs:readSchema',
+      withErrorHandling(async (_event, filePath: string) => {
+        const validation = validateInput(filePath, 'string', 2048);
+        if (!validation.valid) throw new Error(validation.error);
+        return this.readSchema(filePath);
+      }, 'fs:readSchema'),
+    );
 
     // Schema validation
-    ipcMain.handle('fs:validate', async (_event, filePath: string) => {
-      return this.validateSchema(filePath);
-    });
+    ipcMain.handle(
+      'fs:validate',
+      withErrorHandling(async (_event, filePath: string) => {
+        const validation = validateInput(filePath, 'string', 2048);
+        if (!validation.valid) throw new Error(validation.error);
+        return this.validateSchema(filePath);
+      }, 'fs:validate'),
+    );
 
     // Folder dialog
-    ipcMain.handle('dialog:selectFolder', async (_event, title: string) => {
-      const result = await this.showFolderDialog({ title });
-      return {
-        success: result.success,
-        data: result.path,
-        error: result.error,
-      };
-    });
+    ipcMain.handle(
+      'dialog:selectFolder',
+      withErrorHandling(async (_event, title: string) => {
+        const validation = title ? validateInput(title, 'string', 256) : { valid: true } as const;
+        if (!validation.valid) throw new Error(validation.error);
+        const result = await this.showFolderDialog({ title });
+        return {
+          success: result.success,
+          data: result.path,
+          error: result.error,
+        };
+      }, 'dialog:selectFolder'),
+    );
 
     // Destination folder dialog (allows creating new folders)
     ipcMain.handle(
       'dialog:selectDestinationFolder',
-      async (_event, title: string) => {
+      withErrorHandling(async (_event, title: string) => {
+        const validation = title ? validateInput(title, 'string', 256) : { valid: true } as const;
+        if (!validation.valid) throw new Error(validation.error);
         const result = await this.showDestinationFolderDialog({ title });
         return {
           success: result.success,
           data: result.path,
           error: result.error,
         };
-      },
+      }, 'dialog:selectDestinationFolder'),
     );
 
     // Create directory
-    ipcMain.handle('fs:createDirectory', async (_event, dirPath: string) => {
-      try {
+    ipcMain.handle(
+      'fs:createDirectory',
+      withErrorHandling(async (_event, dirPath: string) => {
+        const validation = validateInput(dirPath, 'string', 2048);
+        if (!validation.valid) throw new Error(validation.error);
         await fs.mkdir(dirPath, { recursive: true });
         return { success: true };
-      } catch (error) {
-        return {
-          success: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : 'Failed to create directory',
-        };
-      }
-    });
+      }, 'fs:createDirectory'),
+    );
 
     // RAML import handlers
-    ipcMain.handle('raml:scan', async (_event, directoryPath: string) => {
-      try {
+    ipcMain.handle(
+      'raml:scan',
+      withErrorHandling(async (_event, directoryPath: string) => {
+        const validation = validateInput(directoryPath, 'string', 2048);
+        if (!validation.valid) throw new Error(validation.error);
         const files = await this.scanRamlFiles(directoryPath);
         return { success: true, data: files };
-      } catch (error) {
-        return {
-          success: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : 'Failed to scan RAML files',
-        };
-      }
-    });
+      }, 'raml:scan'),
+    );
 
     ipcMain.handle(
       'raml:convertBatch',
-      async (_event, options: RamlBatchConversionParams) => {
+      withErrorHandling(async (_event, options: RamlBatchConversionParams) => {
+        if (!options || typeof options !== 'object') {
+          throw new Error('Invalid conversion options');
+        }
         return this.convertRamlBatch(options);
-      },
+      }, 'raml:convertBatch'),
     );
 
     ipcMain.handle(
       'raml:clearDirectory',
-      async (_event, directoryPath: string) => {
-        try {
-          await this.clearDirectory(directoryPath);
-          return { success: true };
-        } catch (error) {
-          return {
-            success: false,
-            error:
-              error instanceof Error
-                ? error.message
-                : 'Failed to clear directory',
-          };
-        }
-      },
+      withErrorHandling(async (_event, directoryPath: string) => {
+        const validation = validateInput(directoryPath, 'string', 2048);
+        if (!validation.valid) throw new Error(validation.error);
+        await this.clearDirectory(directoryPath);
+        return { success: true };
+      }, 'raml:clearDirectory'),
     );
 
     ipcMain.handle(
       'raml:validateSchemas',
-      async (_event, directoryPath: string) => {
-        try {
-          const isValid = await this.validateSchemasInDirectory(directoryPath);
-          return { success: isValid };
-        } catch (error) {
-          return {
-            success: false,
-            error:
-              error instanceof Error
-                ? error.message
-                : 'Failed to validate schemas',
-          };
-        }
-      },
+      withErrorHandling(async (_event, directoryPath: string) => {
+        const validation = validateInput(directoryPath, 'string', 2048);
+        if (!validation.valid) throw new Error(validation.error);
+        const isValid = await this.validateSchemasInDirectory(directoryPath);
+        return { success: isValid };
+      }, 'raml:validateSchemas'),
     );
 
-    ipcMain.handle('raml:cancel', async () => {
-      // Placeholder for cancellation logic
-      return { success: true };
-    });
+    ipcMain.handle(
+      'raml:cancel',
+      withErrorHandling(async () => {
+        // Placeholder for cancellation logic
+        return { success: true } as const;
+      }, 'raml:cancel'),
+    );
   }
 
   /**
@@ -1882,13 +1909,7 @@ class ProjectManager {
       await Promise.all(
         files.map(async (file) => {
           const filePath = path.join(directoryPath, file);
-          const stats = await fs.stat(filePath);
-
-          if (stats.isDirectory()) {
-            await fs.rmdir(filePath, { recursive: true });
-          } else {
-            await fs.unlink(filePath);
-          }
+          await fs.rm(filePath, { recursive: true, force: true });
         }),
       );
 
