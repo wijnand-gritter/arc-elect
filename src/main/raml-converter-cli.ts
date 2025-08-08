@@ -45,7 +45,7 @@ async function main() {
 
   try {
     const result = await convertRamlToJsonSchemas(inDir, outDir, {
-      namingConvention: 'camelCase',
+      namingConvention: 'PascalCase',
     });
     console.log('Conversion complete');
     console.log(JSON.stringify(result, null, 2));
