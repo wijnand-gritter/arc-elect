@@ -102,7 +102,18 @@ contextBridge.exposeInMainWorld('api', {
    *
    * @returns Promise resolving to theme setting or error
    */
-  getTheme: () => ipcRenderer.invoke('settings:getTheme'),
+  getTheme: async () => {
+    const result = await ipcRenderer.invoke('settings:getTheme');
+    // Main returns { success: true, data: theme } via withErrorHandling
+    if (
+      result &&
+      result.success &&
+      Object.prototype.hasOwnProperty.call(result, 'data')
+    ) {
+      return { success: true, theme: result.data };
+    }
+    return result;
+  },
 
   /**
    * Sets the theme in the main process settings.
