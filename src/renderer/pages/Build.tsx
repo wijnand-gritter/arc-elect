@@ -421,6 +421,39 @@ export function Build(): React.JSX.Element {
             prev.map((t) => (t.id === tabId ? { ...t, isDirty: false } : t)),
           );
 
+          // Update in-memory project schema so future opens use latest content
+          try {
+            const parsed = JSON.parse(tab.content);
+            useAppStore.setState((state) => ({
+              currentProject: state.currentProject
+                ? {
+                    ...state.currentProject,
+                    schemas: state.currentProject.schemas.map((s) =>
+                      s.id === tab.schema.id
+                        ? {
+                            ...s,
+                            content: parsed,
+                            metadata: s.metadata
+                              ? {
+                                  ...s.metadata,
+                                  lastModified: new Date(),
+                                  fileSize: tab.content.length,
+                                }
+                              : s.metadata,
+                          }
+                        : s,
+                    ),
+                  }
+                : null,
+            }));
+            logger.info('Updated store schema content after save', {
+              schemaName: tab.schema.name,
+              filePath: tab.schema.path,
+            });
+          } catch (_e) {
+            // ignore
+          }
+
           toast.success('Tab saved', {
             description: `${tab.schema.name} has been saved successfully`,
           });
@@ -1093,6 +1126,35 @@ export function Build(): React.JSX.Element {
                   t.id === tab.id ? { ...t, isDirty: false } : t,
                 ),
               );
+
+              // Update in-memory project schema for each saved tab
+              try {
+                const parsed = JSON.parse(tab.content);
+                useAppStore.setState((state) => ({
+                  currentProject: state.currentProject
+                    ? {
+                        ...state.currentProject,
+                        schemas: state.currentProject.schemas.map((s) =>
+                          s.id === tab.schema.id
+                            ? {
+                                ...s,
+                                content: parsed,
+                                metadata: s.metadata
+                                  ? {
+                                      ...s.metadata,
+                                      lastModified: new Date(),
+                                      fileSize: tab.content.length,
+                                    }
+                                  : s.metadata,
+                              }
+                            : s,
+                        ),
+                      }
+                    : null,
+                }));
+              } catch (_e) {
+                // ignore
+              }
 
               logger.info('Tab saved successfully', {
                 schemaName: tab.schema.name,
@@ -2174,7 +2236,6 @@ export function Build(): React.JSX.Element {
                             })) || []
                           }
                           onRefClick={handleRefClick}
-                          onSaveAll={handleSaveAll}
                           isSaving={isSaving}
                         />
                       </div>
