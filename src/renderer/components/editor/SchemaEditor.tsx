@@ -122,7 +122,13 @@ export function SchemaEditor({
         normalizedLength: normalizedNew.length,
       });
     }),
-    [schema.name, lastSavedContent, onContentChange, onDirtyChange, normalizeContent],
+    [
+      schema.name,
+      lastSavedContent,
+      onContentChange,
+      onDirtyChange,
+      normalizeContent,
+    ],
   );
 
   /**
@@ -285,7 +291,14 @@ export function SchemaEditor({
         setIsSaving(false);
       }
     }),
-    [schema.name, schema.path, content, onDirtyChange, onSaved, normalizeContent],
+    [
+      schema.name,
+      schema.path,
+      content,
+      onDirtyChange,
+      onSaved,
+      normalizeContent,
+    ],
   );
 
   /**
