@@ -52,6 +52,7 @@ import {
   Plus,
   Minus,
   RotateCcw,
+  HelpCircle,
 } from 'lucide-react';
 import {
   BarChart,
@@ -74,6 +75,7 @@ import { analyticsService, type AnalyticsResult } from '../services/analytics';
 import logger from '../lib/renderer-logger';
 import { safeHandler } from '../lib/error-handling';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog';
 
 /**
  * Analytics page component for comprehensive schema insights.
@@ -107,6 +109,7 @@ export function Analytics(): React.JSX.Element {
   // Controls: name-similarity groups
   const [nameSimThreshold, setNameSimThreshold] = useState(0);
   const [nameMinGroupSize, setNameMinGroupSize] = useState(2);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   // Analyze schemas when project changes
   useEffect(() => {
@@ -448,9 +451,19 @@ export function Analytics(): React.JSX.Element {
                       next steps
                     </p>
                   </div>
-                  <Badge variant="outline">
-                    Maturity: {analytics.maturityScore}/100
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">
+                      Maturity: {analytics.maturityScore}/100
+                    </Badge>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setIsHelpOpen(true)}
+                      title="About Insights"
+                    >
+                      <HelpCircle className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -2022,6 +2035,47 @@ export function Analytics(): React.JSX.Element {
           </CardContent>
         </Card>
       )}
+
+      {/* Help / Explainer Modal */}
+      <Dialog open={isHelpOpen} onOpenChange={setIsHelpOpen}>
+        <DialogContent className="max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>About Insights</DialogTitle>
+            <DialogDescription>
+              How suggestions are derived and how to interpret them.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 text-sm">
+            <div>
+              <h4 className="font-medium mb-1">Categories</h4>
+              <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                <li><strong>Naming</strong>: Consolidate variants (e.g., Address) or introduce a base with variants.</li>
+                <li><strong>Reuse</strong>: Extract frequent inline structures; align near-duplicates to central entities.</li>
+                <li><strong>Field consistency</strong>: Unify type/format/enum/requiredness across schemas.</li>
+                <li><strong>References</strong>: Resolve circular refs. Normal $ref reuse is good and not flagged.</li>
+                <li><strong>Complexity</strong>: Reduce deeply nested/oversized schemas.</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium mb-1">Scoring</h4>
+              <p className="text-muted-foreground">Severity (high/medium/low) and impact (0–100) drive ordering. Impact considers breadth and confidence. Maturity is a 0–100 index reduced by open issues.</p>
+            </div>
+            <div>
+              <h4 className="font-medium mb-1">Best practices</h4>
+              <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                <li>Prefer central shared entities; avoid duplicating their structure inline.</li>
+                <li>Extract repeated inline structures into shared definitions and reference them.</li>
+                <li>Use canonical formats for ids (uuid), timestamps (date-time), email, uri.</li>
+                <li>For similar-but-distinct concepts, introduce a base schema with variant overlays.</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium mb-1">Controls</h4>
+              <p className="text-muted-foreground">Sliders and filters (Near duplicates, Fields, Names) tune sensitivity and focus. They affect visibility, not the underlying analysis.</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

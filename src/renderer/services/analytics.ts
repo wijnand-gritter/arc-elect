@@ -282,6 +282,7 @@ export class AnalyticsService {
         circularReferences,
         complexityMetrics,
         projectMetrics,
+        referenceGraph,
       });
 
       const maturityScore = this.calculateMaturityScore({
@@ -332,9 +333,18 @@ export class AnalyticsService {
     circularReferences: CircularReference[];
     complexityMetrics: Map<string, ComplexityMetrics>;
     projectMetrics: AnalyticsResult['projectMetrics'];
+    referenceGraph?: ReferenceGraph;
   }): Suggestion[] {
     const suggestions: Suggestion[] = [];
     const schemaById = new Map(input.schemas.map((s) => [s.id, s]));
+    const inDegreeByName = new Map<string, number>();
+    const centralThreshold = 3;
+    if (input.referenceGraph) {
+      for (const node of input.referenceGraph.nodes) {
+        const s = schemaById.get(node.id);
+        if (s) inDegreeByName.set(s.name, node.inDegree);
+      }
+    }
 
     // Naming consolidation
     for (const g of input.nameSimilarGroups) {
@@ -378,7 +388,7 @@ export class AnalyticsService {
       });
     }
 
-    // Reuse extraction: near-duplicates
+    // Reuse extraction: near-duplicates (align to central entity if present)
     const nearByKey = new Map<string, NearDuplicatePair[]>();
     for (const p of input.nearDuplicates) {
       const key = [p.aName, p.bName].sort().join('::');
@@ -392,16 +402,64 @@ export class AnalyticsService {
       const severity: Suggestion['severity'] =
         avgSim >= 0.85 ? 'high' : avgSim >= 0.7 ? 'medium' : 'low';
       const impact = Math.min(100, Math.round(avgSim * 100));
+      // Centrality-aware messaging
+      const aIn = inDegreeByName.get(aName) || 0;
+      const bIn = inDegreeByName.get(bName) || 0;
+      let title = `Normalize ${aName} and ${bName} (similar structures)`;
+      let description = `Schemas appear similar (avg similarity ${(avgSim * 100).toFixed(0)}%). Consider refactoring into a shared base or extracting common parts.`;
+      if (aIn >= centralThreshold && bIn < centralThreshold) {
+        title = `Align ${bName} to central ${aName}`;
+        description = `${aName} is widely reused. Prefer aligning ${bName} to ${aName} rather than introducing a new base.`;
+      } else if (bIn >= centralThreshold && aIn < centralThreshold) {
+        title = `Align ${aName} to central ${bName}`;
+        description = `${bName} is widely reused. Prefer aligning ${aName} to ${bName} rather than introducing a new base.`;
+      }
       suggestions.push({
         id: `reuse:near:${key}`,
         category: 'reuse',
-        title: `Normalize ${aName} and ${bName} (similar structures)`,
-        description: `Schemas appear similar (avg similarity ${(avgSim * 100).toFixed(0)}%). Consider refactoring into a shared base or extracting common parts.`,
+        title,
+        description,
         severity,
         impactScore: impact,
         affectedSchemas: [aName, bName],
         data: { pairs },
       });
+    }
+
+    // Inline duplication mining: extract frequent inline sub-structures (exclude $ref and existing central schemas)
+    const signatureBySchemaName = new Map<string, string>();
+    for (const s of input.schemas) {
+      signatureBySchemaName.set(s.name, this.buildStructuralSignature(s.content));
+    }
+    const inlineMap = this.collectInlineDuplication(input.schemas);
+    for (const [sig, parents] of inlineMap.entries()) {
+      // Skip if signature already corresponds to a central schema (good reuse)
+      let matchesCentral = false;
+      if (input.referenceGraph) {
+        for (const node of input.referenceGraph.nodes) {
+          const schema = schemaById.get(node.id);
+          if (!schema) continue;
+          if (signatureBySchemaName.get(schema.name) === sig && node.inDegree >= centralThreshold) {
+            matchesCentral = true;
+            break;
+          }
+        }
+      }
+      if (matchesCentral) continue;
+      if (parents.size >= 3) {
+        const affected = Array.from(parents);
+        const impact = Math.min(100, parents.size * 15);
+        suggestions.push({
+          id: `reuse:inline:${sig.slice(0, 16)}`,
+          category: 'reuse',
+          title: `Extract shared sub-schema used in ${parents.size} places`,
+          description: 'A repeating inline structure was found across multiple schemas. Extract it into a shared definition and reference it.',
+          severity: 'medium',
+          impactScore: impact,
+          affectedSchemas: affected,
+          data: { kind: 'inline-dup', signature: sig, parents: affected },
+        });
+      }
     }
 
     // Field consistency
@@ -428,6 +486,7 @@ export class AnalyticsService {
         f.occurrences *
           (severity === 'high' ? 8 : severity === 'medium' ? 5 : 3),
       );
+      const proposal = this.proposeFieldCanonical(f);
       suggestions.push({
         id: `field:${f.name}`,
         category: 'field-consistency',
@@ -440,11 +499,11 @@ export class AnalyticsService {
           f.conflicts.descriptionDivergence ? 'description' : '',
         ]
           .filter(Boolean)
-          .join(', ')}.`,
+          .join(', ')}. ${proposal ? `Proposed: ${proposal}` : ''}`,
         severity,
         impactScore: impact,
         affectedSchemas: [],
-        data: { field: f },
+        data: { field: f, proposal },
       });
     }
 
@@ -507,6 +566,110 @@ export class AnalyticsService {
     }
     score = Math.max(0, Math.min(100, Math.round(score)));
     return score;
+  }
+
+  private collectInlineDuplication(schemas: Schema[]): Map<string, Set<string>> {
+    const map = new Map<string, Set<string>>(); // signature -> parent schema names
+    for (const s of schemas) {
+      const visited = new Set<unknown>();
+      const walk = (node: unknown) => {
+        if (!node || typeof node !== 'object' || visited.has(node)) return;
+        visited.add(node);
+        const obj = node as Record<string, unknown>;
+        // Ignore $ref nodes
+        if (typeof obj.$ref === 'string') return;
+        // Require non-trivial object with properties/items
+        const hasStructure = !!obj.properties || !!obj.items;
+        if (hasStructure) {
+          const sig = this.buildStructuralSignature(obj);
+          if (sig.length > 2) {
+            const parents = map.get(sig) || new Set<string>();
+            parents.add(s.name);
+            map.set(sig, parents);
+          }
+        }
+        if (obj.properties && typeof obj.properties === 'object') {
+          for (const child of Object.values(obj.properties as Record<string, unknown>)) {
+            walk(child);
+          }
+        }
+        if (obj.items) walk(obj.items);
+        if (obj.additionalProperties && typeof obj.additionalProperties === 'object') {
+          walk(obj.additionalProperties);
+        }
+      };
+      walk(s.content);
+    }
+    return map;
+  }
+
+  private proposeFieldCanonical(f: FieldInsightItem): string | null {
+    const name = f.name.toLowerCase();
+    // Identifiers
+    if (name === 'id' || name.endsWith('id') || name.endsWith('_id') || name === 'externalid' || name === 'external_id') {
+      return 'type: string, format: uuid';
+    }
+    // Dates/times
+    if (name.endsWith('date') && !name.includes('time')) {
+      return 'type: string, format: date';
+    }
+    if (name.endsWith('at') || name.includes('timestamp') || name.endsWith('datetime') || name.endsWith('time')) {
+      return 'type: string, format: date-time';
+    }
+    // Common contact/URL
+    if (name.includes('email')) {
+      return 'type: string, format: email';
+    }
+    if (name.includes('url') || name.includes('uri')) {
+      return 'type: string, format: uri';
+    }
+    if (name.includes('phone') || name.includes('tel')) {
+      return 'type: string, pattern: phone'; // e.g., E.164
+    }
+    // Monetary
+    if (name.endsWith('amount') || name.includes('price') || name.endsWith('value')) {
+      return 'type: number';
+    }
+    if (name.includes('currency')) {
+      return 'type: string, pattern: ^[A-Z]{3}$';
+    }
+    // Localization/country
+    if (name.includes('country') && name.endsWith('code')) {
+      return 'type: string, pattern: ^[A-Z]{2}$';
+    }
+    if (name.endsWith('country')) {
+      return 'type: string';
+    }
+    if (name.includes('language') || name.includes('locale')) {
+      return 'type: string, pattern: ^[a-z]{2}(-[A-Z]{2})?$';
+    }
+    // Postal codes
+    if (name.includes('postal') || name.includes('zipcode') || name.includes('zip')) {
+      return 'type: string';
+    }
+    // Names
+    if (name.endsWith('name') || name === 'firstname' || name === 'lastname') {
+      return 'type: string';
+    }
+    // Flags
+    if (name.startsWith('is') || name.startsWith('has') || name.startsWith('can') || name.startsWith('should')) {
+      return 'type: boolean';
+    }
+    // Counting/index
+    if (name.endsWith('count') || name.endsWith('quantity') || name.endsWith('index')) {
+      return 'type: integer';
+    }
+    // Codes, status, type
+    if (name.endsWith('code')) {
+      return 'type: string';
+    }
+    if (name.endsWith('status') || name.endsWith('type') || name.endsWith('category')) {
+      if (f.enumValues && f.enumValues.length > 0) {
+        return `enum: ${f.enumValues.length} values (prefer UPPER_SNAKE_CASE)`;
+      }
+      return 'type: string (consider enum)';
+    }
+    return null;
   }
 
   /** Detect exact duplicate schemas using a structural canonical signature */
