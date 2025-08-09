@@ -17,6 +17,8 @@ import type {
   ImportWarning,
   RamlFileInfo,
   ImportStatus,
+  ConversionReport,
+  ConversionSummary,
 } from '../../types/raml-import';
 import logger from '../lib/renderer-logger';
 import { toast } from 'sonner';
@@ -173,6 +175,9 @@ export class RamlImportService {
         warnings: this.currentImport.warnings,
         duration,
         timestamp: new Date(),
+        // Thread through report data if present on batch result
+        summary: conversionResult.summary,
+        reports: conversionResult.reports,
       };
 
       logger.info('RAML import completed', { result });
@@ -372,7 +377,12 @@ export class RamlImportService {
     ramlFiles: RamlFileInfo[],
     config: RamlImportConfig,
     onProgress?: (progress: ImportProgress) => void,
-  ): Promise<{ convertedCount: number }> {
+  ): Promise<{
+    convertedCount: number;
+    // Extended reporting
+    reports?: ConversionReport[];
+    summary?: ConversionSummary;
+  }> {
     if (!this.currentImport) {
       throw new Error('No active import operation');
     }
@@ -418,7 +428,11 @@ export class RamlImportService {
           summary: result.summary,
         });
 
-        return { convertedCount: result.summary.successful };
+        return {
+          convertedCount: result.summary.successful,
+          reports: result.reports,
+          summary: result.summaryDetailed,
+        };
       } else {
         throw new Error(result.error || 'Batch conversion failed');
       }

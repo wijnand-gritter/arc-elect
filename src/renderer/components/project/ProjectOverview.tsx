@@ -23,7 +23,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { useAppStore } from '../../stores/useAppStore';
 import { CreateProjectModal } from '../CreateProjectModal';
 import { RamlImportModal } from '../RamlImportModal';
-import { FolderOpen, Plus, XCircle, Upload } from 'lucide-react';
+import { ConversionReportModal } from '../report/ConversionReportModal';
+import { FolderOpen, Plus, XCircle, Upload, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 import type { Project, ProjectConfig } from '../../../types/schema-editor';
@@ -62,6 +63,13 @@ export function ProjectOverview({
 }: ProjectOverviewProps): React.JSX.Element {
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
   const [isRamlImportOpen, setIsRamlImportOpen] = React.useState(false);
+  const [isReportOpen, setIsReportOpen] = React.useState(false);
+  const [reportSummaryState, setReportSummaryState] = React.useState<
+    import('../../../types/raml-import').ConversionSummary | undefined
+  >(undefined);
+  const [reportItemsState, setReportItemsState] = React.useState<
+    import('../../../types/raml-import').ConversionReport[] | undefined
+  >(undefined);
   const [projectToDelete, setProjectToDelete] = React.useState<{
     id: string;
     name: string;
@@ -78,6 +86,28 @@ export function ProjectOverview({
    */
   const handleOpenProject = (projectPath: string) => {
     loadProject(projectPath);
+  };
+
+  const handleViewReport = async (projectPath: string) => {
+    try {
+      const exists = await window.api.reportExists(projectPath);
+      if (!exists.success || !exists.exists) {
+        toast.info('No conversion report available for this project');
+        return;
+      }
+      const rep = await window.api.getReport(projectPath);
+      if (!rep.success || !rep.data) {
+        toast.error('Failed to load conversion report');
+        return;
+      }
+      setReportSummaryState(rep.data.summary);
+      setReportItemsState(rep.data.reports);
+      setIsReportOpen(true);
+    } catch (error) {
+      toast.error('Failed to load conversion report', {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    }
   };
 
   /**
@@ -169,6 +199,22 @@ export function ProjectOverview({
           }
         }
 
+        // Fallback-synthesize a ConversionSummary when detailed summary is missing
+        const fallbackSummary = result.summaryDetailed
+          ? result.summaryDetailed
+          : {
+              filesProcessed: result.summary.total,
+              enumsCreated: 0,
+              businessObjectsCreated: result.summary.successful,
+              unionsCount: 0,
+              inlineEnumsExtracted: 0,
+              dedupedEnums: 0,
+              warningsCount: result.summary.warnings,
+              errorsCount: result.summary.failed,
+              durationMs: 0,
+              outputDirectory: config.destinationPath,
+            };
+
         return {
           success: true,
           processedFiles: result.summary.total,
@@ -184,6 +230,9 @@ export function ProjectOverview({
           warnings: [],
           duration: 0,
           timestamp: new Date(),
+          // Thread through summary/reports for modal display
+          summary: fallbackSummary,
+          reports: result.reports || [],
         };
       } else {
         return {
@@ -319,10 +368,35 @@ export function ProjectOverview({
                           variant="outline"
                           size="sm"
                           className="hover-lift"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenProject(recentProject.path);
+                          }}
                         >
                           <FolderOpen className="h-4 w-4 mr-1" />
                           Open
                         </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-muted-foreground hover:text-primary hover-lift"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleViewReport(recentProject.path);
+                                }}
+                                disabled={false}
+                              >
+                                <FileText className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>View conversion report</p>
+                          </TooltipContent>
+                        </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
@@ -511,6 +585,27 @@ export function ProjectOverview({
                     <div className="flex items-center gap-2 shrink-0 ml-4">
                       <Tooltip>
                         <TooltipTrigger asChild>
+                          <div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-primary hover-lift"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewReport(recentProject.path);
+                              }}
+                            >
+                              <FileText className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>View conversion report</p>
+                        </TooltipContent>
+                      </Tooltip>
+
+                      <Tooltip>
+                        <TooltipTrigger asChild>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -549,6 +644,13 @@ export function ProjectOverview({
         isOpen={isRamlImportOpen}
         onClose={() => setIsRamlImportOpen(false)}
         onImport={handleRamlImportConfig}
+      />
+
+      <ConversionReportModal
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+        summary={reportSummaryState}
+        reports={reportItemsState}
       />
 
       {/* Delete Confirmation Dialog */}

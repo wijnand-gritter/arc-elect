@@ -13,7 +13,7 @@ import { ipcMain, dialog } from 'electron';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { glob } from 'glob';
-import Ajv from 'ajv';
+import Ajv2020 from 'ajv/dist/2020';
 import addFormats from 'ajv-formats';
 import { watch } from 'chokidar';
 import logger from './main-logger';
@@ -84,7 +84,7 @@ interface RamlBatchConversionResult {
 /**
  * JSON Schema validator instance.
  */
-const ajv = new Ajv({
+const ajv = new Ajv2020({
   allErrors: true,
   verbose: true,
   strict: false,
@@ -306,6 +306,43 @@ class ProjectManager {
         // Placeholder for cancellation logic
         return { success: true } as const;
       }, 'raml:cancel'),
+    );
+
+    // Conversion report handlers
+    ipcMain.handle(
+      'reports:exists',
+      withErrorHandling(async (_event, projectPath: string) => {
+        const validation = validateInput(projectPath, 'string', 2048);
+        if (!validation.valid) throw new Error(validation.error);
+        const reportPath = await this.getReportPathForProject(projectPath);
+        try {
+          await fs.access(reportPath);
+          return { success: true, exists: true } as const;
+        } catch {
+          return { success: true, exists: false } as const;
+        }
+      }, 'reports:exists'),
+    );
+
+    ipcMain.handle(
+      'reports:get',
+      withErrorHandling(async (_event, projectPath: string) => {
+        const validation = validateInput(projectPath, 'string', 2048);
+        if (!validation.valid) throw new Error(validation.error);
+        const reportPath = await this.getReportPathForProject(projectPath);
+        try {
+          const content = await fs.readFile(reportPath, 'utf8');
+          const json = JSON.parse(content);
+          return { success: true, data: json } as const;
+        } catch (error) {
+          logger.warn('ProjectManager: Failed to read conversion report', {
+            projectPath,
+            reportPath,
+            error,
+          });
+          return { success: false, error: 'Report not found' } as const;
+        }
+      }, 'reports:get'),
     );
   }
 
@@ -725,6 +762,22 @@ class ProjectManager {
                   lastScanTime: new Date(),
                 },
               };
+
+              // Log report existence for this project
+              try {
+                const reportPath = await this.getReportPathForProject(
+                  metadata.path,
+                );
+                await fs.access(reportPath);
+                logger.info('ProjectManager: Conversion report found', {
+                  projectPath: metadata.path,
+                  reportPath,
+                });
+              } catch {
+                logger.info('ProjectManager: No conversion report found', {
+                  projectPath: metadata.path,
+                });
+              }
 
               projects.push(project);
             } catch {
@@ -1869,9 +1922,12 @@ class ProjectManager {
   /**
    * Converts multiple RAML files to JSON Schema in batch.
    */
-  public async convertRamlBatch(
-    options: RamlBatchConversionParams,
-  ): Promise<RamlBatchConversionResult> {
+  public async convertRamlBatch(options: RamlBatchConversionParams): Promise<
+    RamlBatchConversionResult & {
+      summary?: import('../types/raml-import').ConversionSummary;
+      reports?: import('../types/raml-import').ConversionReport[];
+    }
+  > {
     try {
       logger.info('ProjectManager: Starting batch RAML conversion', {
         sourceDirectory: options.sourceDirectory,
@@ -1897,7 +1953,7 @@ class ProjectManager {
       const result = await convertRamlToJsonSchemas(
         options.sourceDirectory,
         options.destinationDirectory,
-        { namingConvention: 'PascalCase' },
+        { namingConvention: 'camelCase' },
       );
 
       logger.info('ProjectManager: Batch RAML conversion completed', {
@@ -1905,9 +1961,57 @@ class ProjectManager {
         destinationDirectory: options.destinationDirectory,
         enums: result.enums.length,
         payloads: result.payloads.length,
+        reportsCount: result.reports?.length || 0,
       });
 
-      return {
+      // Debug: Log what we got from the enhanced converter
+      if (result.reports && result.reports.length > 0) {
+        const firstReport = result.reports[0];
+        logger.debug('ProjectManager: First report sample', {
+          inputFile: firstReport.inputFile,
+          propertyTransformationsCount:
+            firstReport.propertyTransformations?.length || 0,
+          formatInferencesCount: firstReport.formatInferences?.length || 0,
+          unionConversionsCount: firstReport.unionConversions?.length || 0,
+          hasFileMapping: !!firstReport.fileMapping,
+        });
+      }
+
+      // Use enhanced data from converter (should always be available now)
+      const synthesizedSummary: import('../types/raml-import').ConversionSummary =
+        result.summary || {
+          filesProcessed: result.enums.length + result.payloads.length,
+          enumsCreated: result.enums.length,
+          businessObjectsCreated: result.payloads.length,
+          unionsCount: 0,
+          inlineEnumsExtracted: 0,
+          dedupedEnums: 0,
+          warningsCount: 0,
+          errorsCount: 0,
+          durationMs: 0,
+          outputDirectory: options.destinationDirectory,
+        };
+
+      const synthesizedReports: import('../types/raml-import').ConversionReport[] =
+        result.reports || [
+          {
+            inputFile: options.sourceDirectory,
+            enumsWritten: result.enums.map((name: string) => ({ name })),
+            businessObjectsWritten: result.payloads.map((name: string) => ({
+              name,
+            })),
+            inferredFormats: [],
+            unionsCount: 0,
+            inlineEnumsExtracted: [],
+            dedupedEnums: [],
+            warnings: [],
+            errors: [],
+            durationMs: 0,
+            $idTargets: [],
+          },
+        ];
+
+      const response = {
         success: true,
         results: [],
         summary: {
@@ -1916,7 +2020,51 @@ class ProjectManager {
           failed: 0,
           warnings: 0,
         },
+        // Extended shape
+        reports: synthesizedReports,
+        // Also return the more detailed summary for UI
+        // Keep old summary for backward compatibility
+        // New consumers should read this typed one
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ...(synthesizedSummary as any),
+        summaryDetailed: synthesizedSummary,
+      } as unknown as RamlBatchConversionResult & {
+        summary: RamlBatchConversionResult['summary'];
+        reports: import('../types/raml-import').ConversionReport[];
+        summaryDetailed: import('../types/raml-import').ConversionSummary;
       };
+
+      // Persist report for later retrieval
+      try {
+        const reportJson = {
+          summary: synthesizedSummary,
+          reports: synthesizedReports,
+        };
+        const reportPath = await this.getReportPathForProject(
+          options.destinationDirectory,
+        );
+        await fs.mkdir(path.dirname(reportPath), { recursive: true });
+        await fs.writeFile(
+          reportPath,
+          JSON.stringify(reportJson, null, 2),
+          'utf8',
+        );
+        logger.info('ProjectManager: Conversion report saved', {
+          reportPath,
+          reportsWithTransformations: synthesizedReports.filter(
+            (r) => (r.propertyTransformations?.length || 0) > 0,
+          ).length,
+          firstReportTransformationCount:
+            synthesizedReports[0]?.propertyTransformations?.length || 0,
+        });
+      } catch (error) {
+        logger.warn('ProjectManager: Failed to persist conversion report', {
+          destinationDirectory: options.destinationDirectory,
+          error,
+        });
+      }
+
+      return response;
     } catch (error) {
       logger.error(
         'ProjectManager: Batch RAML conversion failed with exception',
@@ -2038,6 +2186,19 @@ class ProjectManager {
       logger.info('ProjectManager: Closed file watcher', { projectId });
     }
     this.watchers.clear();
+  }
+
+  /**
+   * Returns absolute path of the persisted conversion report for a given project path.
+   */
+  private async getReportPathForProject(projectPath: string): Promise<string> {
+    const projectId = this.generateProjectId(projectPath);
+    const userDataPath = path.join(
+      process.env.HOME || process.env.USERPROFILE || '',
+      '.arc-elect',
+    );
+    const reportsDir = path.join(userDataPath, 'reports');
+    return path.join(reportsDir, `${projectId}.json`);
   }
 }
 

@@ -116,29 +116,30 @@ export const MonacoEditor = React.forwardRef<
           // Register a custom, minimal formatting provider that ONLY sorts:
           // - enum arrays A→Z
           // - keys within any `properties` object A→Z
-          const formattingProvider = monacoInstance.languages.registerDocumentFormattingEditProvider(
-            'json',
-            {
-              provideDocumentFormattingEdits(model) {
-                try {
-                  const text = model.getValue();
-                  const formatted = formatSchemaJsonString(text);
-                  if (formatted === text) return [];
-                  return [
-                    {
-                      range: model.getFullModelRange(),
-                      text: formatted,
-                    },
-                  ];
-                } catch (e) {
-                  logger.debug('Custom JSON formatter skipped', {
-                    error: e instanceof Error ? e.message : String(e),
-                  });
-                  return [];
-                }
+          const formattingProvider =
+            monacoInstance.languages.registerDocumentFormattingEditProvider(
+              'json',
+              {
+                provideDocumentFormattingEdits(model) {
+                  try {
+                    const text = model.getValue();
+                    const formatted = formatSchemaJsonString(text);
+                    if (formatted === text) return [];
+                    return [
+                      {
+                        range: model.getFullModelRange(),
+                        text: formatted,
+                      },
+                    ];
+                  } catch (e) {
+                    logger.debug('Custom JSON formatter skipped', {
+                      error: e instanceof Error ? e.message : String(e),
+                    });
+                    return [];
+                  }
+                },
               },
-            },
-          );
+            );
 
           // --- FIXED SUGGESTION PROVIDER WITH DYNAMIC RANGE ---
           if (onRefClick && availableSchemas.length > 0) {
@@ -1475,7 +1476,7 @@ export const MonacoEditor = React.forwardRef<
                     marker.severity === monacoInstance.MarkerSeverity.Error
                       ? 'error'
                       : marker.severity ===
-                        monacoInstance.MarkerSeverity.Warning
+                          monacoInstance.MarkerSeverity.Warning
                         ? 'warning'
                         : 'info',
                   startLineNumber: marker.startLineNumber,
@@ -1542,8 +1543,8 @@ export const MonacoEditor = React.forwardRef<
           label: 'Format Document',
           keybindings: [
             monacoInstance.KeyMod.Shift |
-            monacoInstance.KeyMod.Alt |
-            monacoInstance.KeyCode.KeyF,
+              monacoInstance.KeyMod.Alt |
+              monacoInstance.KeyCode.KeyF,
           ],
           contextMenuGroupId: 'modification',
           run: () => {
@@ -1565,8 +1566,8 @@ export const MonacoEditor = React.forwardRef<
 
         editor.addCommand(
           monacoInstance.KeyMod.CtrlCmd |
-          monacoInstance.KeyMod.Shift |
-          monacoInstance.KeyCode.KeyS,
+            monacoInstance.KeyMod.Shift |
+            monacoInstance.KeyCode.KeyS,
           () => {
             try {
               onSaveAll?.();
@@ -1581,8 +1582,8 @@ export const MonacoEditor = React.forwardRef<
           label: 'Validate JSON',
           keybindings: [
             monacoInstance.KeyMod.CtrlCmd |
-            monacoInstance.KeyMod.Shift |
-            monacoInstance.KeyCode.KeyV,
+              monacoInstance.KeyMod.Shift |
+              monacoInstance.KeyCode.KeyV,
           ],
           contextMenuGroupId: 'modification',
           run: () => {

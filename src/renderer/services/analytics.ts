@@ -109,6 +109,17 @@ export interface AnalyticsResult {
   complexityMetrics: Map<string, ComplexityMetrics>;
   /** Reference graph analysis */
   referenceGraph: ReferenceGraph;
+  /** Duplicate and near-duplicate analysis */
+  duplicates: DuplicateGroup[];
+  nearDuplicates: NearDuplicatePair[];
+  /** Field-level consistency and conflicts */
+  fieldInsights: FieldInsights;
+  /** Groups of schemas that appear similar by name tokens (e.g., Address, ClientAddress) */
+  nameSimilarGroups: NameSimilarGroup[];
+  /** Actionable suggestions derived from analytics */
+  suggestions: Suggestion[];
+  /** Overall maturity score 0-100 */
+  maturityScore: number;
   /** Overall project metrics */
   projectMetrics: {
     /** Total number of schemas */
@@ -133,6 +144,88 @@ export interface AnalyticsResult {
     /** Timestamp of analysis */
     timestamp: Date;
   };
+}
+
+/** Exact duplicate schema group */
+export interface DuplicateGroup {
+  /** Canonical structural signature */
+  signature: string;
+  /** Schemas sharing this signature */
+  schemas: Array<{ id: string; name: string }>;
+}
+
+/** Near-duplicate schema pair */
+export interface NearDuplicatePair {
+  aId: string;
+  bId: string;
+  aName: string;
+  bName: string;
+  /** Jaccard similarity in range [0,1] */
+  similarity: number;
+  overlapFields: number;
+  unionFields: number;
+}
+
+/** Field-level aggregated insight */
+export interface FieldInsightItem {
+  name: string;
+  types: string[];
+  formats: string[];
+  /** Canonical enum value set (union of values) */
+  enumValues?: string[];
+  requiredIn: string[]; // schema names where required
+  optionalIn: string[]; // schema names where optional
+  descriptions: string[];
+  occurrences: number;
+  conflicts: {
+    typeConflict: boolean;
+    formatConflict: boolean;
+    enumConflict: boolean;
+    requiredConflict: boolean;
+    descriptionDivergence: boolean;
+  };
+}
+
+/** Summary of all field insights */
+export interface FieldInsights {
+  items: FieldInsightItem[];
+  conflictCounts: {
+    typeConflicts: number;
+    formatConflicts: number;
+    enumConflicts: number;
+    requiredConflicts: number;
+    descriptionConflicts: number;
+  };
+}
+
+/** Group of schemas sharing a common name token (e.g., "address") */
+export interface NameSimilarGroup {
+  /** Shared token (lowercase) */
+  token: string;
+  /** Suggested canonical schema name (PascalCase) */
+  suggestedCanonicalName: string;
+  /** Schemas in this group */
+  schemas: Array<{ id: string; name: string }>;
+  /** Average content similarity across the group [0,1] */
+  averageSimilarity: number;
+}
+
+export type SuggestionCategory =
+  | 'naming'
+  | 'reuse'
+  | 'field-consistency'
+  | 'references'
+  | 'complexity';
+
+export interface Suggestion {
+  id: string;
+  category: SuggestionCategory;
+  title: string;
+  description: string;
+  severity: 'low' | 'medium' | 'high';
+  impactScore: number; // 0-100
+  affectedSchemas: string[]; // schema names
+  data: Record<string, unknown>;
 }
 
 /**
@@ -170,17 +263,43 @@ export class AnalyticsService {
       const circularReferences = this.detectCircularReferences(schemas);
       const complexityMetrics = this.calculateComplexityMetrics(schemas);
       const referenceGraph = this.buildReferenceGraph(schemas);
+      const duplicates = this.detectDuplicateSchemas(schemas);
+      const nearDuplicates = this.detectNearDuplicateSchemas(schemas, 0.8);
+      const nameSimilarGroups = this.detectNameSimilarGroups(schemas, 0);
+      const fieldInsights = this.analyzeFields(schemas);
       const projectMetrics = this.calculateProjectMetrics(
         schemas,
         complexityMetrics,
         circularReferences,
       );
 
+      const suggestions = this.generateSuggestions({
+        schemas,
+        duplicates,
+        nearDuplicates,
+        nameSimilarGroups,
+        fieldInsights,
+        circularReferences,
+        complexityMetrics,
+        projectMetrics,
+      });
+
+      const maturityScore = this.calculateMaturityScore({
+        suggestions,
+        projectMetrics,
+      });
+
       const duration = Date.now() - startTime;
       const result: AnalyticsResult = {
         circularReferences,
         complexityMetrics,
         referenceGraph,
+        duplicates,
+        nearDuplicates,
+        nameSimilarGroups,
+        suggestions,
+        maturityScore,
+        fieldInsights,
         projectMetrics,
         performance: {
           duration,
@@ -202,6 +321,636 @@ export class AnalyticsService {
     } finally {
       this.isAnalyzing = false;
     }
+  }
+
+  private generateSuggestions(input: {
+    schemas: Schema[];
+    duplicates: DuplicateGroup[];
+    nearDuplicates: NearDuplicatePair[];
+    nameSimilarGroups: NameSimilarGroup[];
+    fieldInsights: FieldInsights;
+    circularReferences: CircularReference[];
+    complexityMetrics: Map<string, ComplexityMetrics>;
+    projectMetrics: AnalyticsResult['projectMetrics'];
+  }): Suggestion[] {
+    const suggestions: Suggestion[] = [];
+    const schemaById = new Map(input.schemas.map((s) => [s.id, s]));
+
+    // Naming consolidation
+    for (const g of input.nameSimilarGroups) {
+      if (g.schemas.length < 2) continue;
+      const affected = g.schemas.map((s) => s.name);
+      const severity: Suggestion['severity'] =
+        g.averageSimilarity >= 0.5
+          ? 'high'
+          : g.averageSimilarity >= 0.25
+            ? 'medium'
+            : 'low';
+      const impact = Math.min(
+        100,
+        Math.round(g.schemas.length * (g.averageSimilarity * 60 + 20)),
+      );
+      suggestions.push({
+        id: `naming:${g.token}`,
+        category: 'naming',
+        title: `Consolidate “${g.token}” schemas → ${g.suggestedCanonicalName}`,
+        description: `Found ${g.schemas.length} schemas sharing token “${g.token}”. Consider consolidating to a single schema named ${g.suggestedCanonicalName}.`,
+        severity,
+        impactScore: impact,
+        affectedSchemas: affected,
+        data: { group: g },
+      });
+    }
+
+    // Reuse extraction: exact duplicates
+    for (const d of input.duplicates) {
+      const affected = d.schemas.map((s) => s.name);
+      const impact = Math.min(100, d.schemas.length * 20);
+      suggestions.push({
+        id: `reuse:dup:${d.signature.slice(0, 16)}`,
+        category: 'reuse',
+        title: `Extract shared schema for ${d.schemas.length} duplicates`,
+        description: `These schemas are structurally identical. Extract a single shared schema and reference it to reduce duplication.`,
+        severity: 'high',
+        impactScore: impact,
+        affectedSchemas: affected,
+        data: { group: d },
+      });
+    }
+
+    // Reuse extraction: near-duplicates
+    const nearByKey = new Map<string, NearDuplicatePair[]>();
+    for (const p of input.nearDuplicates) {
+      const key = [p.aName, p.bName].sort().join('::');
+      const list = nearByKey.get(key) || [];
+      list.push(p);
+      nearByKey.set(key, list);
+    }
+    for (const [key, pairs] of nearByKey.entries()) {
+      const [aName, bName] = key.split('::');
+      const avgSim = pairs.reduce((s, p) => s + p.similarity, 0) / pairs.length;
+      const severity: Suggestion['severity'] =
+        avgSim >= 0.85 ? 'high' : avgSim >= 0.7 ? 'medium' : 'low';
+      const impact = Math.min(100, Math.round(avgSim * 100));
+      suggestions.push({
+        id: `reuse:near:${key}`,
+        category: 'reuse',
+        title: `Normalize ${aName} and ${bName} (similar structures)`,
+        description: `Schemas appear similar (avg similarity ${(avgSim * 100).toFixed(0)}%). Consider refactoring into a shared base or extracting common parts.`,
+        severity,
+        impactScore: impact,
+        affectedSchemas: [aName, bName],
+        data: { pairs },
+      });
+    }
+
+    // Field consistency
+    for (const f of input.fieldInsights.items) {
+      if (
+        !(
+          f.conflicts.typeConflict ||
+          f.conflicts.formatConflict ||
+          f.conflicts.enumConflict ||
+          f.conflicts.requiredConflict ||
+          f.conflicts.descriptionDivergence
+        )
+      )
+        continue;
+
+      const severity: Suggestion['severity'] =
+        f.conflicts.typeConflict || f.conflicts.enumConflict
+          ? 'high'
+          : f.conflicts.formatConflict || f.conflicts.requiredConflict
+            ? 'medium'
+            : 'low';
+      const impact = Math.min(
+        100,
+        f.occurrences *
+          (severity === 'high' ? 8 : severity === 'medium' ? 5 : 3),
+      );
+      suggestions.push({
+        id: `field:${f.name}`,
+        category: 'field-consistency',
+        title: `Unify field “${f.name}” across schemas`,
+        description: `Conflicts detected: ${[
+          f.conflicts.typeConflict ? 'type' : '',
+          f.conflicts.formatConflict ? 'format' : '',
+          f.conflicts.enumConflict ? 'enum' : '',
+          f.conflicts.requiredConflict ? 'required' : '',
+          f.conflicts.descriptionDivergence ? 'description' : '',
+        ]
+          .filter(Boolean)
+          .join(', ')}.`,
+        severity,
+        impactScore: impact,
+        affectedSchemas: [],
+        data: { field: f },
+      });
+    }
+
+    // References quality: circular refs
+    if (input.circularReferences.length > 0) {
+      const impact = Math.min(100, input.circularReferences.length * 10);
+      suggestions.push({
+        id: `refs:circular`,
+        category: 'references',
+        title: `Resolve ${input.circularReferences.length} circular reference(s)`,
+        description:
+          'Circular references complicate validation and tooling. Break cycles by introducing interfaces or indirection.',
+        severity: 'high',
+        impactScore: impact,
+        affectedSchemas: input.projectMetrics.circularSchemas,
+        data: { circular: input.circularReferences },
+      });
+    }
+
+    // Complexity hotspots: top 5
+    const topComplex = Array.from(input.complexityMetrics.entries())
+      .sort((a, b) => b[1].complexityScore - a[1].complexityScore)
+      .slice(0, 5);
+    if (topComplex.length > 0) {
+      const names = topComplex
+        .map(([id]) => schemaById.get(id)?.name || id)
+        .filter(Boolean) as string[];
+      const worst = topComplex[0][1].complexityScore;
+      const impact = Math.min(100, Math.round(worst));
+      suggestions.push({
+        id: `complexity:top`,
+        category: 'complexity',
+        title: `Reduce complexity in top schemas`,
+        description: `Most complex schema score: ${worst}. Consider splitting or simplifying deeply nested structures.`,
+        severity: worst >= 75 ? 'high' : worst >= 50 ? 'medium' : 'low',
+        impactScore: impact,
+        affectedSchemas: names,
+        data: { topComplex },
+      });
+    }
+
+    // Sort by impact
+    suggestions.sort((a, b) => b.impactScore - a.impactScore);
+    return suggestions;
+  }
+
+  private calculateMaturityScore(input: {
+    suggestions: Suggestion[];
+    projectMetrics: AnalyticsResult['projectMetrics'];
+  }): number {
+    // Start from 100 and subtract penalties by severity and count
+    let score = 100;
+    const severityWeights: Record<Suggestion['severity'], number> = {
+      high: 8,
+      medium: 4,
+      low: 2,
+    };
+    for (const s of input.suggestions) {
+      score -= severityWeights[s.severity];
+    }
+    score = Math.max(0, Math.min(100, Math.round(score)));
+    return score;
+  }
+
+  /** Detect exact duplicate schemas using a structural canonical signature */
+  public detectDuplicateSchemas(schemas: Schema[]): DuplicateGroup[] {
+    const signatureToSchemas = new Map<
+      string,
+      Array<{ id: string; name: string }>
+    >();
+    for (const s of schemas) {
+      const signature = this.buildStructuralSignature(s.content);
+      const list = signatureToSchemas.get(signature) || [];
+      list.push({ id: s.id, name: s.name });
+      signatureToSchemas.set(signature, list);
+    }
+    const groups: DuplicateGroup[] = [];
+    for (const [signature, list] of signatureToSchemas.entries()) {
+      if (list.length > 1) {
+        groups.push({
+          signature,
+          schemas: list.sort((a, b) => a.name.localeCompare(b.name)),
+        });
+      }
+    }
+    groups.sort((a, b) => b.schemas.length - a.schemas.length);
+    return groups;
+  }
+
+  /** Detect near-duplicate schemas using Jaccard similarity over name:type field signatures */
+  public detectNearDuplicateSchemas(
+    schemas: Schema[],
+    threshold: number = 0.8,
+  ): NearDuplicatePair[] {
+    const fieldSets = new Map<string, Set<string>>();
+    for (const s of schemas) {
+      fieldSets.set(s.id, this.extractFieldSignatures(s.content));
+    }
+    const pairs: NearDuplicatePair[] = [];
+    for (let i = 0; i < schemas.length; i++) {
+      for (let j = i + 1; j < schemas.length; j++) {
+        const a = schemas[i];
+        const b = schemas[j];
+        const sa = fieldSets.get(a.id)!;
+        const sb = fieldSets.get(b.id)!;
+        if (sa.size === 0 && sb.size === 0) continue;
+        let overlap = 0;
+        for (const v of sa) if (sb.has(v)) overlap++;
+        const union = new Set([...sa, ...sb]).size;
+        const sim = union > 0 ? overlap / union : 0;
+        if (sim >= threshold && overlap >= 3) {
+          pairs.push({
+            aId: a.id,
+            bId: b.id,
+            aName: a.name,
+            bName: b.name,
+            similarity: Number(sim.toFixed(3)),
+            overlapFields: overlap,
+            unionFields: union,
+          });
+        }
+      }
+    }
+    pairs.sort(
+      (x, y) =>
+        y.similarity - x.similarity || y.overlapFields - x.overlapFields,
+    );
+    return pairs;
+  }
+
+  /**
+   * Detect schema name similarity groups based on shared tokens (e.g., address, clientAddress, customerAddress).
+   * Also computes an average content similarity using Jaccard on field signatures to support consolidation suggestions.
+   */
+  public detectNameSimilarGroups(
+    schemas: Schema[],
+    minAverageSimilarity: number = 0,
+  ): NameSimilarGroup[] {
+    // Tokenize names by lowercasing and splitting camelCase/snake/kebab; also strip common prefixes like client/customer/user
+    const tokenMap = new Map<
+      string,
+      Array<{ id: string; name: string; fieldSet: Set<string> }>
+    >();
+
+    const splitName = (name: string): string[] => {
+      const base = name
+        .replace(/([a-z])([A-Z])/g, '$1 $2') // camelCase to words
+        .replace(/[_-]+/g, ' ')
+        .toLowerCase();
+      const parts = base.split(/\s+/).filter(Boolean);
+      // Also include suffix/prefix stripped forms for common qualifiers
+      const qualifiers = [
+        'client',
+        'customer',
+        'user',
+        'internal',
+        'external',
+        'api',
+      ];
+      const stopwords = new Set([
+        'library',
+        'libraries',
+        'enum',
+        'enums',
+        'line',
+        'lines',
+        'detail',
+        'details',
+        'model',
+        'models',
+        'category',
+        'categories',
+        'request',
+        'response',
+        'history',
+        'options',
+        'option',
+        'ids',
+        'id',
+        'type',
+        'types',
+        'status',
+        'statuses',
+        'code',
+        'codes',
+      ]);
+      const tokens = new Set<string>(parts);
+      for (const p of parts) {
+        for (const q of qualifiers) {
+          if (p.startsWith(q) && p.length > q.length)
+            tokens.add(p.slice(q.length));
+          if (p.endsWith(q) && p.length > q.length)
+            tokens.add(p.slice(0, p.length - q.length));
+        }
+      }
+      return Array.from(tokens).filter(
+        (t) => t.length >= 3 && !stopwords.has(t) && !/^\d+$/.test(t),
+      );
+    };
+
+    const schemaInfo = schemas.map((s) => ({
+      id: s.id,
+      name: s.name,
+      tokens: splitName(s.name),
+      fieldSet: this.extractFieldSignatures(s.content),
+    }));
+
+    for (const info of schemaInfo) {
+      for (const tok of info.tokens) {
+        const arr = tokenMap.get(tok) || [];
+        arr.push({ id: info.id, name: info.name, fieldSet: info.fieldSet });
+        tokenMap.set(tok, arr);
+      }
+    }
+
+    const groups: NameSimilarGroup[] = [];
+    for (const [token, list] of tokenMap.entries()) {
+      if (list.length < 2) continue; // need at least 2
+
+      // Compute average Jaccard similarity across all pairs
+      let sum = 0;
+      let pairs = 0;
+      for (let i = 0; i < list.length; i++) {
+        for (let j = i + 1; j < list.length; j++) {
+          const a = list[i].fieldSet;
+          const b = list[j].fieldSet;
+          if (a.size === 0 && b.size === 0) continue;
+          let overlap = 0;
+          for (const v of a) if (b.has(v)) overlap++;
+          const union = new Set([...a, ...b]).size;
+          const sim = union > 0 ? overlap / union : 0;
+          sum += sim;
+          pairs++;
+        }
+      }
+      const avgSim = pairs > 0 ? Number((sum / pairs).toFixed(3)) : 0;
+      if (avgSim < minAverageSimilarity) continue;
+
+      // Suggest canonical PascalCase name from token
+      const suggested = token
+        .split(/[^a-z0-9]+/)
+        .filter(Boolean)
+        .map((t) => t.charAt(0).toUpperCase() + t.slice(1))
+        .join('');
+
+      groups.push({
+        token,
+        suggestedCanonicalName: suggested,
+        schemas: list
+          .map(({ id, name }) => ({ id, name }))
+          .sort((a, b) => a.name.localeCompare(b.name)),
+        averageSimilarity: avgSim,
+      });
+    }
+
+    // Prioritize larger groups and higher similarity
+    groups.sort(
+      (a, b) =>
+        b.schemas.length - a.schemas.length ||
+        b.averageSimilarity - a.averageSimilarity,
+    );
+    return groups;
+  }
+
+  /** Field-level aggregation and conflict detection */
+  public analyzeFields(schemas: Schema[]): FieldInsights {
+    interface Acc {
+      types: Set<string>;
+      formats: Set<string>;
+      enumSets: Set<string>; // canonicalized enum sets
+      requiredIn: Set<string>;
+      optionalIn: Set<string>;
+      descriptions: Set<string>;
+      occurrences: number;
+    }
+
+    const map = new Map<string, Acc>();
+
+    const visit = (
+      obj: unknown,
+      _requiredSet: Set<string> | null,
+      schemaName: string,
+    ) => {
+      if (!obj || typeof obj !== 'object') return;
+      const rec = obj as Record<string, unknown>;
+
+      // properties
+      if (rec.properties && typeof rec.properties === 'object') {
+        const props = rec.properties as Record<string, unknown>;
+        const req = new Set(
+          Array.isArray(rec.required) ? (rec.required as string[]) : [],
+        );
+        for (const [propName, propSchema] of Object.entries(props)) {
+          const key = propName; // aggregate by field name globally
+          let acc = map.get(key);
+          if (!acc) {
+            acc = {
+              types: new Set<string>(),
+              formats: new Set<string>(),
+              enumSets: new Set<string>(),
+              requiredIn: new Set<string>(),
+              optionalIn: new Set<string>(),
+              descriptions: new Set<string>(),
+              occurrences: 0,
+            };
+            map.set(key, acc);
+          }
+          acc.occurrences++;
+
+          const p = propSchema as Record<string, unknown>;
+          const typeVal = typeof p.type === 'string' ? (p.type as string) : '';
+          if (typeVal) acc.types.add(typeVal);
+          const fmt = typeof p.format === 'string' ? (p.format as string) : '';
+          if (fmt) acc.formats.add(fmt);
+          if (Array.isArray(p.enum)) {
+            const canonEnum = JSON.stringify(
+              (p.enum as unknown[]).map((v) => String(v)).sort(),
+            );
+            acc.enumSets.add(canonEnum);
+          }
+          const desc =
+            typeof p.description === 'string' ? (p.description as string) : '';
+          if (desc) acc.descriptions.add(this.normalizeDescription(desc));
+
+          if (req.has(propName)) acc.requiredIn.add(schemaName);
+          else acc.optionalIn.add(schemaName);
+
+          // Recurse nested schemas
+          visit(propSchema, req, schemaName);
+        }
+      }
+
+      // items
+      if (rec.items) visit(rec.items, null, schemaName);
+      if (
+        rec.additionalProperties &&
+        typeof rec.additionalProperties === 'object'
+      ) {
+        visit(rec.additionalProperties, null, schemaName);
+      }
+    };
+
+    for (const s of schemas) {
+      visit(s.content, null, s.name);
+    }
+
+    const items: FieldInsightItem[] = [];
+    let typeConflicts = 0,
+      formatConflicts = 0,
+      enumConflicts = 0,
+      requiredConflicts = 0,
+      descriptionConflicts = 0;
+
+    for (const [name, acc] of map.entries()) {
+      const conflicts = {
+        typeConflict: acc.types.size > 1,
+        formatConflict: acc.formats.size > 1,
+        enumConflict: acc.enumSets.size > 1,
+        requiredConflict: acc.requiredIn.size > 0 && acc.optionalIn.size > 0,
+        descriptionDivergence: acc.descriptions.size > 1,
+      };
+      if (conflicts.typeConflict) typeConflicts++;
+      if (conflicts.formatConflict) formatConflicts++;
+      if (conflicts.enumConflict) enumConflicts++;
+      if (conflicts.requiredConflict) requiredConflicts++;
+      if (conflicts.descriptionDivergence) descriptionConflicts++;
+
+      const enumValues = acc.enumSets.size
+        ? Array.from(
+            new Set(
+              Array.from(acc.enumSets).flatMap(
+                (e) => JSON.parse(e) as string[],
+              ),
+            ),
+          ).sort()
+        : undefined;
+
+      const base: Omit<FieldInsightItem, 'enumValues'> & {
+        enumValues?: string[];
+      } = {
+        name,
+        types: Array.from(acc.types).sort(),
+        formats: Array.from(acc.formats).sort(),
+        requiredIn: Array.from(acc.requiredIn).sort(),
+        optionalIn: Array.from(acc.optionalIn).sort(),
+        descriptions: Array.from(acc.descriptions).sort(),
+        occurrences: acc.occurrences,
+        conflicts,
+      };
+      if (enumValues) {
+        (base as FieldInsightItem).enumValues = enumValues;
+      }
+      items.push(base as FieldInsightItem);
+    }
+
+    // Sort items: conflicts first, then by occurrences
+    items.sort((a, b) => {
+      const aConf = Number(
+        a.conflicts.typeConflict ||
+          a.conflicts.formatConflict ||
+          a.conflicts.enumConflict ||
+          a.conflicts.requiredConflict ||
+          a.conflicts.descriptionDivergence,
+      );
+      const bConf = Number(
+        b.conflicts.typeConflict ||
+          b.conflicts.formatConflict ||
+          b.conflicts.enumConflict ||
+          b.conflicts.requiredConflict ||
+          b.conflicts.descriptionDivergence,
+      );
+      if (aConf !== bConf) return bConf - aConf;
+      return b.occurrences - a.occurrences;
+    });
+
+    return {
+      items,
+      conflictCounts: {
+        typeConflicts,
+        formatConflicts,
+        enumConflicts,
+        requiredConflicts,
+        descriptionConflicts,
+      },
+    };
+  }
+
+  /** Build a structural canonical signature focusing on types, properties, required, enums and formats */
+  private buildStructuralSignature(node: unknown): string {
+    const canon = (n: unknown): unknown => {
+      if (!n || typeof n !== 'object') return n;
+      if (Array.isArray(n)) return n.map((x) => canon(x));
+      const r = n as Record<string, unknown>;
+      const out: Record<string, unknown> = {};
+      // Only keep structural keys
+      const keys = Object.keys(r).sort();
+      for (const k of keys) {
+        if (
+          k === 'type' ||
+          k === 'properties' ||
+          k === 'required' ||
+          k === 'items' ||
+          k === 'enum' ||
+          k === 'format' ||
+          k === 'additionalProperties'
+        ) {
+          if (
+            k === 'properties' &&
+            r.properties &&
+            typeof r.properties === 'object'
+          ) {
+            const props = r.properties as Record<string, unknown>;
+            const sorted: Record<string, unknown> = {};
+            for (const key of Object.keys(props).sort()) {
+              sorted[key] = canon(props[key]);
+            }
+            out.properties = sorted;
+          } else if (k === 'required' && Array.isArray(r.required)) {
+            out.required = (r.required as unknown[])
+              .map((x) => String(x))
+              .sort();
+          } else if (k === 'enum' && Array.isArray(r.enum)) {
+            out.enum = (r.enum as unknown[]).map((x) => String(x)).sort();
+          } else {
+            out[k] = canon(r[k]);
+          }
+        }
+      }
+      return out;
+    };
+    return JSON.stringify(canon(node));
+  }
+
+  /** Extract a set of simple field signatures name:type across all nested properties */
+  private extractFieldSignatures(node: unknown): Set<string> {
+    const set = new Set<string>();
+    const walk = (n: unknown) => {
+      if (!n || typeof n !== 'object') return;
+      const r = n as Record<string, unknown>;
+      if (r.properties && typeof r.properties === 'object') {
+        const props = r.properties as Record<string, unknown>;
+        for (const [name, child] of Object.entries(props)) {
+          const typeVal =
+            child &&
+            typeof child === 'object' &&
+            typeof (child as any).type === 'string'
+              ? String((child as any).type)
+              : '';
+          set.add(`${name}:${typeVal}`);
+          walk(child);
+        }
+      }
+      if (r.items) walk(r.items);
+      if (
+        r.additionalProperties &&
+        typeof r.additionalProperties === 'object'
+      ) {
+        walk(r.additionalProperties);
+      }
+    };
+    walk(node);
+    return set;
+  }
+
+  private normalizeDescription(desc: string): string {
+    return desc.trim().toLowerCase().replace(/\s+/g, ' ');
   }
 
   /**

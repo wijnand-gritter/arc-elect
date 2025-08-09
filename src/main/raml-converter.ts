@@ -15,6 +15,80 @@ import * as fsExtra from 'fs-extra';
 import * as path from 'path';
 import { glob } from 'glob';
 import logger from './main-logger';
+import type { ConversionReport, ConversionSummary } from '../types/raml-import';
+
+type FileReportCollector = {
+  filePath: string;
+  inputSize?: number;
+  ramlHeader?: { title?: string; version?: string; description?: string };
+  enumsWritten: Array<{
+    name: string;
+    file?: string;
+    size?: number;
+    $id?: string;
+  }>;
+  businessObjectsWritten: Array<{
+    name: string;
+    file?: string;
+    size?: number;
+    $id?: string;
+  }>;
+  inferredFormats: Set<string>;
+  unions: Array<{
+    parentType: string;
+    property: string;
+    original: string;
+    converted: string[];
+    lineNumber?: number;
+    strategy: 'anyOf' | 'oneOf' | 'type-array' | 'enum-extraction';
+  }>;
+  inlineEnums: Array<{
+    parentType: string;
+    property: string;
+    newEnumName: string;
+    file?: string;
+    values: string[];
+    lineRange?: { start: number; end: number };
+  }>;
+  dedupedEnums: string[];
+  namingChanges: Array<{
+    from: string;
+    to: string;
+    scope: 'type' | 'property' | 'enum' | 'file';
+    context?: string;
+  }>;
+  propertyTransformations: Array<{
+    parentType: string;
+    propertyName: string;
+    originalRamlLine?: string;
+    originalType?: string;
+    originalDescription?: string;
+    isOptional?: boolean;
+    lineNumber?: number;
+    convertedType?: string | string[];
+    format?: string;
+    $ref?: string;
+    items?: { type?: string; $ref?: string };
+    formatReason?: string;
+    typeReason?: string;
+    note?: string;
+  }>;
+  formatInferences: Array<{
+    property: string;
+    parentType: string;
+    originalType: string;
+    format: string;
+    reason: string;
+    confidence: 'high' | 'medium' | 'low';
+  }>;
+  // Source code comparison data
+  originalRamlContent?: string;
+  generatedSchemas: Array<{
+    fileName: string;
+    content: string;
+    type: 'business-object' | 'enum';
+  }>;
+};
 
 type NamingConvention =
   | 'kebab-case'
@@ -70,9 +144,23 @@ export class SimpleRamlParser {
   constructor(
     private readonly namingConvention: NamingConvention = 'camelCase',
   ) {}
-  async parseFile(filePath: string): Promise<RamlType[]> {
+  async parseFile(
+    filePath: string,
+    collector?: FileReportCollector,
+  ): Promise<RamlType[]> {
     const content = await fs.readFile(filePath, 'utf8');
     const lines = content.split('\n');
+
+    // Capture file size, RAML content, and header information
+    if (collector) {
+      const stats = await fs.stat(filePath);
+      collector.inputSize = stats.size;
+      collector.originalRamlContent = content;
+
+      // Parse RAML header from first few lines
+      const header = this.parseRamlHeader(lines);
+      collector.ramlHeader = header;
+    }
     const types: RamlType[] = [];
     const inlineEnums: RamlType[] = [];
     let inTypes = false;
@@ -124,6 +212,7 @@ export class SimpleRamlParser {
           currentType.name,
           cleanPropName,
           inlineEnums,
+          collector,
         );
         currentType.properties[cleanPropName] = {
           type: propDetails.type || 'string',
@@ -149,6 +238,7 @@ export class SimpleRamlParser {
     parentTypeName: string,
     propertyName: string,
     inlineEnums: RamlType[],
+    collector?: FileReportCollector,
   ) {
     const details: any = {
       type: 'string',
@@ -156,14 +246,31 @@ export class SimpleRamlParser {
       format: null,
       items: null,
       $ref: null,
+      originalType: null,
     };
     let hasInlineEnum = false;
     let inlineEnumValues: string[] = [];
+    let enumStartLine = -1;
+    let propertyLineNumber = startIndex - 1; // The property declaration line
+    let originalRamlLines: string[] = [];
+    let isOptional = propertyName.endsWith('?');
+
+    // Capture the property declaration line
+    if (propertyLineNumber >= 0 && propertyLineNumber < lines.length) {
+      originalRamlLines.push(lines[propertyLineNumber].trim());
+    }
+
     for (let i = startIndex; i < lines.length; i++) {
       const line = lines[i];
       const trimmed = line.trim();
       const indent = line.length - line.trimStart().length;
       if (indent <= 6 && trimmed.endsWith(':')) break;
+
+      // Capture relevant RAML lines for this property
+      if (indent >= 8) {
+        originalRamlLines.push(line.trim());
+      }
+
       if (indent === 8) {
         if (trimmed.startsWith('description:')) {
           details.description = trimmed.substring(12).trim();
@@ -174,14 +281,37 @@ export class SimpleRamlParser {
             // Handle union types as array of types
             details.type = unionTypes.map((type) => this.mapRamlType(type));
             details.originalType = typeValue;
+            collector?.unions.push({
+              parentType: parentTypeName,
+              property: propertyName,
+              original: typeValue,
+              converted: unionTypes,
+              lineNumber: i + 1,
+              strategy: 'type-array', // Default strategy, could be enhanced
+            });
           } else {
             details.type = this.mapRamlType(typeValue);
             details.$ref = this.getTypeReference(typeValue);
             details.originalType = typeValue;
+
+            // Infer format based on RAML type and property name
+            const inferredFormat = this.inferFormat(typeValue, propertyName);
+            if (inferredFormat.format) {
+              details.format = inferredFormat.format;
+              collector?.formatInferences.push({
+                property: propertyName,
+                parentType: parentTypeName,
+                originalType: typeValue,
+                format: inferredFormat.format,
+                reason: inferredFormat.reason,
+                confidence: inferredFormat.confidence,
+              });
+            }
           }
         } else if (trimmed === 'enum:') {
           hasInlineEnum = true;
           details.type = 'string';
+          enumStartLine = i + 1;
         }
       }
       if (hasInlineEnum && indent === 10 && trimmed.startsWith('- ')) {
@@ -205,6 +335,44 @@ export class SimpleRamlParser {
         }
       }
     }
+
+    // Enhanced property transformation recording
+    const transformation: any = {
+      parentType: parentTypeName,
+      propertyName: propertyName,
+      originalRamlLine: originalRamlLines.join('\n'),
+      originalType: details.originalType,
+      originalDescription: details.description,
+      isOptional,
+      lineNumber: propertyLineNumber + 1,
+      convertedType: details.type,
+      format: details.format,
+      $ref: details.$ref,
+      items: details.items,
+    };
+
+    if (details.format) {
+      transformation.formatReason = `Inferred from RAML type '${details.originalType}' and property name '${propertyName}'`;
+    }
+
+    if (details.originalType !== details.type) {
+      transformation.typeReason = `Mapped RAML type '${details.originalType}' to JSON Schema type '${details.type}'`;
+    }
+
+    collector?.propertyTransformations.push(transformation);
+
+    // Debug logging
+    if (collector && transformation.originalType) {
+      logger.debug('PropertyTransformation recorded', {
+        parentType: parentTypeName,
+        property: propertyName,
+        originalType: transformation.originalType,
+        convertedType: transformation.convertedType,
+        format: transformation.format,
+        hasFormat: !!transformation.format,
+      });
+    }
+
     if (hasInlineEnum && inlineEnumValues.length > 0) {
       const enumTypeName = this.generateEnumName(parentTypeName, propertyName);
       const inlineEnum: RamlType = {
@@ -221,6 +389,21 @@ export class SimpleRamlParser {
       inlineEnums.push(inlineEnum);
       details.$ref = `../common/enums/${enumTypeName}Enum.schema.json`;
       details.type = null;
+      collector?.inlineEnums.push({
+        parentType: parentTypeName,
+        property: propertyName,
+        newEnumName: enumTypeName,
+        file: `../common/enums/${enumTypeName}Enum.schema.json`,
+        values: inlineEnumValues,
+        ...(enumStartLine > 0
+          ? {
+              lineRange: {
+                start: enumStartLine,
+                end: enumStartLine + inlineEnumValues.length,
+              },
+            }
+          : {}),
+      });
     }
     return details;
   }
@@ -290,12 +473,127 @@ export class SimpleRamlParser {
     return `${pascalParent}${pascalProperty}`;
   }
 
+  /**
+   * Infer JSON Schema format based on RAML type and property name patterns
+   */
+  inferFormat(
+    ramlType: string,
+    propertyName: string,
+  ): {
+    format?: string;
+    reason: string;
+    confidence: 'high' | 'medium' | 'low';
+  } {
+    const cleanType = ramlType.replace(/\?$/, '').toLowerCase();
+    const propLower = propertyName.toLowerCase();
+
+    // High confidence: Direct RAML type mappings
+    if (cleanType === 'date') {
+      return {
+        format: 'date',
+        reason: 'RAML type "date" maps to JSON Schema format "date"',
+        confidence: 'high',
+      };
+    }
+    if (cleanType === 'datetime' || cleanType === 'datetime-only') {
+      return {
+        format: 'date-time',
+        reason: `RAML type "${cleanType}" maps to JSON Schema format "date-time"`,
+        confidence: 'high',
+      };
+    }
+    if (cleanType === 'time' || cleanType === 'time-only') {
+      return {
+        format: 'time',
+        reason: `RAML type "${cleanType}" maps to JSON Schema format "time"`,
+        confidence: 'high',
+      };
+    }
+
+    // Medium confidence: Property name patterns for string types
+    if (cleanType === 'string') {
+      if (propLower.includes('email') || propLower.includes('mail')) {
+        return {
+          format: 'email',
+          reason: `Property name "${propertyName}" suggests email format`,
+          confidence: 'medium',
+        };
+      }
+      if (
+        propLower.includes('uri') ||
+        propLower.includes('url') ||
+        propLower.includes('link')
+      ) {
+        return {
+          format: 'uri',
+          reason: `Property name "${propertyName}" suggests URI format`,
+          confidence: 'medium',
+        };
+      }
+      if (propLower.includes('uuid') || propLower.includes('guid')) {
+        return {
+          format: 'uuid',
+          reason: `Property name "${propertyName}" suggests UUID format`,
+          confidence: 'medium',
+        };
+      }
+      if (propLower.includes('phone') || propLower.includes('tel')) {
+        return {
+          format: 'regex',
+          reason: `Property name "${propertyName}" suggests phone number pattern`,
+          confidence: 'low',
+        };
+      }
+      if (propLower.includes('password') || propLower.includes('secret')) {
+        return {
+          format: 'password',
+          reason: `Property name "${propertyName}" suggests password format`,
+          confidence: 'medium',
+        };
+      }
+    }
+
+    return {
+      reason: `No format inference available for RAML type "${ramlType}" and property "${propertyName}"`,
+      confidence: 'low',
+    };
+  }
+
+  /**
+   * Parse RAML header information from the first few lines
+   */
+  parseRamlHeader(lines: string[]): {
+    title?: string;
+    version?: string;
+    description?: string;
+  } {
+    const header: { title?: string; version?: string; description?: string } =
+      {};
+
+    for (let i = 0; i < Math.min(20, lines.length); i++) {
+      const line = lines[i].trim();
+
+      if (line.startsWith('title:')) {
+        header.title = line.substring(6).trim();
+      } else if (line.startsWith('version:')) {
+        header.version = line.substring(8).trim();
+      } else if (line.startsWith('description:')) {
+        header.description = line.substring(12).trim();
+      }
+
+      // Stop parsing header once we hit 'types:' section
+      if (line === 'types:') {
+        break;
+      }
+    }
+
+    return header;
+  }
+
   toPascalCase(str: string) {
     return (
       str.charAt(0).toUpperCase() +
-      str
-        .slice(1)
-        .replace(/[_-]([a-z])/g, (match, letter) => letter.toUpperCase())
+      str.slice(1).replace(/[_-]([a-z])/g, (_, letter) => letter.toUpperCase())
     );
   }
 
@@ -331,7 +629,7 @@ export class SimpleRamlParser {
         };
       } else if (propDef.type === 'any' || propDef.originalType === 'any') {
         schema.properties[propName] = {
-          type: {},
+          type: true,
         };
       } else if (Array.isArray(propDef.type)) {
         // Handle union types as array
@@ -465,10 +763,25 @@ export async function convertRamlToJsonSchemas(
     );
   }
   const allFiles = [...ramlFiles, ...enumRamlFiles.map((f) => `enums/${f}`)];
+  const fileReports: ConversionReport[] = [];
   for (const file of allFiles) {
     const filePath = path.join(ramlDir, file);
     try {
-      const types = await parser.parseFile(filePath);
+      const start = Date.now();
+      const collector: FileReportCollector = {
+        filePath,
+        enumsWritten: [],
+        businessObjectsWritten: [],
+        inferredFormats: new Set<string>(),
+        unions: [],
+        inlineEnums: [],
+        dedupedEnums: [],
+        namingChanges: [],
+        propertyTransformations: [],
+        formatInferences: [],
+        generatedSchemas: [],
+      };
+      const types = await parser.parseFile(filePath, collector);
       for (const type of types) {
         const schema = parser.convertToJsonSchema(type);
         if (type.isEnum) {
@@ -477,6 +790,141 @@ export async function convertRamlToJsonSchemas(
           payloadTypes.set(type.name, schema);
         }
       }
+      // Pre-fill enums/BOs, naming changes, and generated schemas for this file
+      for (const type of types) {
+        const base = applyNamingConvention(type.name, convention);
+        const out = type.isEnum
+          ? path.join(OUTPUT_ENUMS, `${base}Enum.schema.json`)
+          : path.join(OUTPUT_BUSINESS_OBJECTS, `${base}.schema.json`);
+
+        // Get the generated schema
+        const schema = parser.convertToJsonSchema(type);
+        const schemaContent = JSON.stringify(schema, null, 2);
+        const fileName = type.isEnum
+          ? `${base}Enum.schema.json`
+          : `${base}.schema.json`;
+
+        // Store the generated schema content
+        collector.generatedSchemas.push({
+          fileName,
+          content: schemaContent,
+          type: type.isEnum ? 'enum' : 'business-object',
+        });
+
+        if (type.isEnum) {
+          collector.enumsWritten.push({ name: type.name, file: out });
+          if (base !== type.name) {
+            collector.namingChanges.push({
+              from: type.name,
+              to: base,
+              scope: 'enum',
+            });
+          }
+        } else {
+          collector.businessObjectsWritten.push({ name: type.name, file: out });
+          if (base !== type.name) {
+            collector.namingChanges.push({
+              from: type.name,
+              to: base,
+              scope: 'type',
+            });
+          }
+        }
+      }
+
+      // Debug logging before creating report
+      logger.debug('Creating file report', {
+        filePath,
+        propertyTransformationsCount: collector.propertyTransformations.length,
+        unionConversionsCount: collector.unions.length,
+        formatInferencesCount: collector.formatInferences.length,
+        namingChangesCount: collector.namingChanges.length,
+        inlineEnumsCount: collector.inlineEnums.length,
+      });
+
+      fileReports.push({
+        inputFile: filePath,
+        enumsWritten: collector.enumsWritten,
+        businessObjectsWritten: collector.businessObjectsWritten,
+        inferredFormats: Array.from(collector.inferredFormats),
+        unionsCount: collector.unions.length,
+        inlineEnumsExtracted: collector.inlineEnums.map((x) => x.newEnumName),
+        dedupedEnums: collector.dedupedEnums,
+        warnings: [],
+        errors: [],
+        durationMs: Date.now() - start,
+        $idTargets: [],
+        // Enhanced data for detailed transformation analysis
+        fileMapping: {
+          inputFile: filePath,
+          ...(collector.inputSize !== undefined && {
+            inputSize: collector.inputSize,
+          }),
+          ...(collector.ramlHeader !== undefined && {
+            ramlHeader: collector.ramlHeader,
+          }),
+          outputFiles: [
+            ...collector.enumsWritten.map((e) => {
+              const fileInfo: any = {
+                file: e.file || 'unknown',
+                type: 'enum' as const,
+                name: e.name,
+              };
+              if (e.size !== undefined) fileInfo.size = e.size;
+              if (e.$id !== undefined) fileInfo.$id = e.$id;
+              return fileInfo;
+            }),
+            ...collector.businessObjectsWritten.map((b) => {
+              const fileInfo: any = {
+                file: b.file || 'unknown',
+                type: 'business-object' as const,
+                name: b.name,
+              };
+              if (b.size !== undefined) fileInfo.size = b.size;
+              if (b.$id !== undefined) fileInfo.$id = b.$id;
+              return fileInfo;
+            }),
+          ],
+        },
+        propertyTransformations: collector.propertyTransformations,
+        unionConversions: collector.unions.map((u) => {
+          const conversion: any = {
+            parentType: u.parentType,
+            property: u.property,
+            original: u.original,
+            converted: u.converted,
+            strategy: u.strategy,
+          };
+          if (u.lineNumber !== undefined) conversion.lineNumber = u.lineNumber;
+          return conversion;
+        }),
+        inlineEnumExtractions: collector.inlineEnums.map((ie) => {
+          const extraction: any = {
+            parentType: ie.parentType,
+            property: ie.property,
+            newEnumName: ie.newEnumName,
+            file: ie.file || 'unknown',
+            values: ie.values,
+          };
+          if (ie.lineRange !== undefined) extraction.lineRange = ie.lineRange;
+          return extraction;
+        }),
+        namingChanges: collector.namingChanges.map((nc) => {
+          const change: any = {
+            original: nc.from,
+            converted: nc.to,
+            scope: nc.scope,
+          };
+          if (nc.context !== undefined) change.context = nc.context;
+          return change;
+        }),
+        formatInferences: collector.formatInferences,
+        // Source code comparison data
+        ...(collector.originalRamlContent && {
+          originalRamlContent: collector.originalRamlContent,
+        }),
+        generatedSchemas: collector.generatedSchemas,
+      });
     } catch {
       // Skip file on error
       continue;
@@ -510,7 +958,7 @@ export async function convertRamlToJsonSchemas(
     additionalProperties: false,
   };
   for (const [name] of payloadTypes) {
-    const propKey = applyNamingConvention(name, 'camelCase');
+    const propKey = applyNamingConvention(name, 'PascalCase');
     const base = applyNamingConvention(name, convention);
     datamodelObjects.properties[propKey] = {
       $ref: `./business-objects/${base}.schema.json`,
@@ -520,10 +968,46 @@ export async function convertRamlToJsonSchemas(
     DATAMODEL_OBJECTS_FILE,
     JSON.stringify(datamodelObjects, null, 2),
   );
+  // Aggregate data from detailed reports
+  const totalUnions = fileReports.reduce(
+    (sum, report) => sum + (report.unionsCount || 0),
+    0,
+  );
+  const totalInlineEnums = fileReports.reduce(
+    (sum, report) => sum + (report.inlineEnumsExtracted?.length || 0),
+    0,
+  );
+  const totalWarnings = fileReports.reduce(
+    (sum, report) => sum + (report.warnings?.length || 0),
+    0,
+  );
+  const totalErrors = fileReports.reduce(
+    (sum, report) => sum + (report.errors?.length || 0),
+    0,
+  );
+  const totalDuration = fileReports.reduce(
+    (sum, report) => sum + (report.durationMs || 0),
+    0,
+  );
+
+  const summary: ConversionSummary = {
+    filesProcessed: allFiles.length,
+    enumsCreated: Array.from(enumTypes.keys()).length,
+    businessObjectsCreated: Array.from(payloadTypes.keys()).length,
+    unionsCount: totalUnions,
+    inlineEnumsExtracted: totalInlineEnums,
+    dedupedEnums: 0, // TODO: Implement deduplication tracking
+    warningsCount: totalWarnings,
+    errorsCount: totalErrors,
+    durationMs: totalDuration,
+    outputDirectory: SCHEMAS_ROOT,
+  };
   return {
     enums: Array.from(enumTypes.keys()),
     payloads: Array.from(payloadTypes.keys()),
     outputDir: SCHEMAS_ROOT,
+    reports: fileReports,
+    summary,
   };
 }
 

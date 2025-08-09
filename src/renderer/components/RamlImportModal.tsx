@@ -26,7 +26,13 @@ import { Progress } from './ui/progress';
 import { ScrollArea } from './ui/scroll-area';
 import { Upload, FolderOpen, Settings, Loader2, Folder } from 'lucide-react';
 import { toast } from 'sonner';
-import type { RamlImportConfig, ImportResult } from '../../types/raml-import';
+import type {
+  RamlImportConfig,
+  ImportResult,
+  ConversionSummary,
+  ConversionReport as ConversionReportType,
+} from '../../types/raml-import';
+import { ConversionReport } from './report/ConversionReport';
 
 interface RamlImportModalProps {
   isOpen: boolean;
@@ -60,6 +66,13 @@ export function RamlImportModal({
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
   const [importStatus, setImportStatus] = useState<string>('');
+  const [reportSummary, setReportSummary] = useState<
+    ConversionSummary | undefined
+  >(undefined);
+  const [reports, setReports] = useState<ConversionReportType[] | undefined>(
+    undefined,
+  );
+  const [showReport, setShowReport] = useState(false);
 
   const handleSourcePathChange = (path: string) => {
     setConfig((prev) => ({
@@ -97,19 +110,26 @@ export function RamlImportModal({
         });
       }, 200);
 
-      await onImport(config, projectName);
+      const res = await onImport(config, projectName);
 
       clearInterval(progressInterval);
       setImportProgress(100);
       setImportStatus('Import completed successfully!');
 
-      setTimeout(() => {
-        onClose();
+      if (res.summary || res.reports) {
+        setReportSummary(res.summary);
+        setReports(res.reports);
+        setShowReport(true);
         setIsImporting(false);
-        setImportProgress(0);
-        setImportStatus('');
-        setProjectName('');
-      }, 1000);
+      } else {
+        setTimeout(() => {
+          onClose();
+          setIsImporting(false);
+          setImportProgress(0);
+          setImportStatus('');
+          setProjectName('');
+        }, 1000);
+      }
     } catch (error) {
       toast.error(
         'Import failed: ' +
@@ -132,7 +152,7 @@ export function RamlImportModal({
           sourcePath: result.data as string,
         }));
       }
-    } catch (_error) {
+    } catch {
       toast.error('Failed to select source directory');
     }
   };
@@ -148,7 +168,7 @@ export function RamlImportModal({
           destinationPath: result.data as string,
         }));
       }
-    } catch (_error) {
+    } catch {
       toast.error('Failed to select destination directory');
     }
   };
@@ -171,213 +191,224 @@ export function RamlImportModal({
         <div className="flex-1 min-h-0 overflow-hidden">
           <ScrollArea className="h-[450px]">
             <div className="p-6 space-y-6">
-              {/* Source Path */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <FolderOpen className="h-5 w-5 text-primary" />
-                  <Label className="text-base font-medium">
-                    Source Directory
-                  </Label>
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Select source directory containing RAML files"
-                    value={config.sourcePath}
-                    onChange={(e) => handleSourcePathChange(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button onClick={handleBrowseSource} variant="outline">
-                    Browse
-                  </Button>
-                </div>
-                {config.sourcePath && (
-                  <p className="text-xs text-muted-foreground">
-                    Selected: {config.sourcePath}
-                  </p>
-                )}
-              </div>
-
-              {/* Destination Path */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Folder className="h-5 w-5 text-primary" />
-                  <Label className="text-base font-medium">
-                    Destination Directory
-                  </Label>
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Select destination directory for JSON Schema files"
-                    value={config.destinationPath}
-                    onChange={(e) =>
-                      handleDestinationPathChange(e.target.value)
-                    }
-                    className="flex-1"
-                  />
-                  <Button onClick={handleBrowseDestination} variant="outline">
-                    Browse
-                  </Button>
-                </div>
-                {config.destinationPath && (
-                  <p className="text-xs text-muted-foreground">
-                    Selected: {config.destinationPath}
-                  </p>
-                )}
-              </div>
-
-              {/* Project Name */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Folder className="h-5 w-5 text-primary" />
-                  <Label className="text-base font-medium">Project Name</Label>
-                </div>
-                <Input
-                  placeholder="Enter project name (optional)"
-                  value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
-                  className="flex-1"
-                />
-                {projectName && (
-                  <p className="text-xs text-muted-foreground">
-                    This will create a new project from the destination
-                    directory
-                  </p>
-                )}
-              </div>
-
-              {/* Import Options */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Settings className="h-5 w-5 text-primary" />
-                  <Label className="text-base font-medium">
-                    Import Options
-                  </Label>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="clear-destination">
-                      Clear destination before import
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Remove existing files in destination directory
-                    </p>
-                  </div>
-                  <Switch
-                    id="clear-destination"
-                    checked={config.clearDestination}
-                    onCheckedChange={(checked) =>
-                      setConfig((prev) => ({
-                        ...prev,
-                        clearDestination: checked,
-                      }))
-                    }
-                  />
-                </div>
-              </div>
-
-              {/* Output Structure Explanation */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Folder className="h-5 w-5 text-primary" />
-                  <Label className="text-base font-medium">
-                    Output Structure
-                  </Label>
-                </div>
-                <div className="space-y-3 text-sm">
-                  <div className="p-4 bg-muted/50 rounded-lg space-y-3">
-                    <div>
-                      <h4 className="font-medium text-foreground mb-2">
-                        Base Message Structure
-                      </h4>
-                      <p className="text-muted-foreground mb-2">
-                        The conversion creates a standardized message structure
-                        with:
-                      </p>
-                      <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-2">
-                        <li>
-                          <code className="bg-background px-1 rounded">
-                            message.schema.json
-                          </code>{' '}
-                          - Main message envelope
-                        </li>
-                        <li>
-                          <code className="bg-background px-1 rounded">
-                            metadata.schema.json
-                          </code>{' '}
-                          - Message metadata (ID, timestamp, source)
-                        </li>
-                        <li>
-                          <code className="bg-background px-1 rounded">
-                            datamodelObjects.schema.json
-                          </code>{' '}
-                          - Central registry of all business objects
-                        </li>
-                      </ul>
+              {showReport ? (
+                <ConversionReport summary={reportSummary} reports={reports} />
+              ) : (
+                <>
+                  {/* Source Path */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <FolderOpen className="h-5 w-5 text-primary" />
+                      <Label className="text-base font-medium">
+                        Source Directory
+                      </Label>
                     </div>
-
-                    <div>
-                      <h4 className="font-medium text-foreground mb-2">
-                        File Organization
-                      </h4>
-                      <p className="text-muted-foreground mb-2">
-                        Generated schemas are organized as follows:
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Select source directory containing RAML files"
+                        value={config.sourcePath}
+                        onChange={(e) => handleSourcePathChange(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button onClick={handleBrowseSource} variant="outline">
+                        Browse
+                      </Button>
+                    </div>
+                    {config.sourcePath && (
+                      <p className="text-xs text-muted-foreground">
+                        Selected: {config.sourcePath}
                       </p>
-                      <div className="font-mono text-xs bg-background p-3 rounded border">
-                        destination/ ├── business-objects/ # All business object
-                        schemas ├── common/ │ └── enums/ # Reusable enum
-                        definitions ├── message.schema.json # Message envelope
-                        ├── metadata.schema.json # Message metadata └──
-                        datamodelObjects.schema.json
+                    )}
+                  </div>
+
+                  {/* Destination Path */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Folder className="h-5 w-5 text-primary" />
+                      <Label className="text-base font-medium">
+                        Destination Directory
+                      </Label>
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Select destination directory for JSON Schema files"
+                        value={config.destinationPath}
+                        onChange={(e) =>
+                          handleDestinationPathChange(e.target.value)
+                        }
+                        className="flex-1"
+                      />
+                      <Button
+                        onClick={handleBrowseDestination}
+                        variant="outline"
+                      >
+                        Browse
+                      </Button>
+                    </div>
+                    {config.destinationPath && (
+                      <p className="text-xs text-muted-foreground">
+                        Selected: {config.destinationPath}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Project Name */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Folder className="h-5 w-5 text-primary" />
+                      <Label className="text-base font-medium">
+                        Project Name
+                      </Label>
+                    </div>
+                    <Input
+                      placeholder="Enter project name (optional)"
+                      value={projectName}
+                      onChange={(e) => setProjectName(e.target.value)}
+                      className="flex-1"
+                    />
+                    {projectName && (
+                      <p className="text-xs text-muted-foreground">
+                        This will create a new project from the destination
+                        directory
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Import Options */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Settings className="h-5 w-5 text-primary" />
+                      <Label className="text-base font-medium">
+                        Import Options
+                      </Label>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="clear-destination">
+                          Clear destination before import
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Remove existing files in destination directory
+                        </p>
+                      </div>
+                      <Switch
+                        id="clear-destination"
+                        checked={config.clearDestination}
+                        onCheckedChange={(checked) =>
+                          setConfig((prev) => ({
+                            ...prev,
+                            clearDestination: checked,
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  {/* Output Structure Explanation */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Folder className="h-5 w-5 text-primary" />
+                      <Label className="text-base font-medium">
+                        Output Structure
+                      </Label>
+                    </div>
+                    <div className="space-y-3 text-sm">
+                      <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                        <div>
+                          <h4 className="font-medium text-foreground mb-2">
+                            Base Message Structure
+                          </h4>
+                          <p className="text-muted-foreground mb-2">
+                            The conversion creates a standardized message
+                            structure with:
+                          </p>
+                          <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-2">
+                            <li>
+                              <code className="bg-background px-1 rounded">
+                                message.schema.json
+                              </code>{' '}
+                              - Main message envelope
+                            </li>
+                            <li>
+                              <code className="bg-background px-1 rounded">
+                                metadata.schema.json
+                              </code>{' '}
+                              - Message metadata (ID, timestamp, source)
+                            </li>
+                            <li>
+                              <code className="bg-background px-1 rounded">
+                                datamodelObjects.schema.json
+                              </code>{' '}
+                              - Central registry of all business objects
+                            </li>
+                          </ul>
+                        </div>
+
+                        <div>
+                          <h4 className="font-medium text-foreground mb-2">
+                            File Organization
+                          </h4>
+                          <p className="text-muted-foreground mb-2">
+                            Generated schemas are organized as follows:
+                          </p>
+                          <div className="font-mono text-xs bg-background p-3 rounded border">
+                            destination/ ├── business-objects/ # All business
+                            object schemas ├── common/ │ └── enums/ # Reusable
+                            enum definitions ├── message.schema.json # Message
+                            envelope ├── metadata.schema.json # Message metadata
+                            └── datamodelObjects.schema.json
+                          </div>
+                        </div>
+
+                        <div>
+                          <h4 className="font-medium text-foreground mb-2">
+                            Type Conversions
+                          </h4>
+                          <p className="text-muted-foreground mb-2">
+                            RAML types are converted to JSON Schema with:
+                          </p>
+                          <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-2">
+                            <li>
+                              Union types →{' '}
+                              <code className="bg-background px-1 rounded">
+                                "type": ["string", "number"]
+                              </code>
+                            </li>
+                            <li>
+                              Any types →{' '}
+                              <code className="bg-background px-1 rounded">
+                                "type": {}
+                              </code>
+                            </li>
+                            <li>
+                              Date/time →{' '}
+                              <code className="bg-background px-1 rounded">
+                                "format": "date-time"
+                              </code>
+                            </li>
+                            <li>Enums → Externalized for reusability</li>
+                          </ul>
+                        </div>
                       </div>
                     </div>
+                  </div>
 
-                    <div>
-                      <h4 className="font-medium text-foreground mb-2">
-                        Type Conversions
-                      </h4>
-                      <p className="text-muted-foreground mb-2">
-                        RAML types are converted to JSON Schema with:
+                  {/* Import Progress */}
+                  {isImporting && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Upload className="h-5 w-5 text-primary" />
+                        <Label className="text-base font-medium">
+                          Import Progress
+                        </Label>
+                      </div>
+                      <Progress value={importProgress} className="w-full" />
+                      <p className="text-sm text-muted-foreground">
+                        {importStatus}
                       </p>
-                      <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-2">
-                        <li>
-                          Union types →{' '}
-                          <code className="bg-background px-1 rounded">
-                            "type": ["string", "number"]
-                          </code>
-                        </li>
-                        <li>
-                          Any types →{' '}
-                          <code className="bg-background px-1 rounded">
-                            "type": {}
-                          </code>
-                        </li>
-                        <li>
-                          Date/time →{' '}
-                          <code className="bg-background px-1 rounded">
-                            "format": "date-time"
-                          </code>
-                        </li>
-                        <li>Enums → Externalized for reusability</li>
-                      </ul>
                     </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Import Progress */}
-              {isImporting && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Upload className="h-5 w-5 text-primary" />
-                    <Label className="text-base font-medium">
-                      Import Progress
-                    </Label>
-                  </div>
-                  <Progress value={importProgress} className="w-full" />
-                  <p className="text-sm text-muted-foreground">
-                    {importStatus}
-                  </p>
-                </div>
+                  )}
+                </>
               )}
             </div>
           </ScrollArea>
@@ -385,27 +416,41 @@ export function RamlImportModal({
 
         <div className="flex-shrink-0 pt-4 border-t">
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={onClose} disabled={isImporting}>
-              Cancel
-            </Button>
             <Button
-              onClick={handleImport}
-              disabled={
-                isImporting || !config.sourcePath || !config.destinationPath
-              }
+              variant="outline"
+              onClick={() => {
+                setShowReport(false);
+                setReportSummary(undefined);
+                setReports(undefined);
+                setIsImporting(false);
+                setImportProgress(0);
+                setImportStatus('');
+                setProjectName('');
+                onClose();
+              }}
             >
-              {isImporting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Importing...
-                </>
-              ) : (
-                <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Start Import
-                </>
-              )}
+              Close
             </Button>
+            {!showReport && (
+              <Button
+                onClick={handleImport}
+                disabled={
+                  isImporting || !config.sourcePath || !config.destinationPath
+                }
+              >
+                {isImporting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Importing...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Start Import
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>

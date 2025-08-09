@@ -91,13 +91,27 @@ import { toast } from 'sonner';
 export function Analytics(): React.JSX.Element {
   const currentProject = useAppStore((state) => state.currentProject);
   const [analytics, setAnalytics] = useState<AnalyticsResult | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // legacy flag, no longer gates UI
   const [error, setError] = useState<string | null>(null);
+  // Controls: near-duplicate filters
+  const [nearDupThreshold, setNearDupThreshold] = useState(0.8);
+  const [nearDupMinOverlap, setNearDupMinOverlap] = useState(3);
+  // Controls: field filters
+  const [fieldSearch, setFieldSearch] = useState('');
+  const [showOnlyConflicts, setShowOnlyConflicts] = useState(false);
+  const [filterType, setFilterType] = useState(true);
+  const [filterFormat, setFilterFormat] = useState(true);
+  const [filterEnum, setFilterEnum] = useState(true);
+  const [filterRequired, setFilterRequired] = useState(true);
+  const [filterDesc, setFilterDesc] = useState(true);
+  // Controls: name-similarity groups
+  const [nameSimThreshold, setNameSimThreshold] = useState(0);
+  const [nameMinGroupSize, setNameMinGroupSize] = useState(2);
 
   // Analyze schemas when project changes
   useEffect(() => {
     if (currentProject?.schemas && currentProject.schemas.length > 0) {
-      analyzeSchemas(false); // Don't show toast for automatic analysis
+      void analyzeSchemas(false);
     } else {
       setAnalytics(null);
     }
@@ -105,7 +119,6 @@ export function Analytics(): React.JSX.Element {
 
   const analyzeSchemas = safeHandler(async (showToast: boolean = true) => {
     if (!currentProject?.schemas) return;
-
     setIsLoading(true);
     setError(null);
 
@@ -115,7 +128,6 @@ export function Analytics(): React.JSX.Element {
         schemaCount: currentProject.schemas.length,
         isManualRefresh: showToast,
       });
-
       const result = await analyticsService.analyzeSchemas(
         currentProject.schemas,
       );
@@ -128,12 +140,7 @@ export function Analytics(): React.JSX.Element {
         isManualRefresh: showToast,
       });
 
-      // Only show success toast for manual refreshes
-      if (showToast) {
-        toast.success('Analytics updated', {
-          description: `Analyzed ${result.projectMetrics.totalSchemas} schemas in ${result.performance.duration}ms`,
-        });
-      }
+      if (showToast) toast.success('Analytics updated');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(errorMessage);
@@ -240,12 +247,68 @@ export function Analytics(): React.JSX.Element {
     return ranges.filter((r) => r.count > 0);
   }, [analytics?.complexityMetrics]);
 
+  // Derived: filtered near-duplicates based on controls
+  const filteredNearDuplicates = useMemo(() => {
+    if (!analytics) return [] as NonNullable<AnalyticsResult['nearDuplicates']>;
+    return analytics.nearDuplicates.filter(
+      (p) =>
+        p.similarity >= nearDupThreshold &&
+        p.overlapFields >= nearDupMinOverlap,
+    );
+  }, [analytics, nearDupThreshold, nearDupMinOverlap]);
+
+  // Derived: filtered field items
+  // Debounce field search input
+  const [debouncedFieldSearch, setDebouncedFieldSearch] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedFieldSearch(fieldSearch), 300);
+    return () => clearTimeout(t);
+  }, [fieldSearch]);
+
+  const filteredFieldItems = useMemo(() => {
+    if (!analytics) return [] as typeof analytics.fieldInsights.items;
+    const q = debouncedFieldSearch.trim().toLowerCase();
+    return analytics.fieldInsights.items.filter((f) => {
+      if (q && !f.name.toLowerCase().includes(q)) return false;
+      if (showOnlyConflicts) {
+        const matches =
+          (filterType && f.conflicts.typeConflict) ||
+          (filterFormat && f.conflicts.formatConflict) ||
+          (filterEnum && f.conflicts.enumConflict) ||
+          (filterRequired && f.conflicts.requiredConflict) ||
+          (filterDesc && f.conflicts.descriptionDivergence);
+        if (!matches) return false;
+      }
+      return true;
+    });
+  }, [
+    analytics,
+    fieldSearch,
+    showOnlyConflicts,
+    filterType,
+    filterFormat,
+    filterEnum,
+    filterRequired,
+    filterDesc,
+  ]);
+
+  // Names groups filtered by controls
+  const filteredNameGroups = useMemo(() => {
+    if (!analytics) return [] as typeof analytics.nameSimilarGroups;
+    return analytics.nameSimilarGroups.filter(
+      (g) =>
+        g.averageSimilarity >= nameSimThreshold &&
+        g.schemas.length >= nameMinGroupSize,
+    );
+  }, [analytics, nameSimThreshold, nameMinGroupSize]);
+
   return (
     <div className="h-full flex flex-col space-y-4">
       {/* Analytics Header */}
       <Card className="glass-blue border-0">
         <CardContent className="p-4">
-          <div className="flex justify-end">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-xs text-muted-foreground">&nbsp;</div>
             <Button
               onClick={handleManualRefresh}
               disabled={isLoading || totalSchemas === 0}
@@ -359,13 +422,86 @@ export function Analytics(): React.JSX.Element {
 
       {/* Main Analytics Content */}
       {!isLoading && analytics && (
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+        <Tabs defaultValue="insights" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-8">
+            <TabsTrigger value="insights">Insights</TabsTrigger>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="complexity">Complexity</TabsTrigger>
+            <TabsTrigger value="duplicates">Duplicates</TabsTrigger>
+            <TabsTrigger value="fields">Fields</TabsTrigger>
+            <TabsTrigger value="names">Names</TabsTrigger>
             <TabsTrigger value="references">References</TabsTrigger>
             <TabsTrigger value="performance">Performance</TabsTrigger>
           </TabsList>
+
+          {/* Insights Tab */}
+          <TabsContent value="insights" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5" /> Actionable Insights
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Prioritized suggestions with severity, impact, and clear
+                      next steps
+                    </p>
+                  </div>
+                  <Badge variant="outline">
+                    Maturity: {analytics.maturityScore}/100
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[600px]">
+                  <div className="space-y-3">
+                    {analytics.suggestions.map((sug) => (
+                      <div key={sug.id} className="p-3 border rounded">
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">{sug.category}</Badge>
+                            <span className="font-medium">{sug.title}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant={
+                                sug.severity === 'high'
+                                  ? 'destructive'
+                                  : sug.severity === 'medium'
+                                    ? 'secondary'
+                                    : 'outline'
+                              }
+                            >
+                              {sug.severity}
+                            </Badge>
+                            <Badge variant="outline">
+                              Impact {sug.impactScore}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="text-sm text-muted-foreground mb-2">
+                          {sug.description}
+                        </div>
+                        {sug.affectedSchemas.length > 0 && (
+                          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                            {sug.affectedSchemas.slice(0, 12).map((n) => (
+                              <Badge key={n} variant="secondary">
+                                {n}
+                              </Badge>
+                            ))}
+                            {sug.affectedSchemas.length > 12 && (
+                              <span>+{sug.affectedSchemas.length - 12}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
@@ -537,6 +673,534 @@ export function Analytics(): React.JSX.Element {
                     </p>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Duplicates Tab */}
+          <TabsContent value="duplicates" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Exact duplicates */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Layers className="w-5 h-5" /> Exact Duplicates
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Schemas with identical structure
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-[320px]">
+                    {analytics.duplicates.length > 0 ? (
+                      <div className="space-y-3">
+                        {analytics.duplicates.map((g, idx) => (
+                          <div key={idx} className="p-3 border rounded">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="font-medium">
+                                Group #{idx + 1}
+                              </div>
+                              <Badge variant="outline">
+                                {g.schemas.length} schemas
+                              </Badge>
+                            </div>
+                            <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+                              {g.schemas.map((s) => (
+                                <Badge key={s.id} variant="secondary">
+                                  {s.name}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No exact duplicates found
+                      </div>
+                    )}
+                  </ScrollArea>
+                  <div className="mt-3 flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        exportJSON(analytics.duplicates, 'duplicates.json')
+                      }
+                    >
+                      Export JSON
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        exportCSV(
+                          analytics.duplicates.flatMap((g) =>
+                            g.schemas.map((s) => ({
+                              groupSignature: g.signature,
+                              schema: s.name,
+                            })),
+                          ),
+                          ['groupSignature', 'schema'],
+                          'duplicates.csv',
+                        )
+                      }
+                    >
+                      Export CSV
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Near-duplicates */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Target className="w-5 h-5" /> Near Duplicates
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Highly similar schemas by field overlap
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  {/* Controls */}
+                  <div className="flex items-center gap-4 mb-3 text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">Threshold</span>
+                      <input
+                        type="range"
+                        min={0.5}
+                        max={0.99}
+                        step={0.01}
+                        value={nearDupThreshold}
+                        onChange={(e) =>
+                          setNearDupThreshold(parseFloat(e.target.value))
+                        }
+                      />
+                      <Badge variant="outline">
+                        {nearDupThreshold.toFixed(2)}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">Min overlap</span>
+                      <input
+                        type="number"
+                        className="w-16 border rounded px-2 py-1 bg-background"
+                        value={nearDupMinOverlap}
+                        min={1}
+                        onChange={(e) =>
+                          setNearDupMinOverlap(parseInt(e.target.value || '0'))
+                        }
+                      />
+                    </div>
+                  </div>
+                  <ScrollArea className="h-[320px]">
+                    {filteredNearDuplicates.length > 0 ? (
+                      <div className="space-y-2">
+                        {filteredNearDuplicates.map((p, idx) => (
+                          <div
+                            key={idx}
+                            className="p-3 border rounded flex items-center justify-between"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Badge variant="outline">{p.similarity}</Badge>
+                              <span className="truncate">{p.aName}</span>
+                              <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                              <span className="truncate">{p.bName}</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {p.overlapFields}/{p.unionFields} fields
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No near duplicates above threshold
+                      </div>
+                    )}
+                  </ScrollArea>
+                  <div className="mt-3 flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        exportJSON(
+                          filteredNearDuplicates,
+                          'near-duplicates.json',
+                        )
+                      }
+                    >
+                      Export JSON
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        exportCSV(
+                          filteredNearDuplicates.map((p) => ({
+                            a: p.aName,
+                            b: p.bName,
+                            similarity: p.similarity,
+                            overlap: p.overlapFields,
+                            union: p.unionFields,
+                          })),
+                          ['a', 'b', 'similarity', 'overlap', 'union'],
+                          'near-duplicates.csv',
+                        )
+                      }
+                    >
+                      Export CSV
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Fields Tab */}
+          <TabsContent value="fields" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5" /> Field Consistency
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Aggregated view of field usage and conflicts
+                    </p>
+                  </div>
+                  <div className="flex gap-2 text-xs text-muted-foreground">
+                    <Badge variant="outline">
+                      Type:{' '}
+                      {analytics.fieldInsights.conflictCounts.typeConflicts}
+                    </Badge>
+                    <Badge variant="outline">
+                      Format:{' '}
+                      {analytics.fieldInsights.conflictCounts.formatConflicts}
+                    </Badge>
+                    <Badge variant="outline">
+                      Enum:{' '}
+                      {analytics.fieldInsights.conflictCounts.enumConflicts}
+                    </Badge>
+                    <Badge variant="outline">
+                      Required:{' '}
+                      {analytics.fieldInsights.conflictCounts.requiredConflicts}
+                    </Badge>
+                    <Badge variant="outline">
+                      Desc:{' '}
+                      {
+                        analytics.fieldInsights.conflictCounts
+                          .descriptionConflicts
+                      }
+                    </Badge>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {/* Filters */}
+                <div className="flex flex-wrap items-center gap-3 mb-3 text-sm">
+                  <input
+                    type="text"
+                    placeholder="Search field name…"
+                    value={fieldSearch}
+                    onChange={(e) => setFieldSearch(e.target.value)}
+                    className="border rounded px-2 py-1 bg-background"
+                  />
+                  <label className="flex items-center gap-1">
+                    <input
+                      type="checkbox"
+                      checked={showOnlyConflicts}
+                      onChange={(e) => setShowOnlyConflicts(e.target.checked)}
+                    />
+                    Only conflicts
+                  </label>
+                  <label className="flex items-center gap-1">
+                    <input
+                      type="checkbox"
+                      checked={filterType}
+                      onChange={(e) => setFilterType(e.target.checked)}
+                    />{' '}
+                    Type
+                  </label>
+                  <label className="flex items-center gap-1">
+                    <input
+                      type="checkbox"
+                      checked={filterFormat}
+                      onChange={(e) => setFilterFormat(e.target.checked)}
+                    />{' '}
+                    Format
+                  </label>
+                  <label className="flex items-center gap-1">
+                    <input
+                      type="checkbox"
+                      checked={filterEnum}
+                      onChange={(e) => setFilterEnum(e.target.checked)}
+                    />{' '}
+                    Enum
+                  </label>
+                  <label className="flex items-center gap-1">
+                    <input
+                      type="checkbox"
+                      checked={filterRequired}
+                      onChange={(e) => setFilterRequired(e.target.checked)}
+                    />{' '}
+                    Required
+                  </label>
+                  <label className="flex items-center gap-1">
+                    <input
+                      type="checkbox"
+                      checked={filterDesc}
+                      onChange={(e) => setFilterDesc(e.target.checked)}
+                    />{' '}
+                    Desc
+                  </label>
+                  <div className="ml-auto flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        exportJSON(filteredFieldItems, 'field-insights.json')
+                      }
+                    >
+                      Export JSON
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        exportCSV(
+                          filteredFieldItems.map((f) => ({
+                            name: f.name,
+                            types: f.types.join('|'),
+                            formats: f.formats.join('|'),
+                            enumValues: (f.enumValues || []).join('|'),
+                            requiredIn: f.requiredIn.length,
+                            optionalIn: f.optionalIn.length,
+                            conflicts: [
+                              f.conflicts.typeConflict ? 'type' : '',
+                              f.conflicts.formatConflict ? 'format' : '',
+                              f.conflicts.enumConflict ? 'enum' : '',
+                              f.conflicts.requiredConflict ? 'required' : '',
+                              f.conflicts.descriptionDivergence ? 'desc' : '',
+                            ]
+                              .filter(Boolean)
+                              .join('+'),
+                          })),
+                          [
+                            'name',
+                            'types',
+                            'formats',
+                            'enumValues',
+                            'requiredIn',
+                            'optionalIn',
+                            'conflicts',
+                          ],
+                          'field-insights.csv',
+                        )
+                      }
+                    >
+                      Export CSV
+                    </Button>
+                  </div>
+                </div>
+                <ScrollArea className="h-[500px]">
+                  <div className="space-y-2">
+                    {filteredFieldItems.map((f) => (
+                      <div key={f.name} className="p-3 border rounded">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="font-medium truncate">{f.name}</div>
+                          <div className="flex gap-2">
+                            {f.conflicts.typeConflict && (
+                              <Badge variant="destructive">Type</Badge>
+                            )}
+                            {f.conflicts.formatConflict && (
+                              <Badge variant="destructive">Format</Badge>
+                            )}
+                            {f.conflicts.enumConflict && (
+                              <Badge variant="destructive">Enum</Badge>
+                            )}
+                            {f.conflicts.requiredConflict && (
+                              <Badge variant="destructive">Required</Badge>
+                            )}
+                            {f.conflicts.descriptionDivergence && (
+                              <Badge variant="destructive">Desc</Badge>
+                            )}
+                            {!f.conflicts.typeConflict &&
+                              !f.conflicts.formatConflict &&
+                              !f.conflicts.enumConflict &&
+                              !f.conflicts.requiredConflict &&
+                              !f.conflicts.descriptionDivergence && (
+                                <Badge variant="default">Consistent</Badge>
+                              )}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm text-muted-foreground">
+                          <div>
+                            <div className="font-medium text-foreground text-xs mb-1">
+                              Types
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {f.types.map((t) => (
+                                <Badge key={t} variant="outline">
+                                  {t}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="font-medium text-foreground text-xs mb-1">
+                              Formats
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {f.formats.map((t) => (
+                                <Badge key={t} variant="outline">
+                                  {t}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="font-medium text-foreground text-xs mb-1">
+                              Required In
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {f.requiredIn.slice(0, 8).map((n) => (
+                                <Badge key={n} variant="secondary">
+                                  {n}
+                                </Badge>
+                              ))}
+                              {f.requiredIn.length > 8 && (
+                                <span>+{f.requiredIn.length - 8}</span>
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="font-medium text-foreground text-xs mb-1">
+                              Optional In
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {f.optionalIn.slice(0, 8).map((n) => (
+                                <Badge key={n} variant="secondary">
+                                  {n}
+                                </Badge>
+                              ))}
+                              {f.optionalIn.length > 8 && (
+                                <span>+{f.optionalIn.length - 8}</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        {f.enumValues && f.enumValues.length > 0 && (
+                          <div className="mt-2 text-xs">
+                            <span className="font-medium mr-2">Enum:</span>
+                            <span className="opacity-80">
+                              {f.enumValues.join(', ')}
+                            </span>
+                          </div>
+                        )}
+                        {f.descriptions.length > 0 && (
+                          <div className="mt-2 text-xs">
+                            <span className="font-medium mr-2">
+                              Descriptions:
+                            </span>
+                            <span className="opacity-80">
+                              {f.descriptions.slice(0, 2).join(' | ')}
+                            </span>
+                            {f.descriptions.length > 2 && (
+                              <span className="ml-1">
+                                (+{f.descriptions.length - 2})
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Names Tab */}
+          <TabsContent value="names" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="w-5 h-5" /> Similar Names (Consolidation
+                  Candidates)
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Schemas that share a core token and have similar content
+                </p>
+              </CardHeader>
+              <CardContent>
+                {/* Controls */}
+                <div className="flex items-center gap-4 mb-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">
+                      Min avg similarity
+                    </span>
+                    <input
+                      type="range"
+                      min={0.5}
+                      max={0.99}
+                      step={0.01}
+                      value={nameSimThreshold}
+                      onChange={(e) =>
+                        setNameSimThreshold(parseFloat(e.target.value))
+                      }
+                    />
+                    <Badge variant="outline">
+                      {nameSimThreshold.toFixed(2)}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">
+                      Min group size
+                    </span>
+                    <input
+                      type="number"
+                      className="w-16 border rounded px-2 py-1 bg-background"
+                      value={nameMinGroupSize}
+                      min={2}
+                      onChange={(e) =>
+                        setNameMinGroupSize(parseInt(e.target.value || '2'))
+                      }
+                    />
+                  </div>
+                </div>
+                <ScrollArea className="h-[500px]">
+                  {filteredNameGroups.length > 0 ? (
+                    <div className="space-y-3">
+                      {filteredNameGroups.map((g, idx) => (
+                        <div key={idx} className="p-3 border rounded">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              <Badge variant="outline">{g.token}</Badge>
+                              <span className="text-sm text-muted-foreground">
+                                avg sim {g.averageSimilarity}
+                              </span>
+                            </div>
+                            <Badge>Sugg: {g.suggestedCanonicalName}</Badge>
+                          </div>
+                          <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+                            {g.schemas.map((s) => (
+                              <Badge key={s.id} variant="secondary">
+                                {s.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No similar-name groups above threshold
+                    </div>
+                  )}
+                </ScrollArea>
               </CardContent>
             </Card>
           </TabsContent>

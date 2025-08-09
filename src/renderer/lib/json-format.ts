@@ -41,7 +41,9 @@ function transformNode(node: unknown, parentKey?: string): unknown {
     if (Object.prototype.hasOwnProperty.call(obj, 'properties')) {
       const props = obj['properties'];
       if (props && typeof props === 'object' && !Array.isArray(props)) {
-        const sortedProps = sortObjectKeysAtoZ(props as Record<string, unknown>);
+        const sortedProps = sortObjectKeysAtoZ(
+          props as Record<string, unknown>,
+        );
         // Rebuild object with the sorted `properties` while preserving sibling key order
         const rebuilt: Record<string, unknown> = {};
         for (const [k, v] of entries) {
@@ -65,7 +67,9 @@ function transformNode(node: unknown, parentKey?: string): unknown {
   return node;
 }
 
-function sortObjectKeysAtoZ(obj: Record<string, unknown>): Record<string, unknown> {
+function sortObjectKeysAtoZ(
+  obj: Record<string, unknown>,
+): Record<string, unknown> {
   const sortedKeys = Object.keys(obj).sort((a, b) => a.localeCompare(b));
   const out: Record<string, unknown> = {};
   for (const key of sortedKeys) {
@@ -73,5 +77,3 @@ function sortObjectKeysAtoZ(obj: Record<string, unknown>): Record<string, unknow
   }
   return out;
 }
-
-

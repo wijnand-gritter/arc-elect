@@ -16,7 +16,12 @@ import type {
   Schema,
   ValidationResult,
 } from './schema-editor';
-import type { RamlFileInfo, TransformationOptions } from './raml-import';
+import type {
+  RamlFileInfo,
+  TransformationOptions,
+  ConversionReport,
+  ConversionSummary,
+} from './raml-import';
 
 export {};
 
@@ -270,6 +275,9 @@ declare global {
           warnings: number;
         };
         error?: string;
+        // Extended reporting (optional)
+        reports?: ConversionReport[];
+        summaryDetailed?: ConversionSummary;
       }>;
 
       /**
@@ -291,6 +299,21 @@ declare global {
        */
       validateSchemas: (directoryPath: string) => Promise<{
         success: boolean;
+        error?: string;
+      }>;
+
+      // Conversion reports
+      reportExists: (projectPath: string) => Promise<{
+        success: boolean;
+        exists?: boolean;
+        error?: string;
+      }>;
+      getReport: (projectPath: string) => Promise<{
+        success: boolean;
+        data?: {
+          summary: import('./raml-import').ConversionSummary;
+          reports: import('./raml-import').ConversionReport[];
+        };
         error?: string;
       }>;
 

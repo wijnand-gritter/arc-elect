@@ -306,4 +306,10 @@ contextBridge.exposeInMainWorld('api', {
    */
   createDirectory: (dirPath: string) =>
     ipcRenderer.invoke('fs:createDirectory', dirPath),
+
+  // Conversion report API
+  reportExists: (projectPath: string) =>
+    ipcRenderer.invoke('reports:exists', projectPath),
+  getReport: (projectPath: string) =>
+    ipcRenderer.invoke('reports:get', projectPath),
 });
