@@ -31,11 +31,13 @@ jobs:
           pnpm config set node-linker hoisted --location project
           pnpm install --frozen-lockfile
 
-      - name: Install Windows packaging deps (7zip)
+      - name: Install Windows packaging deps (7zip, nuget)
         if: runner.os == 'Windows'
         run: |
-          choco install 7zip 7zip.commandline -y
+          choco install 7zip 7zip.commandline nuget.commandline -y
+          echo "C:\\Program Files\\7-Zip" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           7z -h | Select-String "7-Zip"
+          nuget help | Select-String "usage"
 
       - name: Build artifacts
         run: pnpm make
