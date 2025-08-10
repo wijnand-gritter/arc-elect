@@ -17,6 +17,8 @@ import {
   Edit,
   BarChart3,
   HelpCircle,
+  Lock,
+  Upload
 } from 'lucide-react';
 import { ArcElectLogo } from './ui/arc-elect-logo';
 import { ModeToggle } from './ModeToggle';
@@ -45,6 +47,11 @@ import {
   SheetTrigger,
 } from './ui/sheet';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { ProjectRequiredModal } from './ProjectRequiredModal';
+import { RamlImportModal } from './RamlImportModal';
+import type { RamlImportConfig, ImportResult } from '../../types/raml-import';
+import type { ProjectConfig } from '../../types/schema-editor';
+import React from 'react';
 
 import { useAppStore } from '../stores/useAppStore';
 
@@ -175,6 +182,10 @@ const TopNavigationBar = ({
 }: TopNavigationBarProps) => {
   const setPage = useAppStore((state) => state.setPage);
   const currentPage = useAppStore((state) => state.currentPage);
+  const currentProject = useAppStore((state) => state.currentProject);
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [isRamlImportOpen, setIsRamlImportOpen] = React.useState(false);
+  const createProject = useAppStore((s) => s.createProject);
 
   /**
    * Handles logo click to navigate to projects page.
@@ -191,8 +202,120 @@ const TopNavigationBar = ({
   const handlePageChange = (
     page: 'project' | 'explore' | 'build' | 'analytics',
   ) => {
+    const requiresProject = page !== 'project';
+    if (requiresProject && !currentProject) {
+      setIsModalOpen(true);
+      return;
+    }
     setPage(page);
   };
+
+  const handleRamlImportConfig = React.useCallback(
+    async (
+      config: RamlImportConfig,
+      projectName?: string,
+    ): Promise<ImportResult> => {
+      try {
+        const result = await window.api.convertRamlBatch({
+          sourceDirectory: config.sourcePath,
+          destinationDirectory: config.destinationPath,
+          options: config.transformationOptions,
+        });
+
+        if (result.success) {
+          if (projectName && projectName.trim()) {
+            const projectConfig: ProjectConfig = {
+              name: projectName.trim(),
+              path: config.destinationPath,
+              schemaPattern: '*.json',
+              settings: {
+                autoValidate: true,
+                watchForChanges: true,
+                maxFileSize: 10 * 1024 * 1024,
+                allowedExtensions: ['.json'],
+              },
+            };
+            await createProject(projectConfig);
+          }
+
+          const fallbackSummary = result.summaryDetailed
+            ? result.summaryDetailed
+            : {
+              filesProcessed: result.summary.total,
+              enumsCreated: 0,
+              businessObjectsCreated: result.summary.successful,
+              unionsCount: 0,
+              inlineEnumsExtracted: 0,
+              dedupedEnums: 0,
+              warningsCount: result.summary.warnings,
+              errorsCount: result.summary.failed,
+              durationMs: 0,
+              outputDirectory: config.destinationPath,
+            };
+
+          return {
+            success: true,
+            processedFiles: result.summary.total,
+            convertedFiles: result.summary.successful,
+            failedFiles: result.summary.failed,
+            errors: (result.results as Array<{ success: boolean; inputFile?: string; error?: string }>)
+              .filter((r) => !r.success)
+              .map((r) => ({
+                filePath: r.inputFile || 'unknown',
+                message: r.error || 'Conversion failed',
+                type: 'conversion' as const,
+              })),
+            warnings: [],
+            duration: 0,
+            timestamp: new Date(),
+            summary: fallbackSummary,
+            reports: result.reports || [],
+          };
+        }
+
+        return {
+          success: false,
+          processedFiles: 0,
+          convertedFiles: 0,
+          failedFiles: 0,
+          errors: [
+            {
+              filePath: 'unknown',
+              message: result.error || 'Unknown error',
+              type: 'filesystem',
+            },
+          ],
+          warnings: [],
+          duration: 0,
+          timestamp: new Date(),
+        };
+      } catch (error) {
+        return {
+          success: false,
+          processedFiles: 0,
+          convertedFiles: 0,
+          failedFiles: 0,
+          errors: [
+            {
+              filePath: 'unknown',
+              message: error instanceof Error ? error.message : 'Unknown error',
+              type: 'filesystem',
+            },
+          ],
+          warnings: [],
+          duration: 0,
+          timestamp: new Date(),
+        };
+      }
+    },
+    [createProject],
+  );
+
+  React.useEffect(() => {
+    const handler = () => setIsModalOpen(true);
+    document.addEventListener('show-project-required-modal', handler);
+    return () => document.removeEventListener('show-project-required-modal', handler);
+  }, []);
 
   return (
     <section className="py-4 border-b border-border/40">
@@ -211,15 +334,31 @@ const TopNavigationBar = ({
               <NavigationMenu>
                 <NavigationMenuList>
                   {menu.map((item) =>
-                    renderMenuItem(item, currentPage, handlePageChange),
+                    renderMenuItem(item, currentPage, !!currentProject, handlePageChange),
                   )}
                 </NavigationMenuList>
               </NavigationMenu>
             </div>
           </div>
 
-          {/* Right side - Theme and help */}
+          {/* Right side - RAML import, theme and help */}
           <div className="flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsRamlImportOpen(true)}
+                  title="Import RAML"
+                >
+                  <Upload className="size-4" />
+                  Import RAML
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Import RAML</p>
+              </TooltipContent>
+            </Tooltip>
             <ModeToggle />
             <Tooltip>
               <TooltipTrigger asChild>
@@ -240,6 +379,17 @@ const TopNavigationBar = ({
             </Tooltip>
           </div>
         </nav>
+
+        {/* Project Required Modal */
+        }
+        <ProjectRequiredModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+
+        {/* RAML Import Modal */}
+        <RamlImportModal
+          isOpen={isRamlImportOpen}
+          onClose={() => setIsRamlImportOpen(false)}
+          onImport={handleRamlImportConfig}
+        />
 
         {/* Mobile Menu */}
         <div className="flex justify-between md:hidden">
@@ -293,6 +443,7 @@ const TopNavigationBar = ({
 const renderMenuItem = (
   item: MenuItem,
   currentPage: string,
+  hasProject: boolean,
   handlePageChange: (
     page: 'project' | 'explore' | 'build' | 'analytics',
   ) => void,
@@ -308,37 +459,49 @@ const renderMenuItem = (
         </NavigationMenuTrigger>
         <NavigationMenuContent>
           <ul className="grid w-[200px] gap-1 p-2">
-            {item.items.map((subItem) => (
-              <li key={subItem.title}>
-                <NavigationMenuLink asChild>
-                  <button
-                    onClick={() =>
-                      subItem.page && handlePageChange(subItem.page)
-                    }
-                    className="flex flex-row items-center gap-2 w-full text-left hover:bg-accent hover:text-accent-foreground rounded-md p-2 transition-colors text-sm font-medium"
-                  >
-                    {subItem.icon}
-                    {subItem.title}
-                  </button>
-                </NavigationMenuLink>
-              </li>
-            ))}
+            {item.items.map((subItem) => {
+              const disabled = !!subItem.page && subItem.page !== 'project' && !hasProject;
+              return (
+                <li key={subItem.title}>
+                  <NavigationMenuLink asChild>
+                    <button
+                      onClick={() => subItem.page && handlePageChange(subItem.page)}
+                      className={`flex flex-row items-center gap-2 w-full text-left rounded-md p-2 transition-colors text-sm font-medium ${disabled
+                        ? 'opacity-50 cursor-not-allowed'
+                        : 'hover:bg-accent hover:text-accent-foreground'
+                        }`}
+                      disabled={disabled}
+                      title={disabled ? 'Open or create a project first' : undefined}
+                    >
+                      <div className="relative flex items-center gap-2">
+                        {subItem.icon}
+                        {disabled && (
+                          <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                        )}
+                      </div>
+                      {subItem.title}
+                    </button>
+                  </NavigationMenuLink>
+                </li>
+              );
+            })}
           </ul>
         </NavigationMenuContent>
       </NavigationMenuItem>
     );
   }
 
+  const disabled = !!item.page && item.page !== 'project' && !hasProject;
   return (
     <NavigationMenuItem key={item.title}>
       <NavigationMenuLink
-        className={`${navigationMenuTriggerStyle()} ${
-          currentPage === item.page ? 'bg-accent text-accent-foreground' : ''
-        }`}
+        className={`${navigationMenuTriggerStyle()} ${currentPage === item.page ? 'bg-accent text-accent-foreground' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
         onClick={() => item.page && handlePageChange(item.page)}
+        title={disabled ? 'Open or create a project first' : undefined}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 relative">
           {item.icon}
+          {disabled && <Lock className="h-3.5 w-3.5 text-muted-foreground" />}
           {item.title}
         </div>
       </NavigationMenuLink>
@@ -388,11 +551,10 @@ const renderMobileMenuItem = (
   return (
     <div
       key={item.title}
-      className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors ${
-        currentPage === item.page
-          ? 'bg-accent text-accent-foreground'
-          : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-      }`}
+      className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors ${currentPage === item.page
+        ? 'bg-accent text-accent-foreground'
+        : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+        }`}
       onClick={() => item.page && handlePageChange(item.page)}
     >
       {item.icon}

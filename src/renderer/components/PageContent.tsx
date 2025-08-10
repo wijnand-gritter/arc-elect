@@ -17,6 +17,8 @@ import { Project } from '@/pages/Project';
 import { Explore } from '@/pages/Explore';
 import { Build } from '@/pages/Build';
 import { Analytics } from '@/pages/Analytics';
+import { Onboarding } from '@/pages/Onboarding';
+import { NoProjectBanner } from '@/components/NoProjectBanner';
 
 /**
  * PageContent component for dynamic page rendering.
@@ -51,13 +53,17 @@ export function PageContent(): React.JSX.Element {
     );
   }
 
-  // Show project setup if no project is loaded
+  // Show onboarding screen and top banner if no project is loaded
   if (!currentProject) {
     return (
       <div className="h-full flex flex-col overflow-hidden">
+        <NoProjectBanner
+          onOpenProject={() => document.dispatchEvent(new CustomEvent('show-project-required-modal'))}
+          onCreateProject={() => document.dispatchEvent(new CustomEvent('show-project-required-modal'))}
+        />
         <div className="flex flex-1 overflow-y-auto">
           <div className="page-transition flex-1">
-            <Project />
+            <Onboarding />
           </div>
         </div>
       </div>

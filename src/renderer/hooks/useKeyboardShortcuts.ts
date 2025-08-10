@@ -159,28 +159,60 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}): {
       ctrl: true,
       description: 'Navigate to Explore page',
       category: 'navigation',
-      action: safeHandler(() => setPage('explore')),
+      action: safeHandler(() => {
+        if (!currentProject) {
+          document.dispatchEvent(
+            new CustomEvent('show-project-required-modal'),
+          );
+          return;
+        }
+        setPage('explore');
+      }),
     },
     {
       key: '3',
       ctrl: true,
       description: 'Navigate to Analytics page',
       category: 'navigation',
-      action: safeHandler(() => setPage('analytics')),
+      action: safeHandler(() => {
+        if (!currentProject) {
+          document.dispatchEvent(
+            new CustomEvent('show-project-required-modal'),
+          );
+          return;
+        }
+        setPage('analytics');
+      }),
     },
     {
       key: '4',
       ctrl: true,
       description: 'Navigate to Build page',
       category: 'navigation',
-      action: safeHandler(() => setPage('build')),
+      action: safeHandler(() => {
+        if (!currentProject) {
+          document.dispatchEvent(
+            new CustomEvent('show-project-required-modal'),
+          );
+          return;
+        }
+        setPage('build');
+      }),
     },
     {
       key: '5',
       ctrl: true,
       description: 'Navigate to Build page',
       category: 'navigation',
-      action: safeHandler(() => setPage('build')),
+      action: safeHandler(() => {
+        if (!currentProject) {
+          document.dispatchEvent(
+            new CustomEvent('show-project-required-modal'),
+          );
+          return;
+        }
+        setPage('build');
+      }),
     },
 
     // Search shortcuts

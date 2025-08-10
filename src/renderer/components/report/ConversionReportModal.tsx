@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogContent } from '../ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '../ui/dialog';
 import type {
   ConversionReport,
   ConversionSummary,
@@ -34,7 +34,14 @@ export function ConversionReportModal({
   const safeReports: ConversionReport[] = reports ?? [];
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent size="xl" className="max-h-[90vh] overflow-auto h-[80vh]">
+      <DialogTitle className="sr-only" aria-describedby="Conversion Report">
+        Conversion Report
+      </DialogTitle>
+      <DialogContent
+        size="xl"
+        className="max-h-[90vh] overflow-auto h-[80vh]"
+        aria-describedby="Conversion Report"
+      >
         <div className="p-2">
           <ReportView summary={safeSummary} reports={safeReports} />
         </div>

@@ -24,7 +24,7 @@ import { useAppStore } from '../../stores/useAppStore';
 import { CreateProjectModal } from '../CreateProjectModal';
 import { RamlImportModal } from '../RamlImportModal';
 import { ConversionReportModal } from '../report/ConversionReportModal';
-import { FolderOpen, Plus, XCircle, Upload, FileText } from 'lucide-react';
+import { FolderOpen, Plus, XCircle, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 import type { Project, ProjectConfig } from '../../../types/schema-editor';
@@ -203,17 +203,17 @@ export function ProjectOverview({
         const fallbackSummary = result.summaryDetailed
           ? result.summaryDetailed
           : {
-              filesProcessed: result.summary.total,
-              enumsCreated: 0,
-              businessObjectsCreated: result.summary.successful,
-              unionsCount: 0,
-              inlineEnumsExtracted: 0,
-              dedupedEnums: 0,
-              warningsCount: result.summary.warnings,
-              errorsCount: result.summary.failed,
-              durationMs: 0,
-              outputDirectory: config.destinationPath,
-            };
+            filesProcessed: result.summary.total,
+            enumsCreated: 0,
+            businessObjectsCreated: result.summary.successful,
+            unionsCount: 0,
+            inlineEnumsExtracted: 0,
+            dedupedEnums: 0,
+            warningsCount: result.summary.warnings,
+            errorsCount: result.summary.failed,
+            durationMs: 0,
+            outputDirectory: config.destinationPath,
+          };
 
         return {
           success: true,
@@ -304,15 +304,6 @@ export function ProjectOverview({
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Create New Project
-                  </Button>
-                  <Button
-                    onClick={handleRamlImport}
-                    variant="outline"
-                    size="lg"
-                    className="border-gradient hover-lift transition-all duration-200"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Import RAML
                   </Button>
                 </div>
               </div>
@@ -482,17 +473,6 @@ export function ProjectOverview({
                   : 'Never'}
               </CardDescription>
             </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={handleRamlImport}
-                variant="outline"
-                size="sm"
-                className="border-gradient hover-lift"
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                Import RAML
-              </Button>
-            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -553,11 +533,10 @@ export function ProjectOverview({
                 {recentProjects.slice(0, 5).map((recentProject) => (
                   <div
                     key={recentProject.id}
-                    className={`flex items-center justify-between p-4 rounded-lg border transition-all duration-200 cursor-pointer hover-lift ${
-                      recentProject.id === project.id
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border/50 hover:bg-muted/50'
-                    }`}
+                    className={`flex items-center justify-between p-4 rounded-lg border transition-all duration-200 cursor-pointer hover-lift ${recentProject.id === project.id
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border/50 hover:bg-muted/50'
+                      }`}
                     onClick={() => handleOpenProject(recentProject.path)}
                   >
                     <div className="flex-1 min-w-0">
