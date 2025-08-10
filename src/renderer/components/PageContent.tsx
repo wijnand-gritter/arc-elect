@@ -58,8 +58,16 @@ export function PageContent(): React.JSX.Element {
     return (
       <div className="h-full flex flex-col overflow-hidden">
         <NoProjectBanner
-          onOpenProject={() => document.dispatchEvent(new CustomEvent('show-project-required-modal'))}
-          onCreateProject={() => document.dispatchEvent(new CustomEvent('show-project-required-modal'))}
+          onOpenProject={() =>
+            document.dispatchEvent(
+              new CustomEvent('show-project-required-modal'),
+            )
+          }
+          onCreateProject={() =>
+            document.dispatchEvent(
+              new CustomEvent('show-project-required-modal'),
+            )
+          }
         />
         <div className="flex flex-1 overflow-y-auto">
           <div className="page-transition flex-1">

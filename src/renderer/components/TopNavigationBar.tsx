@@ -18,7 +18,7 @@ import {
   BarChart3,
   HelpCircle,
   Lock,
-  Upload
+  Upload,
 } from 'lucide-react';
 import { ArcElectLogo } from './ui/arc-elect-logo';
 import { ModeToggle } from './ModeToggle';
@@ -241,24 +241,30 @@ const TopNavigationBar = ({
           const fallbackSummary = result.summaryDetailed
             ? result.summaryDetailed
             : {
-              filesProcessed: result.summary.total,
-              enumsCreated: 0,
-              businessObjectsCreated: result.summary.successful,
-              unionsCount: 0,
-              inlineEnumsExtracted: 0,
-              dedupedEnums: 0,
-              warningsCount: result.summary.warnings,
-              errorsCount: result.summary.failed,
-              durationMs: 0,
-              outputDirectory: config.destinationPath,
-            };
+                filesProcessed: result.summary.total,
+                enumsCreated: 0,
+                businessObjectsCreated: result.summary.successful,
+                unionsCount: 0,
+                inlineEnumsExtracted: 0,
+                dedupedEnums: 0,
+                warningsCount: result.summary.warnings,
+                errorsCount: result.summary.failed,
+                durationMs: 0,
+                outputDirectory: config.destinationPath,
+              };
 
           return {
             success: true,
             processedFiles: result.summary.total,
             convertedFiles: result.summary.successful,
             failedFiles: result.summary.failed,
-            errors: (result.results as Array<{ success: boolean; inputFile?: string; error?: string }>)
+            errors: (
+              result.results as Array<{
+                success: boolean;
+                inputFile?: string;
+                error?: string;
+              }>
+            )
               .filter((r) => !r.success)
               .map((r) => ({
                 filePath: r.inputFile || 'unknown',
@@ -314,7 +320,8 @@ const TopNavigationBar = ({
   React.useEffect(() => {
     const handler = () => setIsModalOpen(true);
     document.addEventListener('show-project-required-modal', handler);
-    return () => document.removeEventListener('show-project-required-modal', handler);
+    return () =>
+      document.removeEventListener('show-project-required-modal', handler);
   }, []);
 
   return (
@@ -334,7 +341,12 @@ const TopNavigationBar = ({
               <NavigationMenu>
                 <NavigationMenuList>
                   {menu.map((item) =>
-                    renderMenuItem(item, currentPage, !!currentProject, handlePageChange),
+                    renderMenuItem(
+                      item,
+                      currentPage,
+                      !!currentProject,
+                      handlePageChange,
+                    ),
                   )}
                 </NavigationMenuList>
               </NavigationMenu>
@@ -380,9 +392,11 @@ const TopNavigationBar = ({
           </div>
         </nav>
 
-        {/* Project Required Modal */
-        }
-        <ProjectRequiredModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+        {/* Project Required Modal */}
+        <ProjectRequiredModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+        />
 
         {/* RAML Import Modal */}
         <RamlImportModal
@@ -460,18 +474,24 @@ const renderMenuItem = (
         <NavigationMenuContent>
           <ul className="grid w-[200px] gap-1 p-2">
             {item.items.map((subItem) => {
-              const disabled = !!subItem.page && subItem.page !== 'project' && !hasProject;
+              const disabled =
+                !!subItem.page && subItem.page !== 'project' && !hasProject;
               return (
                 <li key={subItem.title}>
                   <NavigationMenuLink asChild>
                     <button
-                      onClick={() => subItem.page && handlePageChange(subItem.page)}
-                      className={`flex flex-row items-center gap-2 w-full text-left rounded-md p-2 transition-colors text-sm font-medium ${disabled
-                        ? 'opacity-50 cursor-not-allowed'
-                        : 'hover:bg-accent hover:text-accent-foreground'
-                        }`}
+                      onClick={() =>
+                        subItem.page && handlePageChange(subItem.page)
+                      }
+                      className={`flex flex-row items-center gap-2 w-full text-left rounded-md p-2 transition-colors text-sm font-medium ${
+                        disabled
+                          ? 'opacity-50 cursor-not-allowed'
+                          : 'hover:bg-accent hover:text-accent-foreground'
+                      }`}
                       disabled={disabled}
-                      title={disabled ? 'Open or create a project first' : undefined}
+                      title={
+                        disabled ? 'Open or create a project first' : undefined
+                      }
                     >
                       <div className="relative flex items-center gap-2">
                         {subItem.icon}
@@ -551,10 +571,11 @@ const renderMobileMenuItem = (
   return (
     <div
       key={item.title}
-      className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors ${currentPage === item.page
-        ? 'bg-accent text-accent-foreground'
-        : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-        }`}
+      className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors ${
+        currentPage === item.page
+          ? 'bg-accent text-accent-foreground'
+          : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+      }`}
       onClick={() => item.page && handlePageChange(item.page)}
     >
       {item.icon}
