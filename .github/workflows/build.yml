@@ -2,16 +2,13 @@ name: Build desktop artifacts
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
-  pull_request:
 
 jobs:
   make:
     strategy:
       fail-fast: false
       matrix:
-        os: [ macos-latest, windows-latest ]
+        os: [macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -62,5 +59,3 @@ jobs:
           path: |
             out/make/squirrel.windows/**/*
             out/make/zip/win32/**/*
-
-
