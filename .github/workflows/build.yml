@@ -34,10 +34,26 @@ jobs:
       - name: Install Windows packaging deps (7zip, nuget)
         if: runner.os == 'Windows'
         run: |
-          choco install 7zip 7zip.commandline nuget.commandline -y
+          choco install 7zip 7zip.commandline nuget.commandline zip -y
+          # Ensure all potential locations for 7-Zip and Chocolatey shims are on PATH
           echo "C:\\Program Files\\7-Zip" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          echo "C:\\ProgramData\\chocolatey\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          echo "C:\\ProgramData\\chocolatey\\lib\\7zip.portable\\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          echo "C:\\Program Files\\Git\\usr\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+          # Verify tools are available
           7z -h | Select-String "7-Zip"
+          7za -h | Select-String "7-Zip"
           nuget help | Select-String "usage"
+          where 7z
+          where 7za
+          where nuget
+          zip -v | Select-String "Zip"
+          where zip
+
+      - name: Approve required pnpm build scripts
+        run: |
+          pnpm approve-builds --yes electron-winstaller esbuild @tailwindcss/oxide
 
       - name: Build artifacts
         run: pnpm make
