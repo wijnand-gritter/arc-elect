@@ -1,8 +1,6 @@
 name: Build desktop artifacts
-
 on:
   workflow_dispatch:
-
 jobs:
   make:
     strategy:
@@ -10,40 +8,41 @@ jobs:
       matrix:
         os: [macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 10
-
       - name: Use Node LTS
         uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
           cache: 'pnpm'
-
       - name: Install dependencies
         run: |
           pnpm config set node-linker hoisted --location project
           pnpm install --frozen-lockfile
-
-      - name: Install Windows packaging deps (7zip)
-      - name: Install Windows packaging deps (7zip, nuget)
+      - name: Install Windows packaging dependencies
         if: runner.os == 'Windows'
         run: |
-          choco install 7zip 7zip.commandline -y
+          # Install required tools for Squirrel
           choco install 7zip 7zip.commandline nuget.commandline -y
+          choco install wixtoolset -y
+          
+          # Add tools to PATH
           echo "C:\\Program Files\\7-Zip" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          echo "C:\\Program Files (x86)\\WiX Toolset v3.11\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          
+          # Verify installations
           7z -h | Select-String "7-Zip"
           nuget help | Select-String "usage"
-
+          
+          # Install Visual C++ redistributables (sometimes needed)
+          choco install vcredist-all -y
       - name: Build artifacts
         run: pnpm make
-
       - name: Upload mac artifacts
         if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4
@@ -52,7 +51,6 @@ jobs:
           path: |
             out/make/zip/darwin/**/*
             out/make/dmg/darwin/**/*
-
       - name: Upload windows artifacts
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
