@@ -29,16 +29,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Prepare icons (macOS)
-        if: runner.os == 'macOS'
-        run: pnpm run icons:full
-
-      - name: Prepare icons (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          pnpm run icons
-          pnpm run icons:setup
-
       - name: Build artifacts
         run: pnpm make
 
