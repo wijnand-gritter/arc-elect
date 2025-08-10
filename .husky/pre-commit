@@ -1,1 +1,6 @@
-pnpm run format && pnpm run lint 
+pnpm run format && pnpm run lint
+
+# Validate the last commit message early (useful when amending commits)
+if [ -f .git/COMMIT_EDITMSG ]; then
+  npx --no-install commitlint --edit .git/COMMIT_EDITMSG || true
+fi

@@ -195,10 +195,4 @@ build/Release
 # Legacy
 lib-cov/
 
-# =============================================================================
-# EXCEPTIONS FOR INTERNAL DISTRIBUTION ARTIFACTS
-# =============================================================================
-# Allow macOS ZIP artifacts to be committed for internal distribution
-!out/make/
-!out/make/zip/
-!out/make/zip/**/*.zip
+# No exceptions for build artifacts to avoid >100MB pushes on GitHub

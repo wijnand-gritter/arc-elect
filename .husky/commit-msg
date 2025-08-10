@@ -23,13 +23,25 @@ fi
 
 # Check commit message format using the regex
 if ! grep -qE "$REGEX" "$1"; then
-  echo "❌ Invalid commit message format."
-  echo "💡 Expected: type(scope): description"
-  echo "🔒 Rules:"
-  echo "   - type and scope are lowercase"
-  echo "   - scope allows hyphens, multiple scopes separated by commas (no trailing commas)"
-  echo "   - no space before colon, exactly one space after"
-  echo "   - description starts lowercase and has no trailing period(i.e. '.')"
+  echo "❌ Invalid commit message format"
+  echo ""
+  echo "Expected: type(scope): description"
+  echo ""
+  echo "Allowed types:"
+  echo "  - feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert"
+  echo ""
+  echo "Scopes (examples, lowercase, hyphenated):"
+  echo "  - main, preload, renderer, analytics, build, ci, ui, docs, tests"
+  echo "  - multi-scope: ui,build"
+  echo ""
+  echo "Formatting rules:"
+  echo "  - no space before colon, exactly one space after"
+  echo "  - description starts lowercase, no trailing period"
+  echo ""
+  echo "Examples:"
+  echo "  feat(renderer): add analytics insights search"
+  echo "  fix(main,preload): validate ipc payloads"
+  echo "  ci(workflow): add manual-only build pipeline"
   exit 1
 fi
 

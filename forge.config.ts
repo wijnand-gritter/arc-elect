@@ -1,7 +1,7 @@
 import type { ForgeConfig } from '@electron-forge/shared-types';
 import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerZIP } from '@electron-forge/maker-zip';
-import { MakerDMG } from '@electron-forge/maker-dmg';
+// Removed MakerDMG in favor of postMake hdiutil-based DMG creation
 import { MakerDeb } from '@electron-forge/maker-deb';
 import { MakerRpm } from '@electron-forge/maker-rpm';
 import { VitePlugin } from '@electron-forge/plugin-vite';
@@ -19,9 +19,8 @@ const config: ForgeConfig = {
       iconUrl: 'build/icons/win/icon.ico',
       setupIcon: 'build/icons/win/icon.ico',
     }),
-    // Fallback zip for macOS while DMG toolchain is unstable
+    // Fallback zip for macOS (kept alongside DMG)
     new MakerZIP({}, ['darwin']),
-    // Temporarily disable DMG until native deps are rebuilt on Node 20 LTS
     new MakerRpm({
       options: {
         icon: 'build/icons/linux/256x256.png',
@@ -69,6 +68,53 @@ const config: ForgeConfig = {
       [FuseV1Options.OnlyLoadAppFromAsar]: true,
     }),
   ],
+  hooks: {
+    // Create a DMG using macOS hdiutil after makers complete (avoids native appdmg deps)
+    postMake: async (_forgeConfig, _makeResults) => {
+      if (process.platform !== 'darwin') return;
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      const { spawn } = await import('child_process');
+
+      const appName = 'Arc Elect';
+      const arch = process.arch; // 'arm64' or 'x64'
+      const appPath = path.resolve(
+        __dirname,
+        `out/${appName}-darwin-${arch}/${appName}.app`,
+      );
+      const dmgDir = path.resolve(__dirname, `out/make/dmg/darwin/${arch}`);
+      await fs.mkdir(dmgDir, { recursive: true });
+      const pkgJson = await fs.readFile(
+        path.resolve(__dirname, 'package.json'),
+        'utf-8',
+      );
+      const version = JSON.parse(pkgJson).version || '0.0.0';
+      const dmgPath = path.join(
+        dmgDir,
+        `${appName}-darwin-${arch}-${version}.dmg`,
+      );
+
+      await new Promise<void>((resolve, reject) => {
+        const args = [
+          'create',
+          '-volname',
+          appName,
+          '-srcfolder',
+          appPath,
+          '-ov',
+          '-format',
+          'UDZO',
+          dmgPath,
+        ];
+        const child = spawn('hdiutil', args, { stdio: 'inherit' });
+        child.on('close', (code) => {
+          if (code === 0) resolve();
+          else reject(new Error(`hdiutil failed with code ${code}`));
+        });
+        child.on('error', (err) => reject(err));
+      });
+    },
+  },
 };
 
 export default config;
