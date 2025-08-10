@@ -16,7 +16,9 @@ const config: ForgeConfig = {
   rebuildConfig: {},
   makers: [
     new MakerSquirrel({
-      iconUrl: 'build/icons/win/icon.ico',
+      // iconUrl must be a valid HTTP/HTTPS URI for Squirrel (string is embedded in nuspec)
+      iconUrl:
+        'https://raw.githubusercontent.com/wijnand-gritter/arc-elect/main/build/icons/win/icon.ico',
       setupIcon: 'build/icons/win/icon.ico',
     }),
     // Fallback zip for macOS (kept alongside DMG)
