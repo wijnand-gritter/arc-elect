@@ -31,6 +31,12 @@ jobs:
           pnpm config set node-linker hoisted --location project
           pnpm install --frozen-lockfile
 
+      - name: Install Windows packaging deps (7zip)
+        if: runner.os == 'Windows'
+        run: |
+          choco install 7zip 7zip.commandline -y
+          7z -h | Select-String "7-Zip"
+
       - name: Build artifacts
         run: pnpm make
 
