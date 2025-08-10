@@ -36,7 +36,7 @@ module.exports = {
     questions: {
       type: {
         description:
-          'select the type of change that you\'re committing (feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert)',
+          "select the type of change that you're committing (feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert)",
       },
       scope: {
         description:
