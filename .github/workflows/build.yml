@@ -1,0 +1,66 @@
+name: Build desktop artifacts
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  make:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ macos-latest, windows-latest ]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Use Node LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prepare icons (macOS)
+        if: runner.os == 'macOS'
+        run: pnpm run icons:full
+
+      - name: Prepare icons (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          pnpm run icons
+          pnpm run icons:setup
+
+      - name: Build artifacts
+        run: pnpm make
+
+      - name: Upload mac artifacts
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-artifacts
+          path: |
+            out/make/zip/darwin/**/*
+            out/make/dmg/darwin/**/*
+
+      - name: Upload windows artifacts
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-artifacts
+          path: |
+            out/make/squirrel.windows/**/*
+            out/make/zip/win32/**/*
+
+
