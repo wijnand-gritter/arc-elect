@@ -55,6 +55,12 @@ jobs:
         run: |
           pnpm approve-builds --yes electron-winstaller esbuild @tailwindcss/oxide
 
+      - name: Verify 7z and nuget in PATH
+        if: runner.os == 'Windows'
+        run: |
+          where 7z
+          where nuget
+          
       - name: Build artifacts
         run: pnpm make
 
