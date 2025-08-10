@@ -1,6 +1,7 @@
 import type { ForgeConfig } from '@electron-forge/shared-types';
 import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerZIP } from '@electron-forge/maker-zip';
+import { MakerDMG } from '@electron-forge/maker-dmg';
 import { MakerDeb } from '@electron-forge/maker-deb';
 import { MakerRpm } from '@electron-forge/maker-rpm';
 import { VitePlugin } from '@electron-forge/plugin-vite';
@@ -18,7 +19,9 @@ const config: ForgeConfig = {
       iconUrl: 'build/icons/win/icon.ico',
       setupIcon: 'build/icons/win/icon.ico',
     }),
+    // Fallback zip for macOS while DMG toolchain is unstable
     new MakerZIP({}, ['darwin']),
+    // Temporarily disable DMG until native deps are rebuilt on Node 20 LTS
     new MakerRpm({
       options: {
         icon: 'build/icons/linux/256x256.png',

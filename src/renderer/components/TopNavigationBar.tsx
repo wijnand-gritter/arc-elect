@@ -15,11 +15,11 @@ import {
   FolderOpen,
   Search,
   Edit,
-  Settings,
   BarChart3,
   HelpCircle,
 } from 'lucide-react';
 import { ArcElectLogo } from './ui/arc-elect-logo';
+import { ModeToggle } from './ModeToggle';
 
 import {
   Accordion,
@@ -57,7 +57,7 @@ interface MenuItem {
   /** URL for external links */
   url?: string;
   /** Internal page route */
-  page?: 'project' | 'explore' | 'build' | 'settings' | 'analytics';
+  page?: 'project' | 'explore' | 'build' | 'analytics';
   /** Description for dropdown items */
   description?: string;
   /** Icon component for the menu item */
@@ -189,7 +189,7 @@ const TopNavigationBar = ({
    * @param page - The page to navigate to
    */
   const handlePageChange = (
-    page: 'project' | 'explore' | 'build' | 'settings' | 'analytics',
+    page: 'project' | 'explore' | 'build' | 'analytics',
   ) => {
     setPage(page);
   };
@@ -198,7 +198,7 @@ const TopNavigationBar = ({
     <section className="py-4 border-b border-border/40">
       <div className="container mx-auto px-4 max-w-7xl">
         {/* Desktop Menu */}
-        <nav className="hidden justify-between md:flex">
+        <nav className="hidden md:flex items-center justify-between w-full">
           <div className="flex items-center gap-6">
             {/* Logo */}
             <button
@@ -218,23 +218,9 @@ const TopNavigationBar = ({
             </div>
           </div>
 
-          {/* Right side - Settings and other actions */}
+          {/* Right side - Theme and help */}
           <div className="flex items-center gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handlePageChange('settings')}
-                  className={`${currentPage === 'settings' ? 'bg-accent' : ''}`}
-                >
-                  <Settings className="size-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Settings</p>
-              </TooltipContent>
-            </Tooltip>
+            <ModeToggle />
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -308,7 +294,7 @@ const renderMenuItem = (
   item: MenuItem,
   currentPage: string,
   handlePageChange: (
-    page: 'project' | 'explore' | 'build' | 'settings' | 'analytics',
+    page: 'project' | 'explore' | 'build' | 'analytics',
   ) => void,
 ) => {
   if (item.items) {
@@ -372,7 +358,7 @@ const renderMobileMenuItem = (
   item: MenuItem,
   currentPage: string,
   handlePageChange: (
-    page: 'project' | 'explore' | 'build' | 'settings' | 'analytics',
+    page: 'project' | 'explore' | 'build' | 'analytics',
   ) => void,
 ) => {
   if (item.items) {

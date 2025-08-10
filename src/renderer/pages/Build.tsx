@@ -56,7 +56,6 @@ import {
   FolderOpen,
   X,
   Plus,
-  Eye,
   AlertTriangle,
   Search,
   ChevronRight,
@@ -903,7 +902,7 @@ export function Build(): React.JSX.Element {
       errors: ValidationError[];
     }[];
   } | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
+
   const [isSaving, setIsSaving] = useState(false);
   const [isBatchFormatting, setIsBatchFormatting] = useState(false);
 
@@ -2136,15 +2135,6 @@ export function Build(): React.JSX.Element {
                 <Code className="w-4 h-4 mr-2" />
               )}
               {isBatchFormatting ? 'Formatting...' : 'Batch Format + Save'}
-            </Button>
-            <Button
-              variant={showPreview ? 'default' : 'outline'}
-              size="sm"
-              disabled={!activeTab}
-              onClick={() => setShowPreview(!showPreview)}
-            >
-              <Eye className="w-4 h-4 mr-2" />
-              {showPreview ? 'Hide Preview' : 'Show Preview'}
             </Button>
             {batchValidationResults && (
               <Button

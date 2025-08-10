@@ -461,7 +461,7 @@ const createWindow = async (): Promise<void> => {
       preload: preloadPath,
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true,
     },
   });
   logger.info(`BrowserWindow created in ${Date.now() - windowStartTime}ms`);

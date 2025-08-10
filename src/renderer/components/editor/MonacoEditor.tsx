@@ -1476,7 +1476,7 @@ export const MonacoEditor = React.forwardRef<
                     marker.severity === monacoInstance.MarkerSeverity.Error
                       ? 'error'
                       : marker.severity ===
-                        monacoInstance.MarkerSeverity.Warning
+                          monacoInstance.MarkerSeverity.Warning
                         ? 'warning'
                         : 'info',
                   startLineNumber: marker.startLineNumber,
@@ -1543,8 +1543,8 @@ export const MonacoEditor = React.forwardRef<
           label: 'Format Document',
           keybindings: [
             monacoInstance.KeyMod.Shift |
-            monacoInstance.KeyMod.Alt |
-            monacoInstance.KeyCode.KeyF,
+              monacoInstance.KeyMod.Alt |
+              monacoInstance.KeyCode.KeyF,
           ],
           contextMenuGroupId: 'modification',
           run: () => {
@@ -1566,8 +1566,8 @@ export const MonacoEditor = React.forwardRef<
 
         editor.addCommand(
           monacoInstance.KeyMod.CtrlCmd |
-          monacoInstance.KeyMod.Shift |
-          monacoInstance.KeyCode.KeyS,
+            monacoInstance.KeyMod.Shift |
+            monacoInstance.KeyCode.KeyS,
           () => {
             try {
               onSaveAll?.();
@@ -1582,8 +1582,8 @@ export const MonacoEditor = React.forwardRef<
           label: 'Validate JSON',
           keybindings: [
             monacoInstance.KeyMod.CtrlCmd |
-            monacoInstance.KeyMod.Shift |
-            monacoInstance.KeyCode.KeyV,
+              monacoInstance.KeyMod.Shift |
+              monacoInstance.KeyCode.KeyV,
           ],
           contextMenuGroupId: 'modification',
           run: () => {

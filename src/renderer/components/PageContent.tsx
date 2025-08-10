@@ -13,7 +13,6 @@
 import React from 'react';
 import { useAppStore } from '../stores/useAppStore';
 import { ErrorBoundary } from './ErrorBoundary';
-import Settings from '@/pages/Settings';
 import { Project } from '@/pages/Project';
 import { Explore } from '@/pages/Explore';
 import { Build } from '@/pages/Build';
@@ -52,8 +51,8 @@ export function PageContent(): React.JSX.Element {
     );
   }
 
-  // Show project setup if no project is loaded and we're not on settings
-  if (!currentProject && currentPage !== 'settings') {
+  // Show project setup if no project is loaded
+  if (!currentProject) {
     return (
       <div className="h-full flex flex-col overflow-hidden">
         <div className="flex flex-1 overflow-y-auto">
@@ -87,11 +86,6 @@ export function PageContent(): React.JSX.Element {
           {currentPage === 'analytics' && (
             <ErrorBoundary>
               <Analytics />
-            </ErrorBoundary>
-          )}
-          {currentPage === 'settings' && (
-            <ErrorBoundary>
-              <Settings />
             </ErrorBoundary>
           )}
         </div>

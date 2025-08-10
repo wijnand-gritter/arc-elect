@@ -36,7 +36,6 @@ export type Theme = 'light' | 'dark' | 'system';
 export type Page =
   | 'home'
   | 'about'
-  | 'settings'
   | 'project'
   | 'explore'
   | 'build'

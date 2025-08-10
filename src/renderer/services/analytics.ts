@@ -223,7 +223,6 @@ export interface Suggestion {
   title: string;
   description: string;
   severity: 'low' | 'medium' | 'high';
-  impactScore: number; // 0-100
   affectedSchemas: string[]; // schema names
   data: Record<string, unknown>;
 }
@@ -356,17 +355,12 @@ export class AnalyticsService {
           : g.averageSimilarity >= 0.25
             ? 'medium'
             : 'low';
-      const impact = Math.min(
-        100,
-        Math.round(g.schemas.length * (g.averageSimilarity * 60 + 20)),
-      );
       suggestions.push({
         id: `naming:${g.token}`,
         category: 'naming',
         title: `Consolidate “${g.token}” schemas → ${g.suggestedCanonicalName}`,
         description: `Found ${g.schemas.length} schemas sharing token “${g.token}”. Consider consolidating to a single schema named ${g.suggestedCanonicalName}.`,
         severity,
-        impactScore: impact,
         affectedSchemas: affected,
         data: { group: g },
       });
@@ -375,14 +369,12 @@ export class AnalyticsService {
     // Reuse extraction: exact duplicates
     for (const d of input.duplicates) {
       const affected = d.schemas.map((s) => s.name);
-      const impact = Math.min(100, d.schemas.length * 20);
       suggestions.push({
         id: `reuse:dup:${d.signature.slice(0, 16)}`,
         category: 'reuse',
         title: `Extract shared schema for ${d.schemas.length} duplicates`,
         description: `These schemas are structurally identical. Extract a single shared schema and reference it to reduce duplication.`,
         severity: 'high',
-        impactScore: impact,
         affectedSchemas: affected,
         data: { group: d },
       });
@@ -401,7 +393,6 @@ export class AnalyticsService {
       const avgSim = pairs.reduce((s, p) => s + p.similarity, 0) / pairs.length;
       const severity: Suggestion['severity'] =
         avgSim >= 0.85 ? 'high' : avgSim >= 0.7 ? 'medium' : 'low';
-      const impact = Math.min(100, Math.round(avgSim * 100));
       // Centrality-aware messaging
       const aIn = inDegreeByName.get(aName) || 0;
       const bIn = inDegreeByName.get(bName) || 0;
@@ -420,7 +411,6 @@ export class AnalyticsService {
         title,
         description,
         severity,
-        impactScore: impact,
         affectedSchemas: [aName, bName],
         data: { pairs },
       });
@@ -429,7 +419,10 @@ export class AnalyticsService {
     // Inline duplication mining: extract frequent inline sub-structures (exclude $ref and existing central schemas)
     const signatureBySchemaName = new Map<string, string>();
     for (const s of input.schemas) {
-      signatureBySchemaName.set(s.name, this.buildStructuralSignature(s.content));
+      signatureBySchemaName.set(
+        s.name,
+        this.buildStructuralSignature(s.content),
+      );
     }
     const inlineMap = this.collectInlineDuplication(input.schemas);
     for (const [sig, parents] of inlineMap.entries()) {
@@ -439,7 +432,10 @@ export class AnalyticsService {
         for (const node of input.referenceGraph.nodes) {
           const schema = schemaById.get(node.id);
           if (!schema) continue;
-          if (signatureBySchemaName.get(schema.name) === sig && node.inDegree >= centralThreshold) {
+          if (
+            signatureBySchemaName.get(schema.name) === sig &&
+            node.inDegree >= centralThreshold
+          ) {
             matchesCentral = true;
             break;
           }
@@ -448,14 +444,13 @@ export class AnalyticsService {
       if (matchesCentral) continue;
       if (parents.size >= 3) {
         const affected = Array.from(parents);
-        const impact = Math.min(100, parents.size * 15);
         suggestions.push({
           id: `reuse:inline:${sig.slice(0, 16)}`,
           category: 'reuse',
           title: `Extract shared sub-schema used in ${parents.size} places`,
-          description: 'A repeating inline structure was found across multiple schemas. Extract it into a shared definition and reference it.',
+          description:
+            'A repeating inline structure was found across multiple schemas. Extract it into a shared definition and reference it.',
           severity: 'medium',
-          impactScore: impact,
           affectedSchemas: affected,
           data: { kind: 'inline-dup', signature: sig, parents: affected },
         });
@@ -481,11 +476,6 @@ export class AnalyticsService {
           : f.conflicts.formatConflict || f.conflicts.requiredConflict
             ? 'medium'
             : 'low';
-      const impact = Math.min(
-        100,
-        f.occurrences *
-          (severity === 'high' ? 8 : severity === 'medium' ? 5 : 3),
-      );
       const proposal = this.proposeFieldCanonical(f);
       suggestions.push({
         id: `field:${f.name}`,
@@ -501,7 +491,6 @@ export class AnalyticsService {
           .filter(Boolean)
           .join(', ')}. ${proposal ? `Proposed: ${proposal}` : ''}`,
         severity,
-        impactScore: impact,
         affectedSchemas: [],
         data: { field: f, proposal },
       });
@@ -509,7 +498,6 @@ export class AnalyticsService {
 
     // References quality: circular refs
     if (input.circularReferences.length > 0) {
-      const impact = Math.min(100, input.circularReferences.length * 10);
       suggestions.push({
         id: `refs:circular`,
         category: 'references',
@@ -517,7 +505,6 @@ export class AnalyticsService {
         description:
           'Circular references complicate validation and tooling. Break cycles by introducing interfaces or indirection.',
         severity: 'high',
-        impactScore: impact,
         affectedSchemas: input.projectMetrics.circularSchemas,
         data: { circular: input.circularReferences },
       });
@@ -532,21 +519,28 @@ export class AnalyticsService {
         .map(([id]) => schemaById.get(id)?.name || id)
         .filter(Boolean) as string[];
       const worst = topComplex[0][1].complexityScore;
-      const impact = Math.min(100, Math.round(worst));
       suggestions.push({
         id: `complexity:top`,
         category: 'complexity',
         title: `Reduce complexity in top schemas`,
         description: `Most complex schema score: ${worst}. Consider splitting or simplifying deeply nested structures.`,
         severity: worst >= 75 ? 'high' : worst >= 50 ? 'medium' : 'low',
-        impactScore: impact,
         affectedSchemas: names,
         data: { topComplex },
       });
     }
 
-    // Sort by impact
-    suggestions.sort((a, b) => b.impactScore - a.impactScore);
+    // Sort by severity (high > medium > low), then by title for stability
+    const severityOrder: Record<Suggestion['severity'], number> = {
+      high: 3,
+      medium: 2,
+      low: 1,
+    };
+    suggestions.sort(
+      (a, b) =>
+        severityOrder[b.severity] - severityOrder[a.severity] ||
+        a.title.localeCompare(b.title),
+    );
     return suggestions;
   }
 
@@ -568,7 +562,9 @@ export class AnalyticsService {
     return score;
   }
 
-  private collectInlineDuplication(schemas: Schema[]): Map<string, Set<string>> {
+  private collectInlineDuplication(
+    schemas: Schema[],
+  ): Map<string, Set<string>> {
     const map = new Map<string, Set<string>>(); // signature -> parent schema names
     for (const s of schemas) {
       const visited = new Set<unknown>();
@@ -589,12 +585,17 @@ export class AnalyticsService {
           }
         }
         if (obj.properties && typeof obj.properties === 'object') {
-          for (const child of Object.values(obj.properties as Record<string, unknown>)) {
+          for (const child of Object.values(
+            obj.properties as Record<string, unknown>,
+          )) {
             walk(child);
           }
         }
         if (obj.items) walk(obj.items);
-        if (obj.additionalProperties && typeof obj.additionalProperties === 'object') {
+        if (
+          obj.additionalProperties &&
+          typeof obj.additionalProperties === 'object'
+        ) {
           walk(obj.additionalProperties);
         }
       };
@@ -606,14 +607,25 @@ export class AnalyticsService {
   private proposeFieldCanonical(f: FieldInsightItem): string | null {
     const name = f.name.toLowerCase();
     // Identifiers
-    if (name === 'id' || name.endsWith('id') || name.endsWith('_id') || name === 'externalid' || name === 'external_id') {
+    if (
+      name === 'id' ||
+      name.endsWith('id') ||
+      name.endsWith('_id') ||
+      name === 'externalid' ||
+      name === 'external_id'
+    ) {
       return 'type: string, format: uuid';
     }
     // Dates/times
     if (name.endsWith('date') && !name.includes('time')) {
       return 'type: string, format: date';
     }
-    if (name.endsWith('at') || name.includes('timestamp') || name.endsWith('datetime') || name.endsWith('time')) {
+    if (
+      name.endsWith('at') ||
+      name.includes('timestamp') ||
+      name.endsWith('datetime') ||
+      name.endsWith('time')
+    ) {
       return 'type: string, format: date-time';
     }
     // Common contact/URL
@@ -627,7 +639,11 @@ export class AnalyticsService {
       return 'type: string, pattern: phone'; // e.g., E.164
     }
     // Monetary
-    if (name.endsWith('amount') || name.includes('price') || name.endsWith('value')) {
+    if (
+      name.endsWith('amount') ||
+      name.includes('price') ||
+      name.endsWith('value')
+    ) {
       return 'type: number';
     }
     if (name.includes('currency')) {
@@ -644,7 +660,11 @@ export class AnalyticsService {
       return 'type: string, pattern: ^[a-z]{2}(-[A-Z]{2})?$';
     }
     // Postal codes
-    if (name.includes('postal') || name.includes('zipcode') || name.includes('zip')) {
+    if (
+      name.includes('postal') ||
+      name.includes('zipcode') ||
+      name.includes('zip')
+    ) {
       return 'type: string';
     }
     // Names
@@ -652,18 +672,31 @@ export class AnalyticsService {
       return 'type: string';
     }
     // Flags
-    if (name.startsWith('is') || name.startsWith('has') || name.startsWith('can') || name.startsWith('should')) {
+    if (
+      name.startsWith('is') ||
+      name.startsWith('has') ||
+      name.startsWith('can') ||
+      name.startsWith('should')
+    ) {
       return 'type: boolean';
     }
     // Counting/index
-    if (name.endsWith('count') || name.endsWith('quantity') || name.endsWith('index')) {
+    if (
+      name.endsWith('count') ||
+      name.endsWith('quantity') ||
+      name.endsWith('index')
+    ) {
       return 'type: integer';
     }
     // Codes, status, type
     if (name.endsWith('code')) {
       return 'type: string';
     }
-    if (name.endsWith('status') || name.endsWith('type') || name.endsWith('category')) {
+    if (
+      name.endsWith('status') ||
+      name.endsWith('type') ||
+      name.endsWith('category')
+    ) {
       if (f.enumValues && f.enumValues.length > 0) {
         return `enum: ${f.enumValues.length} values (prefer UPPER_SNAKE_CASE)`;
       }
@@ -749,7 +782,12 @@ export class AnalyticsService {
     // Tokenize names by lowercasing and splitting camelCase/snake/kebab; also strip common prefixes like client/customer/user
     const tokenMap = new Map<
       string,
-      Array<{ id: string; name: string; fieldSet: Set<string> }>
+      Array<{
+        id: string;
+        name: string;
+        tokenSet: Set<string>;
+        isEnum: boolean;
+      }>
     >();
 
     const splitName = (name: string): string[] => {
@@ -812,28 +850,36 @@ export class AnalyticsService {
       id: s.id,
       name: s.name,
       tokens: splitName(s.name),
-      fieldSet: this.extractFieldSignatures(s.content),
+      tokenSet: new Set(splitName(s.name)),
+      isEnum: this.isEnumSchema(s),
     }));
 
     for (const info of schemaInfo) {
       for (const tok of info.tokens) {
-        const arr = tokenMap.get(tok) || [];
-        arr.push({ id: info.id, name: info.name, fieldSet: info.fieldSet });
-        tokenMap.set(tok, arr);
+        const key = `${tok}|${info.isEnum ? 'enum' : 'object'}`;
+        const arr = tokenMap.get(key) || [];
+        arr.push({
+          id: info.id,
+          name: info.name,
+          tokenSet: info.tokenSet,
+          isEnum: info.isEnum,
+        });
+        tokenMap.set(key, arr);
       }
     }
 
     const groups: NameSimilarGroup[] = [];
-    for (const [token, list] of tokenMap.entries()) {
+    for (const [tokenKey, list] of tokenMap.entries()) {
+      const [token] = tokenKey.split('|');
       if (list.length < 2) continue; // need at least 2
 
-      // Compute average Jaccard similarity across all pairs
+      // Compute average Jaccard similarity across name tokens (schema/filename only)
       let sum = 0;
       let pairs = 0;
       for (let i = 0; i < list.length; i++) {
         for (let j = i + 1; j < list.length; j++) {
-          const a = list[i].fieldSet;
-          const b = list[j].fieldSet;
+          const a = list[i].tokenSet;
+          const b = list[j].tokenSet;
           if (a.size === 0 && b.size === 0) continue;
           let overlap = 0;
           for (const v of a) if (b.has(v)) overlap++;
@@ -1087,6 +1133,10 @@ export class AnalyticsService {
     const walk = (n: unknown) => {
       if (!n || typeof n !== 'object') return;
       const r = n as Record<string, unknown>;
+      // Enum schemas: collect enum value signatures to avoid mixing with objects
+      if (Array.isArray(r.enum)) {
+        set.add(`__enum__:${(r.enum as unknown[]).length}`);
+      }
       if (r.properties && typeof r.properties === 'object') {
         const props = r.properties as Record<string, unknown>;
         for (const [name, child] of Object.entries(props)) {
@@ -1114,6 +1164,15 @@ export class AnalyticsService {
 
   private normalizeDescription(desc: string): string {
     return desc.trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+
+  private isEnumSchema(s: Schema): boolean {
+    // Heuristic: top-level has enum or type string with enum present, and no properties/items
+    const c = s.content as Record<string, unknown>;
+    if (Array.isArray(c.enum)) return true;
+    if (c.type === 'string' && Array.isArray(c.enum)) return true;
+    if (c.properties || c.items) return false;
+    return false;
   }
 
   /**

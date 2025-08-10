@@ -273,15 +273,9 @@ export function isTheme(value: unknown): value is Theme {
 export function isPage(value: unknown): value is Page {
   return (
     isString(value) &&
-    [
-      'home',
-      'about',
-      'settings',
-      'project',
-      'explore',
-      'build',
-      'analytics',
-    ].includes(value)
+    ['home', 'about', 'project', 'explore', 'build', 'analytics'].includes(
+      value,
+    )
   );
 }
 
@@ -517,14 +511,7 @@ type IpcResponse<T> =
 
 type Theme = 'light' | 'dark' | 'system';
 
-type Page =
-  | 'home'
-  | 'about'
-  | 'settings'
-  | 'project'
-  | 'explore'
-  | 'build'
-  | 'analytics';
+type Page = 'home' | 'about' | 'project' | 'explore' | 'build' | 'analytics';
 
 interface SchemaFilters {
   status: string[];

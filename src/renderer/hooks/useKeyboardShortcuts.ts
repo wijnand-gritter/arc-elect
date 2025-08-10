@@ -178,9 +178,9 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}): {
     {
       key: '5',
       ctrl: true,
-      description: 'Navigate to Settings page',
+      description: 'Navigate to Build page',
       category: 'navigation',
-      action: safeHandler(() => setPage('settings')),
+      action: safeHandler(() => setPage('build')),
     },
 
     // Search shortcuts

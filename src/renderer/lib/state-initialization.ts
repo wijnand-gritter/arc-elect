@@ -465,14 +465,7 @@ export function createStateValidator<T>(
 // ============================================================================
 
 type Theme = 'light' | 'dark' | 'system';
-type Page =
-  | 'home'
-  | 'about'
-  | 'settings'
-  | 'project'
-  | 'explore'
-  | 'build'
-  | 'analytics';
+type Page = 'home' | 'about' | 'project' | 'explore' | 'build' | 'analytics';
 
 interface SchemaFilters {
   status: string[];
