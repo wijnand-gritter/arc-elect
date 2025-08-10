@@ -18,7 +18,10 @@ dist-ssr/
 .vite/
 
 # Electron
+# Ignore generic build outputs, but keep committed icons
 build/
+!build/icons/
+!build/icons/**
 out/
 release/
 packages/
