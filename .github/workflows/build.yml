@@ -39,6 +39,12 @@ jobs:
           7z -h | Select-String "7-Zip"
           nuget help | Select-String "usage"
 
+      - name: Verify 7z and nuget in PATH
+        if: runner.os == 'Windows'
+        run: |
+          where 7z
+          where nuget
+          
       - name: Build artifacts
         run: pnpm make
 
