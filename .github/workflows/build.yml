@@ -27,7 +27,9 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          pnpm config set node-linker hoisted --location project
+          pnpm install --frozen-lockfile
 
       - name: Build artifacts
         run: pnpm make
