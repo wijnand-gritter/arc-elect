@@ -6,7 +6,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-2019]
+        include:
+          - os: macos-latest
+            platform: mac
+          - os: windows-2019  # Use older Windows runner
+            platform: win
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -24,37 +28,20 @@ jobs:
         run: |
           pnpm config set node-linker hoisted --location project
           pnpm install --frozen-lockfile
-      - name: Install Windows packaging dependencies
-        if: runner.os == 'Windows'
+      - name: Install Windows build tools
+        if: matrix.platform == 'win'
         run: |
-          # Install required tools for Squirrel
-          choco install 7zip 7zip.commandline nuget.commandline -y
-          choco install wixtoolset -y
-          
-          # Add tools to PATH
-          echo "C:\\Program Files\\7-Zip" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          echo "C:\\Program Files (x86)\\WiX Toolset v3.11\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          
-          # Verify installations
-          7z -h | Select-String "7-Zip"
-          nuget help | Select-String "usage"
-      - name: Package application
-        run: pnpm run package
-      - name: Make distributables
-        run: pnpm run make
-      - name: Upload mac artifacts
-        if: runner.os == 'macOS'
+          npm install -g windows-build-tools
+          choco install visualstudio2019-workload-vctools -y
+      - name: Package and make
+        run: |
+          pnpm run package
+          pnpm run make
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: mac-artifacts
+          name: ${{ matrix.platform }}-artifacts
           path: |
-            out/make/zip/darwin/**/*
-            out/make/dmg/darwin/**/*
-      - name: Upload windows artifacts
-        if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-artifacts
-          path: |
-            out/make/squirrel.windows/**/*
-            out/make/zip/win32/**/*
+            out/make/**/*
