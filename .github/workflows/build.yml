@@ -9,7 +9,7 @@ jobs:
         include:
           - os: macos-latest
             platform: mac
-          - os: windows-2019  # Use older Windows runner
+          - os: windows-latest
             platform: win
     runs-on: ${{ matrix.os }}
     steps:
