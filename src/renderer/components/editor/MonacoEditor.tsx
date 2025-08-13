@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import MonacoEditorReact, { Monaco, loader } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
+
 import { useTheme } from 'next-themes';
 import logger from '../../lib/renderer-logger';
 import { safeHandler } from '../../lib/error-handling';
@@ -13,11 +14,14 @@ loader.config({ monaco });
 // Configure Monaco Environment
 // Use empty stub only to satisfy Monaco without spinning real workers.
 // Our CSP allows worker-src data: blob:, but we intentionally avoid workers to honor user preference.
-(self as any).MonacoEnvironment = {
-  getWorkerUrl: function () {
-    return 'data:application/javascript,';
-  },
-};
+try {
+  (self as unknown as { MonacoEnvironment?: { getWorkerUrl: () => string } })
+    .MonacoEnvironment = {
+    getWorkerUrl: () => 'data:application/javascript,',
+  };
+} catch {
+  // ignore
+}
 
 /**
  * Interface for validation errors.
@@ -46,7 +50,15 @@ interface MonacoEditorProps {
   fontSize?: number;
   tabSize?: number;
   fontFamily?: string;
-  availableSchemas?: Array<{ id: string; name: string; path: string }>;
+  availableSchemas?: Array<{
+    id: string;
+    name: string;
+    path: string; // relative './' path
+    validationStatus?: 'pending' | 'valid' | 'invalid';
+    metadata?: { title?: string; description?: string };
+    content?: Record<string, unknown>;
+  }>;
+
   onRefClick?: (refPath: string) => void;
   onSave?: () => void;
   onSaveAll?: () => void;
@@ -133,6 +145,7 @@ export const MonacoEditor = React.forwardRef<
                 },
               },
             );
+          void _formattingProvider;
 
           // --- FIXED SUGGESTION PROVIDER WITH DYNAMIC RANGE ---
           if (onRefClick && availableSchemas.length > 0) {
@@ -908,13 +921,15 @@ export const MonacoEditor = React.forwardRef<
 
                     // Find the corresponding schema
                     const schema = availableSchemas.find((s) => {
-                      // Normalize paths to forward slashes for consistent matching
+                      // Normalize paths for consistent matching with './'
+
                       const normalizedPath = s.path.replace(/\\/g, '/');
-                      const relativePath = normalizedPath.replace(
-                        /^.*\/schemas\//,
-                        './',
-                      );
-                      const normalizedRefPath = refPath.replace(/\\/g, '/');
+                      const relativePath = normalizedPath.startsWith('./')
+                        ? normalizedPath
+                        : `./${normalizedPath.replace(/^\.\//, '')}`;
+                      const normalizedRefPath = refPath
+                        .replace(/\\/g, '/')
+                        .replace(/^\.\//, './');
                       return (
                         relativePath === normalizedRefPath ||
                         normalizedPath === normalizedRefPath
@@ -923,7 +938,7 @@ export const MonacoEditor = React.forwardRef<
 
                     if (schema) {
                       try {
-                        const contents: any[] = [
+                        const contents: Array<{ value: string; isTrusted: boolean }> = [
                           {
                             value: `**Schema Reference:** \`${refPath}\``,
                             isTrusted: true,
@@ -954,11 +969,11 @@ export const MonacoEditor = React.forwardRef<
 
                         // Add validation status
                         contents.push({
-                          value: `**Status:** ${schema.validationStatus}`,
+                          value: `**Status:** ${schema.validationStatus ?? 'pending'}`,
                           isTrusted: true,
                         });
-
-                        // Add schema content if available
+                        logger.debug('schema.content', { schema });
+                        // Add schema content if available (from store)
                         if (schema.content) {
                           if (schema.content.type) {
                             contents.push({
@@ -966,20 +981,55 @@ export const MonacoEditor = React.forwardRef<
                               isTrusted: true,
                             });
                           }
-                          if (schema.content.properties) {
+                          if (
+                            typeof (schema.content as { properties?: Record<string, unknown> }).properties ===
+                            'object' &&
+                            (schema.content as { properties?: Record<string, unknown> }).properties
+                          ) {
+
                             const propCount = Object.keys(
-                              schema.content.properties,
+                              (schema.content as { properties: Record<string, unknown> }).properties,
+
                             ).length;
                             contents.push({
-                              value: `**Properties:** ${propCount} property${propCount !== 1 ? 's' : ''}`,
+                              value: `**Properties:** ${propCount} ${propCount === 1 ? 'property' : 'properties'}`,
                               isTrusted: true,
                             });
                           }
-                          if (schema.content.required) {
+                          if (
+                            typeof schema.content === 'object' &&
+                            schema.content !== null &&
+                            Array.isArray((schema.content as { required?: unknown[] }).required)
+                          ) {
+                            const requiredList = (
+                              schema.content as { required?: unknown[] }
+                            ).required as unknown[];
+                            const rendered = requiredList.map((v) => String(v)).join(', ');
                             contents.push({
-                              value: `**Required:** ${schema.content.required.join(', ')}`,
+                              value: `**Required:** ${rendered}`,
+
                               isTrusted: true,
                             });
+                          }
+                          // Add content preview
+                          try {
+                            const jsonPreview = JSON.stringify(
+                              schema.content,
+                              null,
+                              2,
+                            );
+                            const truncated =
+                              jsonPreview.length > 4000
+                                ? jsonPreview.slice(0, 4000) + '\n...'
+                                : jsonPreview;
+                            contents.push({ value: '---', isTrusted: true });
+                            contents.push({ value: '**Content:**', isTrusted: true });
+                            contents.push({
+                              value: `\`\`\`json\n${truncated}\n\`\`\``,
+                              isTrusted: true,
+                            });
+                          } catch {
+                            // no-op
                           }
                         } else {
                           contents.push({
@@ -1045,7 +1095,12 @@ export const MonacoEditor = React.forwardRef<
                     keyword: string,
                     _value: string,
                   ) => {
-                    const hoverInfo: { [key: string]: any } = {
+                    interface HoverInfoEntry {
+                      title: string;
+                      description: string;
+                      examples?: Record<string, string>;
+                    }
+                    const hoverInfo: Record<string, { title: string; description: string; examples?: Record<string, string> }> = {
                       type: {
                         title: 'JSON Schema Type',
                         description: 'Defines the data type of the schema',
@@ -1222,7 +1277,7 @@ export const MonacoEditor = React.forwardRef<
                     );
 
                     if (info) {
-                      const contents: any[] = [
+                      const contents: Array<{ value: string; isTrusted: boolean }> = [
                         {
                           value: `**${info.title}:** \`${keyword}\``,
                           isTrusted: true,
@@ -1445,7 +1500,7 @@ export const MonacoEditor = React.forwardRef<
                     marker.severity === monacoInstance.MarkerSeverity.Error
                       ? 'error'
                       : marker.severity ===
-                          monacoInstance.MarkerSeverity.Warning
+                        monacoInstance.MarkerSeverity.Warning
                         ? 'warning'
                         : 'info',
                   startLineNumber: marker.startLineNumber,
@@ -1512,8 +1567,8 @@ export const MonacoEditor = React.forwardRef<
           label: 'Format Document',
           keybindings: [
             monacoInstance.KeyMod.Shift |
-              monacoInstance.KeyMod.Alt |
-              monacoInstance.KeyCode.KeyF,
+            monacoInstance.KeyMod.Alt |
+            monacoInstance.KeyCode.KeyF,
           ],
           contextMenuGroupId: 'modification',
           run: () => {
@@ -1535,8 +1590,8 @@ export const MonacoEditor = React.forwardRef<
 
         editor.addCommand(
           monacoInstance.KeyMod.CtrlCmd |
-            monacoInstance.KeyMod.Shift |
-            monacoInstance.KeyCode.KeyS,
+          monacoInstance.KeyMod.Shift |
+          monacoInstance.KeyCode.KeyS,
           () => {
             try {
               onSaveAll?.();
@@ -1551,8 +1606,8 @@ export const MonacoEditor = React.forwardRef<
           label: 'Validate JSON',
           keybindings: [
             monacoInstance.KeyMod.CtrlCmd |
-              monacoInstance.KeyMod.Shift |
-              monacoInstance.KeyCode.KeyV,
+            monacoInstance.KeyMod.Shift |
+            monacoInstance.KeyCode.KeyV,
           ],
           contextMenuGroupId: 'modification',
           run: () => {
@@ -1586,6 +1641,7 @@ export const MonacoEditor = React.forwardRef<
           }
           if (hoverProviderRef.current) {
             hoverProviderRef.current.dispose();
+            hoverProviderRef.current = null;
           }
         };
 
