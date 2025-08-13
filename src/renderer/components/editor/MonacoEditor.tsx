@@ -119,6 +119,32 @@ export const MonacoEditor = React.forwardRef<
         if (language === 'json') {
           // JSON validation is already disabled globally to prevent worker issues
 
+          // Disable ONLY built-in JSON hovers to remove default "loading" footer
+          try {
+            const jsonApi = (monacoInstance.languages as unknown as {
+              json?: {
+                jsonDefaults?: {
+                  setModeConfiguration?: (cfg: {
+                    documentFormattingEdits?: boolean;
+                    documentRangeFormattingEdits?: boolean;
+                    completionItems?: boolean;
+                    diagnostics?: boolean;
+                    hovers?: boolean;
+                  }) => void;
+                };
+              };
+            }).json;
+            jsonApi?.jsonDefaults?.setModeConfiguration?.({
+              completionItems: true,
+              diagnostics: true,
+              documentFormattingEdits: false,
+              documentRangeFormattingEdits: false,
+              hovers: false,
+            });
+          } catch {
+            // ignore
+          }
+
           // Register a custom, minimal formatting provider that ONLY sorts:
           // - enum arrays A→Z
           // - keys within any `properties` object A→Z
@@ -1116,11 +1142,6 @@ export const MonacoEditor = React.forwardRef<
                     keyword: string,
                     _value: string,
                   ) => {
-                    interface HoverInfoEntry {
-                      title: string;
-                      description: string;
-                      examples?: Record<string, string>;
-                    }
                     const hoverInfo: Record<
                       string,
                       {
