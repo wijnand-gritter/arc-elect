@@ -15,8 +15,9 @@ loader.config({ monaco });
 // Use empty stub only to satisfy Monaco without spinning real workers.
 // Our CSP allows worker-src data: blob:, but we intentionally avoid workers to honor user preference.
 try {
-  (self as unknown as { MonacoEnvironment?: { getWorkerUrl: () => string } })
-    .MonacoEnvironment = {
+  (
+    self as unknown as { MonacoEnvironment?: { getWorkerUrl: () => string } }
+  ).MonacoEnvironment = {
     getWorkerUrl: () => 'data:application/javascript,',
   };
 } catch {
@@ -938,7 +939,10 @@ export const MonacoEditor = React.forwardRef<
 
                     if (schema) {
                       try {
-                        const contents: Array<{ value: string; isTrusted: boolean }> = [
+                        const contents: Array<{
+                          value: string;
+                          isTrusted: boolean;
+                        }> = [
                           {
                             value: `**Schema Reference:** \`${refPath}\``,
                             isTrusted: true,
@@ -982,14 +986,23 @@ export const MonacoEditor = React.forwardRef<
                             });
                           }
                           if (
-                            typeof (schema.content as { properties?: Record<string, unknown> }).properties ===
-                            'object' &&
-                            (schema.content as { properties?: Record<string, unknown> }).properties
+                            typeof (
+                              schema.content as {
+                                properties?: Record<string, unknown>;
+                              }
+                            ).properties === 'object' &&
+                            (
+                              schema.content as {
+                                properties?: Record<string, unknown>;
+                              }
+                            ).properties
                           ) {
-
                             const propCount = Object.keys(
-                              (schema.content as { properties: Record<string, unknown> }).properties,
-
+                              (
+                                schema.content as {
+                                  properties: Record<string, unknown>;
+                                }
+                              ).properties,
                             ).length;
                             contents.push({
                               value: `**Properties:** ${propCount} ${propCount === 1 ? 'property' : 'properties'}`,
@@ -999,12 +1012,17 @@ export const MonacoEditor = React.forwardRef<
                           if (
                             typeof schema.content === 'object' &&
                             schema.content !== null &&
-                            Array.isArray((schema.content as { required?: unknown[] }).required)
+                            Array.isArray(
+                              (schema.content as { required?: unknown[] })
+                                .required,
+                            )
                           ) {
                             const requiredList = (
                               schema.content as { required?: unknown[] }
                             ).required as unknown[];
-                            const rendered = requiredList.map((v) => String(v)).join(', ');
+                            const rendered = requiredList
+                              .map((v) => String(v))
+                              .join(', ');
                             contents.push({
                               value: `**Required:** ${rendered}`,
 
@@ -1023,7 +1041,10 @@ export const MonacoEditor = React.forwardRef<
                                 ? jsonPreview.slice(0, 4000) + '\n...'
                                 : jsonPreview;
                             contents.push({ value: '---', isTrusted: true });
-                            contents.push({ value: '**Content:**', isTrusted: true });
+                            contents.push({
+                              value: '**Content:**',
+                              isTrusted: true,
+                            });
                             contents.push({
                               value: `\`\`\`json\n${truncated}\n\`\`\``,
                               isTrusted: true,
@@ -1100,7 +1121,14 @@ export const MonacoEditor = React.forwardRef<
                       description: string;
                       examples?: Record<string, string>;
                     }
-                    const hoverInfo: Record<string, { title: string; description: string; examples?: Record<string, string> }> = {
+                    const hoverInfo: Record<
+                      string,
+                      {
+                        title: string;
+                        description: string;
+                        examples?: Record<string, string>;
+                      }
+                    > = {
                       type: {
                         title: 'JSON Schema Type',
                         description: 'Defines the data type of the schema',
@@ -1277,7 +1305,10 @@ export const MonacoEditor = React.forwardRef<
                     );
 
                     if (info) {
-                      const contents: Array<{ value: string; isTrusted: boolean }> = [
+                      const contents: Array<{
+                        value: string;
+                        isTrusted: boolean;
+                      }> = [
                         {
                           value: `**${info.title}:** \`${keyword}\``,
                           isTrusted: true,
@@ -1500,7 +1531,7 @@ export const MonacoEditor = React.forwardRef<
                     marker.severity === monacoInstance.MarkerSeverity.Error
                       ? 'error'
                       : marker.severity ===
-                        monacoInstance.MarkerSeverity.Warning
+                          monacoInstance.MarkerSeverity.Warning
                         ? 'warning'
                         : 'info',
                   startLineNumber: marker.startLineNumber,
@@ -1567,8 +1598,8 @@ export const MonacoEditor = React.forwardRef<
           label: 'Format Document',
           keybindings: [
             monacoInstance.KeyMod.Shift |
-            monacoInstance.KeyMod.Alt |
-            monacoInstance.KeyCode.KeyF,
+              monacoInstance.KeyMod.Alt |
+              monacoInstance.KeyCode.KeyF,
           ],
           contextMenuGroupId: 'modification',
           run: () => {
@@ -1590,8 +1621,8 @@ export const MonacoEditor = React.forwardRef<
 
         editor.addCommand(
           monacoInstance.KeyMod.CtrlCmd |
-          monacoInstance.KeyMod.Shift |
-          monacoInstance.KeyCode.KeyS,
+            monacoInstance.KeyMod.Shift |
+            monacoInstance.KeyCode.KeyS,
           () => {
             try {
               onSaveAll?.();
@@ -1606,8 +1637,8 @@ export const MonacoEditor = React.forwardRef<
           label: 'Validate JSON',
           keybindings: [
             monacoInstance.KeyMod.CtrlCmd |
-            monacoInstance.KeyMod.Shift |
-            monacoInstance.KeyCode.KeyV,
+              monacoInstance.KeyMod.Shift |
+              monacoInstance.KeyCode.KeyV,
           ],
           contextMenuGroupId: 'modification',
           run: () => {

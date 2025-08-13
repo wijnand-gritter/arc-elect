@@ -680,23 +680,23 @@ export function Build(): React.JSX.Element {
             useAppStore.setState((state) => ({
               currentProject: state.currentProject
                 ? {
-                  ...state.currentProject,
-                  schemas: state.currentProject.schemas.map((s) =>
-                    s.id === tab.schema.id
-                      ? {
-                        ...s,
-                        content: parsed,
-                        metadata: s.metadata
-                          ? {
-                            ...s.metadata,
-                            lastModified: new Date(),
-                            fileSize: tab.content.length,
+                    ...state.currentProject,
+                    schemas: state.currentProject.schemas.map((s) =>
+                      s.id === tab.schema.id
+                        ? {
+                            ...s,
+                            content: parsed,
+                            metadata: s.metadata
+                              ? {
+                                  ...s.metadata,
+                                  lastModified: new Date(),
+                                  fileSize: tab.content.length,
+                                }
+                              : s.metadata,
                           }
-                          : s.metadata,
-                      }
-                      : s,
-                  ),
-                }
+                        : s,
+                    ),
+                  }
                 : null,
             }));
             logger.info('Updated store schema content after save', {
@@ -1069,12 +1069,12 @@ export function Build(): React.JSX.Element {
         );
         return latest
           ? {
-            ...tab,
-            schema: {
-              ...tab.schema,
-              validationStatus: latest.validationStatus,
-            },
-          }
+              ...tab,
+              schema: {
+                ...tab.schema,
+                validationStatus: latest.validationStatus,
+              },
+            }
           : tab;
       }),
     );
@@ -1425,23 +1425,23 @@ export function Build(): React.JSX.Element {
                 useAppStore.setState((state) => ({
                   currentProject: state.currentProject
                     ? {
-                      ...state.currentProject,
-                      schemas: state.currentProject.schemas.map((s) =>
-                        s.id === tab.schema.id
-                          ? {
-                            ...s,
-                            content: parsed,
-                            metadata: s.metadata
-                              ? {
-                                ...s.metadata,
-                                lastModified: new Date(),
-                                fileSize: tab.content.length,
+                        ...state.currentProject,
+                        schemas: state.currentProject.schemas.map((s) =>
+                          s.id === tab.schema.id
+                            ? {
+                                ...s,
+                                content: parsed,
+                                metadata: s.metadata
+                                  ? {
+                                      ...s.metadata,
+                                      lastModified: new Date(),
+                                      fileSize: tab.content.length,
+                                    }
+                                  : s.metadata,
                               }
-                              : s.metadata,
-                          }
-                          : s,
-                      ),
-                    }
+                            : s,
+                        ),
+                      }
                     : null,
                 }));
               } catch (_e) {
@@ -1593,23 +1593,23 @@ export function Build(): React.JSX.Element {
               useAppStore.setState((state) => ({
                 currentProject: state.currentProject
                   ? {
-                    ...state.currentProject,
-                    schemas: state.currentProject.schemas.map((s) =>
-                      s.id === schema.id
-                        ? {
-                          ...s,
-                          content: parsed,
-                          metadata: s.metadata
-                            ? {
-                              ...s.metadata,
-                              lastModified: new Date(),
-                              fileSize: formatted.length,
+                      ...state.currentProject,
+                      schemas: state.currentProject.schemas.map((s) =>
+                        s.id === schema.id
+                          ? {
+                              ...s,
+                              content: parsed,
+                              metadata: s.metadata
+                                ? {
+                                    ...s.metadata,
+                                    lastModified: new Date(),
+                                    fileSize: formatted.length,
+                                  }
+                                : s.metadata,
                             }
-                            : s.metadata,
-                        }
-                        : s,
-                    ),
-                  }
+                          : s,
+                      ),
+                    }
                   : null,
               }));
             } catch (e) {
@@ -1748,15 +1748,15 @@ export function Build(): React.JSX.Element {
         useAppStore.setState((state) => ({
           currentProject: state.currentProject
             ? {
-              ...state.currentProject,
-              schemas: [...state.currentProject.schemas, newSchema],
-              schemaIds: [...state.currentProject.schemaIds, schemaId],
-              status: {
-                ...state.currentProject.status,
-                totalSchemas: state.currentProject.status.totalSchemas + 1,
-                // New schema starts as pending, so no change to valid/invalid counts yet
-              },
-            }
+                ...state.currentProject,
+                schemas: [...state.currentProject.schemas, newSchema],
+                schemaIds: [...state.currentProject.schemaIds, schemaId],
+                status: {
+                  ...state.currentProject.status,
+                  totalSchemas: state.currentProject.status.totalSchemas + 1,
+                  // New schema starts as pending, so no change to valid/invalid counts yet
+                },
+              }
             : null,
         }));
 
@@ -1791,27 +1791,27 @@ export function Build(): React.JSX.Element {
       useAppStore.setState((state) => ({
         currentProject: state.currentProject
           ? {
-            ...state.currentProject,
-            schemas: state.currentProject.schemas.filter(
-              (s) => s.id !== schemaToDelete.id,
-            ),
-            schemaIds: state.currentProject.schemaIds.filter(
-              (id) => id !== schemaToDelete.id,
-            ),
-            status: {
-              ...state.currentProject.status,
-              totalSchemas: state.currentProject.status.totalSchemas - 1,
-              // Adjust valid/invalid counts based on the deleted schema's validation status
-              validSchemas:
-                schemaToDelete.validationStatus === 'valid'
-                  ? state.currentProject.status.validSchemas - 1
-                  : state.currentProject.status.validSchemas,
-              invalidSchemas:
-                schemaToDelete.validationStatus === 'invalid'
-                  ? state.currentProject.status.invalidSchemas - 1
-                  : state.currentProject.status.invalidSchemas,
-            },
-          }
+              ...state.currentProject,
+              schemas: state.currentProject.schemas.filter(
+                (s) => s.id !== schemaToDelete.id,
+              ),
+              schemaIds: state.currentProject.schemaIds.filter(
+                (id) => id !== schemaToDelete.id,
+              ),
+              status: {
+                ...state.currentProject.status,
+                totalSchemas: state.currentProject.status.totalSchemas - 1,
+                // Adjust valid/invalid counts based on the deleted schema's validation status
+                validSchemas:
+                  schemaToDelete.validationStatus === 'valid'
+                    ? state.currentProject.status.validSchemas - 1
+                    : state.currentProject.status.validSchemas,
+                invalidSchemas:
+                  schemaToDelete.validationStatus === 'invalid'
+                    ? state.currentProject.status.invalidSchemas - 1
+                    : state.currentProject.status.invalidSchemas,
+              },
+            }
           : null,
       }));
 
@@ -1878,11 +1878,11 @@ export function Build(): React.JSX.Element {
       useAppStore.setState((state) => ({
         currentProject: state.currentProject
           ? {
-            ...state.currentProject,
-            schemas: state.currentProject.schemas.map((s) =>
-              s.id === schemaToRename.id ? updatedSchema : s,
-            ),
-          }
+              ...state.currentProject,
+              schemas: state.currentProject.schemas.map((s) =>
+                s.id === schemaToRename.id ? updatedSchema : s,
+              ),
+            }
           : null,
       }));
 
@@ -2355,11 +2355,13 @@ export function Build(): React.JSX.Element {
         <ContextMenu>
           <ContextMenuTrigger asChild>
             <div
-              className={`flex items-center gap-2 py-1 px-2 hover:bg-accent/50 rounded-sm ${dragOverItem?.id === item.id
-                ? 'bg-accent/30 ring-2 ring-primary/50'
-                : ''
-                } ${draggedItem?.id === item.id ? 'opacity-50' : ''
-                } ${item.type === 'schema' ? 'cursor-move' : 'cursor-pointer'}`}
+              className={`flex items-center gap-2 py-1 px-2 hover:bg-accent/50 rounded-sm ${
+                dragOverItem?.id === item.id
+                  ? 'bg-accent/30 ring-2 ring-primary/50'
+                  : ''
+              } ${
+                draggedItem?.id === item.id ? 'opacity-50' : ''
+              } ${item.type === 'schema' ? 'cursor-move' : 'cursor-pointer'}`}
               style={indentStyle}
               draggable={item.type === 'schema'}
               onDragStart={(e) =>
@@ -2731,7 +2733,7 @@ export function Build(): React.JSX.Element {
                             editorTabs.findIndex(
                               (t) => t.id === activeTabId,
                             ) ===
-                            editorTabs.length - 1
+                              editorTabs.length - 1
                           }
                         >
                           <ArrowRight className="w-4 h-4 mr-2" />
@@ -2802,25 +2804,25 @@ export function Build(): React.JSX.Element {
                               useAppStore.setState((state) => ({
                                 currentProject: state.currentProject
                                   ? {
-                                    ...state.currentProject,
-                                    schemas: state.currentProject.schemas.map(
-                                      (s) =>
-                                        s.id === tab.schema.id
-                                          ? {
-                                            ...s,
-                                            content: parsed,
-                                            metadata: s.metadata
-                                              ? {
-                                                ...s.metadata,
-                                                lastModified: new Date(),
-                                                fileSize:
-                                                  savedContent.length,
+                                      ...state.currentProject,
+                                      schemas: state.currentProject.schemas.map(
+                                        (s) =>
+                                          s.id === tab.schema.id
+                                            ? {
+                                                ...s,
+                                                content: parsed,
+                                                metadata: s.metadata
+                                                  ? {
+                                                      ...s.metadata,
+                                                      lastModified: new Date(),
+                                                      fileSize:
+                                                        savedContent.length,
+                                                    }
+                                                  : s.metadata,
                                               }
-                                              : s.metadata,
-                                          }
-                                          : s,
-                                    ),
-                                  }
+                                            : s,
+                                      ),
+                                    }
                                   : null,
                               }));
                               // Only update tab content if it's actually different from current tab content
@@ -3223,9 +3225,9 @@ export function Build(): React.JSX.Element {
                 <pre className="text-xs">
                   {templateSchemaName.trim()
                     ? getTemplatePreview(
-                      templateSchemaName.trim(),
-                      selectedTemplate,
-                    )
+                        templateSchemaName.trim(),
+                        selectedTemplate,
+                      )
                     : 'Enter a schema name to see preview'}
                 </pre>
               </div>
