@@ -24,63 +24,18 @@ jobs:
         run: |
           pnpm config set node-linker hoisted --location project
           pnpm install --frozen-lockfile
-      - name: Package with Electron Forge
-        run: pnpm run package
-      - name: Create simple ZIP artifacts (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $appName = "Arc Elect"
-          $version = (Get-Content package.json | ConvertFrom-Json).version
-          $outputDir = "simple-dist"
-          New-Item -ItemType Directory -Force -Path $outputDir
-
-          # Find the packaged app directory
-          $packagedApp = Get-ChildItem "out" -Directory | Where-Object { $_.Name -like "*win32*" } | Select-Object -First 1
-          if ($packagedApp) {
-            $zipName = "$appName-$version-win32-x64.zip"
-            Compress-Archive -Path "$($packagedApp.FullName)\*" -DestinationPath "$outputDir\$zipName" -Force
-            Write-Output "Created: $zipName"
-          }
-      - name: Create simple ZIP artifacts (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          APP_NAME="Arc Elect"
-          VERSION=$(node -p "require('./package.json').version")
-          OUTPUT_DIR="simple-dist"
-          mkdir -p "$OUTPUT_DIR"
-
-          # Find the packaged app
-          PACKAGED_APP=$(find out -name "*.app" -type d | head -1)
-          if [ -n "$PACKAGED_APP" ]; then
-            ZIP_NAME="$APP_NAME-$VERSION-darwin-$(uname -m).zip"
-            cd "$(dirname "$PACKAGED_APP")"
-            zip -r "../../$OUTPUT_DIR/$ZIP_NAME" "$(basename "$PACKAGED_APP")"
-            cd ../..
-            echo "Created: $ZIP_NAME"
-          fi
-      - name: Create portable executable (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          # Just copy the main executable as a portable version
-          $packagedApp = Get-ChildItem "out" -Directory | Where-Object { $_.Name -like "*win32*" } | Select-Object -First 1
-          if ($packagedApp) {
-            $exePath = Get-ChildItem "$($packagedApp.FullName)" -Name "*.exe" | Select-Object -First 1
-            if ($exePath) {
-              Copy-Item "$($packagedApp.FullName)\$exePath" "simple-dist\Arc-Elect-Portable.exe" -Force
-              Write-Output "Created portable executable: Arc-Elect-Portable.exe"
-            }
-          }
+      - name: Make with Electron Forge
+        run: pnpm run make
+      # We use Forge MakerZIP, so no manual zipping is required
       - name: Upload Windows artifacts
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
-          name: windows-simple-artifacts
-          path: simple-dist/*
+          name: windows-zip-artifacts
+          path: out/make/zip/**/*
       - name: Upload macOS artifacts
         if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4
         with:
-          name: mac-simple-artifacts
-          path: simple-dist/*
+          name: mac-zip-artifacts
+          path: out/make/zip/**/*
