@@ -1,11 +1,77 @@
 import React, { useEffect, useRef } from 'react';
-import MonacoEditorReact, { Monaco } from '@monaco-editor/react';
+import MonacoEditorReact, { Monaco, loader } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
 import { useTheme } from 'next-themes';
 import logger from '../../lib/renderer-logger';
 import { safeHandler } from '../../lib/error-handling';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { formatSchemaJsonString } from '../../lib/json-format';
+
+// Configure Monaco Editor to use local assets instead of CDN
+loader.config({ monaco });
+
+// Aggressively block all worker creation and worker-related functionality
+(self as any).MonacoEnvironment = {
+  getWorker: () => {
+    // Return a stub that prevents worker creation
+    return new (class {
+      postMessage() {}
+      terminate() {}
+      addEventListener() {}
+      removeEventListener() {}
+      onmessage = null;
+      onerror = null;
+    })();
+  },
+  getWorkerUrl: () => 'data:,', // Return empty data URL
+};
+
+// Override Worker constructor to prevent any worker creation
+(self as any).Worker = class {
+  constructor() {
+    throw new Error('Workers are disabled in this environment');
+  }
+  static [Symbol.hasInstance]() {
+    return false;
+  }
+};
+
+// Disable all language services globally
+loader
+  .init()
+  .then((monacoInstance) => {
+    // Disable JSON language service completely
+    monacoInstance.languages.json.jsonDefaults.setDiagnosticsOptions({
+      validate: false,
+      allowComments: false,
+      schemaValidation: 'ignore',
+      schemaRequest: 'ignore',
+      enableSchemaRequest: false,
+    });
+
+    // Disable TypeScript/JavaScript language services
+    monacoInstance.languages.typescript.typescriptDefaults.setDiagnosticsOptions(
+      {
+        noSemanticValidation: true,
+        noSyntaxValidation: true,
+        noSuggestionDiagnostics: true,
+      },
+    );
+
+    monacoInstance.languages.typescript.javascriptDefaults.setDiagnosticsOptions(
+      {
+        noSemanticValidation: true,
+        noSyntaxValidation: true,
+        noSuggestionDiagnostics: true,
+      },
+    );
+  })
+  .catch((error) => {
+    logger.debug(
+      'Monaco initialization error (expected when workers disabled):',
+      error,
+    );
+  });
 
 /**
  * Interface for validation errors.
@@ -92,26 +158,7 @@ export const MonacoEditor = React.forwardRef<
         setIsReady(true);
 
         if (language === 'json') {
-          if (jsonSchema) {
-            monacoInstance.languages.json.jsonDefaults.setDiagnosticsOptions({
-              validate: true,
-              allowComments: false,
-              schemas: [
-                {
-                  uri: 'http://json-schema.org/draft-07/schema#',
-                  fileMatch: ['*'],
-                  schema: jsonSchema,
-                },
-              ],
-            });
-          }
-
-          monacoInstance.languages.json.jsonDefaults.setDiagnosticsOptions({
-            validate: true,
-            allowComments: false,
-            schemaValidation: 'error',
-            schemaRequest: 'ignore',
-          });
+          // JSON validation is already disabled globally to prevent worker issues
 
           // Register a custom, minimal formatting provider that ONLY sorts:
           // - enum arrays A→Z

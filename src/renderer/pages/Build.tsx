@@ -80,7 +80,6 @@ import { useAppStore } from '../stores/useAppStore';
 import type { Schema } from '../../types/schema-editor';
 import { SchemaEditor } from '../components/editor/SchemaEditor';
 import { ValidationError } from '../components/editor/MonacoEditor';
-import { LivePreview } from '../components/preview/LivePreview';
 import logger from '../lib/renderer-logger';
 import { toast } from 'sonner';
 import { formatSchemaJsonString } from '../lib/json-format';
@@ -2381,9 +2380,7 @@ export function Build(): React.JSX.Element {
                   className="mt-0 flex-1 min-h-0"
                 >
                   <div className="h-full flex flex-col">
-                    <div
-                      className={`flex-1 ${showPreview ? 'grid grid-cols-2 gap-4' : ''}`}
-                    >
+                    <div className="flex-1">
                       {/* Monaco Editor */}
                       <div className="flex flex-col h-full">
                         <SchemaEditor
@@ -2466,22 +2463,6 @@ export function Build(): React.JSX.Element {
                           isSaving={isSaving}
                         />
                       </div>
-
-                      {/* Live Preview */}
-                      {showPreview && (
-                        <div className="flex flex-col h-full">
-                          <LivePreview
-                            schemaContent={tab.content}
-                            schemaName={tab.schema.name}
-                            isValid={tab.errors.length === 0}
-                            errors={tab.errors.map((error) => ({
-                              message: error.message,
-                              line: error.line,
-                              column: error.column,
-                            }))}
-                          />
-                        </div>
-                      )}
                     </div>
                   </div>
                 </TabsContent>

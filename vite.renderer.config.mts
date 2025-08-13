@@ -12,7 +12,10 @@ export default defineConfig({
     hmr: { port: 5173 },
     fs: { strict: false },
   },
-  optimizeDeps: { force: false },
+  optimizeDeps: {
+    force: false,
+    include: ['monaco-editor'],
+  },
   build: {
     sourcemap: false,
     rollupOptions: {
@@ -21,6 +24,8 @@ export default defineConfig({
   },
   define: {
     'process.env': {},
+    // Configure Monaco Editor to use local assets instead of CDN
+    'process.env.MONACO_EDITOR_CDN': JSON.stringify(false),
   },
   assetsInclude: ['**/*.otf', '**/*.ttf', '**/*.woff', '**/*.woff2'],
 });

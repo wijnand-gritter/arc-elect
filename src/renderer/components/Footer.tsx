@@ -38,7 +38,7 @@ export const Footer: React.FC = () => {
       <div className="container mx-auto px-4 py-3 max-w-7xl">
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center gap-4">
-            <span>© 2024 {appName}</span>
+            <span>© 2025 {appName}</span>
             {appVersion && <span>v{appVersion}</span>}
           </div>
           <div className="flex items-center gap-4">

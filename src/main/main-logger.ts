@@ -18,9 +18,10 @@ let exportedLogger: {
 };
 
 try {
+  // Prefer explicit main-process logger to ensure initialization
   // Lazy require to avoid ESM interop issues in CLI/node context
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const el = require('electron-log');
+  const el = require('electron-log/main');
   if (typeof el.initialize === 'function') {
     try {
       el.initialize();

@@ -1,6 +1,8 @@
 name: Build desktop artifacts
+
 on:
   workflow_dispatch:
+
 jobs:
   make:
     strategy:
@@ -8,79 +10,74 @@ jobs:
       matrix:
         os: [macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 10
+
       - name: Use Node LTS
         uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
           cache: 'pnpm'
+
       - name: Install dependencies
         run: |
           pnpm config set node-linker hoisted --location project
           pnpm install --frozen-lockfile
-      - name: Package with Electron Forge
-        run: pnpm run package
-      - name: Create simple ZIP artifacts (Windows)
+
+      - name: Install Windows packaging deps (7zip, nuget)
         if: runner.os == 'Windows'
-        shell: pwsh
         run: |
-          $appName = "Arc Elect"
-          $version = (Get-Content package.json | ConvertFrom-Json).version
-          $outputDir = "simple-dist"
-          New-Item -ItemType Directory -Force -Path $outputDir
-          
-          # Find the packaged app directory
-          $packagedApp = Get-ChildItem "out" -Directory | Where-Object { $_.Name -like "*win32*" } | Select-Object -First 1
-          if ($packagedApp) {
-            $zipName = "$appName-$version-win32-x64.zip"
-            Compress-Archive -Path "$($packagedApp.FullName)\*" -DestinationPath "$outputDir\$zipName" -Force
-            Write-Output "Created: $zipName"
-          }
-      - name: Create simple ZIP artifacts (macOS)
-        if: runner.os == 'macOS'
+          choco install 7zip 7zip.commandline nuget.commandline zip -y
+          # Ensure all potential locations for 7-Zip and Chocolatey shims are on PATH
+          echo "C:\\Program Files\\7-Zip" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          echo "C:\\ProgramData\\chocolatey\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          echo "C:\\ProgramData\\chocolatey\\lib\\7zip.portable\\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          echo "C:\\Program Files\\Git\\usr\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+          # Verify tools are available
+          7z -h | Select-String "7-Zip"
+          7za -h | Select-String "7-Zip"
+          nuget help | Select-String "usage"
+          where 7z
+          where 7za
+          where nuget
+          zip -v | Select-String "Zip"
+          where zip
+
+      - name: Approve required pnpm build scripts
         run: |
-          APP_NAME="Arc Elect"
-          VERSION=$(node -p "require('./package.json').version")
-          OUTPUT_DIR="simple-dist"
-          mkdir -p "$OUTPUT_DIR"
-          
-          # Find the packaged app
-          PACKAGED_APP=$(find out -name "*.app" -type d | head -1)
-          if [ -n "$PACKAGED_APP" ]; then
-            ZIP_NAME="$APP_NAME-$VERSION-darwin-$(uname -m).zip"
-            cd "$(dirname "$PACKAGED_APP")"
-            zip -r "../../$OUTPUT_DIR/$ZIP_NAME" "$(basename "$PACKAGED_APP")"
-            cd ../..
-            echo "Created: $ZIP_NAME"
-          fi
-      - name: Create portable executable (Windows)
+          pnpm approve-builds --yes electron-winstaller esbuild @tailwindcss/oxide
+
+      - name: Verify 7z and nuget in PATH
         if: runner.os == 'Windows'
-        shell: pwsh
         run: |
-          # Just copy the main executable as a portable version
-          $packagedApp = Get-ChildItem "out" -Directory | Where-Object { $_.Name -like "*win32*" } | Select-Object -First 1
-          if ($packagedApp) {
-            $exePath = Get-ChildItem "$($packagedApp.FullName)" -Name "*.exe" | Select-Object -First 1
-            if ($exePath) {
-              Copy-Item "$($packagedApp.FullName)\$exePath" "simple-dist\Arc-Elect-Portable.exe" -Force
-              Write-Output "Created portable executable: Arc-Elect-Portable.exe"
-            }
-          }
-      - name: Upload Windows artifacts
-        if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-simple-artifacts
-          path: simple-dist/*
-      - name: Upload macOS artifacts
+          where 7z
+          where nuget
+
+      - name: Build artifacts
+        run: pnpm make
+
+      - name: Upload mac artifacts
         if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4
         with:
-          name: mac-simple-artifacts
-          path: simple-dist/*
+          name: mac-artifacts
+          path: |
+            out/make/zip/darwin/**/*
+            out/make/dmg/darwin/**/*
+
+      - name: Upload windows artifacts
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-artifacts
+          path: |
+            out/make/squirrel.windows/**/*
+            out/make/zip/win32/**/*

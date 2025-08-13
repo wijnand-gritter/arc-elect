@@ -41,6 +41,8 @@ interface ErrorBoundaryState {
   hasError: boolean;
   /** The error that occurred */
   error?: Error;
+  /** Additional error information */
+  errorInfo?: ErrorInfo;
 }
 
 /**
@@ -97,9 +99,12 @@ export class ErrorBoundary extends Component<
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     logger.error('ErrorBoundary caught an error:', error, errorInfo);
 
+    // Store error info in state for detailed display
+    this.setState({ errorInfo });
+
     // Show toast notification
-    toast.error('An error occurred', {
-      description: 'Something went wrong. Please try refreshing the page.',
+    toast.error('Component Error', {
+      description: `${error.name}: ${error.message}`,
     });
   }
 
@@ -128,31 +133,81 @@ export class ErrorBoundary extends Component<
         return this.props.fallback;
       }
 
-      // Default error UI
+      // Default error UI with detailed error information
+      const { error, errorInfo } = this.state;
+
       return (
         <div className="flex items-center justify-center min-h-[400px] p-4">
-          <Card className="w-full max-w-md glass-red border-0">
+          <Card className="w-full max-w-4xl glass-red border-0">
             <CardHeader className="gradient-destructive rounded-t-lg border-b border-destructive/20">
               <CardTitle className="text-destructive-foreground flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5" />
-                Something went wrong
+                Component Error Occurred
               </CardTitle>
               <CardDescription className="text-destructive-foreground/80">
-                An unexpected error occurred
+                {error?.name || 'Error'}:{' '}
+                {error?.message || 'An unexpected error occurred'}
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
-              <p className="text-sm text-muted-foreground">
-                We're sorry, but something went wrong. This might be a temporary
-                issue.
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  onClick={this.handleRetry}
-                  className="flex-1 border-gradient hover-lift hover:gradient-accent transition-all duration-200"
-                >
+              <div className="space-y-4">
+                {/* Error Details */}
+                {error && (
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-foreground">
+                      Error Details:
+                    </h4>
+                    <div className="bg-muted/50 rounded-md p-3 text-xs font-mono">
+                      <div>
+                        <strong>Name:</strong> {error.name}
+                      </div>
+                      <div>
+                        <strong>Message:</strong> {error.message}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Stack Trace */}
+                {error?.stack && (
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-foreground">
+                      Stack Trace:
+                    </h4>
+                    <div className="bg-muted/50 rounded-md p-3 max-h-40 overflow-auto">
+                      <pre className="text-xs font-mono whitespace-pre-wrap text-muted-foreground">
+                        {error.stack}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+
+                {/* Component Stack */}
+                {errorInfo?.componentStack && (
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-foreground">
+                      Component Stack:
+                    </h4>
+                    <div className="bg-muted/50 rounded-md p-3 max-h-32 overflow-auto">
+                      <pre className="text-xs font-mono whitespace-pre-wrap text-muted-foreground">
+                        {errorInfo.componentStack}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button onClick={this.handleRetry} variant="outline" size="sm">
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Try Again
+                </Button>
+                <Button
+                  onClick={() => window.location.reload()}
+                  variant="destructive"
+                  size="sm"
+                >
+                  Reload Page
                 </Button>
               </div>
             </CardContent>
