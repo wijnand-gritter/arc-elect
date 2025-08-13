@@ -30,11 +30,11 @@ if (process.platform === 'win32') {
   // Set ICU data path for Windows to fix "Invalid file descriptor to ICU data received" error
   const icuDataPath = path.join(process.resourcesPath, 'icudtl.dat');
   process.env.ICU_DATA_FILE = icuDataPath;
-  
+
   // Alternative approach: set ICU data directory
   const icuDataDir = path.join(process.resourcesPath);
   process.env.ICU_DATA = icuDataDir;
-  
+
   logger.info('ICU data configuration for Windows', {
     icuDataFile: icuDataPath,
     icuDataDir: icuDataDir,

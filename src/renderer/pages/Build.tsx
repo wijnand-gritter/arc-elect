@@ -164,6 +164,231 @@ export function Build(): React.JSX.Element {
   const [templateSchemaName, setTemplateSchemaName] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('simple-object');
 
+  // Drag and drop state
+  const [draggedItem, setDraggedItem] = useState<TreeItem | null>(null);
+  const [dragOverItem, setDragOverItem] = useState<TreeItem | null>(null);
+  const [isDragActive, setIsDragActive] = useState(false);
+
+  // Browser-compatible path utilities
+  const pathJoin = useCallback((...paths: string[]): string => {
+    const joined = paths
+      .filter((p) => p && p.length > 0)
+      .join('/')
+      .replace(/\/+/g, '/'); // Remove multiple slashes
+
+    // Remove trailing slash except for root
+    return joined === '/' ? '/' : joined.replace(/\/$/, '');
+  }, []);
+
+  const pathBasename = useCallback((fullPath: string): string => {
+    return fullPath.split('/').pop() || fullPath;
+  }, []);
+
+  // Utility functions for file operations
+  const checkForDuplicates = useCallback(
+    async (targetPath: string): Promise<boolean> => {
+      try {
+        const result = await window.api.fileExists(targetPath);
+        return result.success && result.exists === true;
+      } catch (error) {
+        logger.error('Failed to check file existence', { targetPath, error });
+        return false;
+      }
+    },
+    [],
+  );
+
+  const generateUniqueFileName = useCallback(
+    async (basePath: string, fileName: string): Promise<string> => {
+      let counter = 1;
+      let testPath = pathJoin(basePath, fileName);
+
+      while (await checkForDuplicates(testPath)) {
+        const nameWithoutExt = fileName.replace(/\.schema\.json$/, '');
+        const newFileName = `${nameWithoutExt}_${counter}.schema.json`;
+        testPath = pathJoin(basePath, newFileName);
+        counter++;
+      }
+
+      return pathBasename(testPath);
+    },
+    [checkForDuplicates, pathJoin, pathBasename],
+  );
+
+  // Drag and drop handlers
+  const handleDragStart = useCallback((item: TreeItem, e: React.DragEvent) => {
+    if (item.type !== 'schema') {
+      e.preventDefault();
+      return;
+    }
+
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', item.id);
+    setDraggedItem(item);
+    setIsDragActive(true);
+    logger.info('Drag started', {
+      item: item.name,
+      type: item.type,
+      id: item.id,
+      hasSchema: !!item.schema,
+    });
+  }, []);
+
+  const handleDragOver = useCallback(
+    (item: TreeItem, e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      // Only allow dropping on folders and prevent dropping on self
+      if (item.type === 'folder' && draggedItem && draggedItem.id !== item.id) {
+        e.dataTransfer.dropEffect = 'move';
+        setDragOverItem(item);
+        logger.debug('Drag over folder - allowed', {
+          targetFolder: item.name,
+          draggedItem: draggedItem.name,
+        });
+      } else {
+        e.dataTransfer.dropEffect = 'none';
+        setDragOverItem(null);
+        logger.debug('Drag over - not allowed', {
+          targetType: item.type,
+          targetName: item.name,
+          draggedItem: draggedItem?.name,
+          reason: item.type !== 'folder' ? 'not a folder' : 'same item',
+        });
+      }
+    },
+    [draggedItem],
+  );
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only clear drag over if we're leaving the target element itself
+    if (e.currentTarget === e.target) {
+      setDragOverItem(null);
+    }
+  }, []);
+
+  const handleDrop = useCallback(
+    async (targetItem: TreeItem, e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragActive(false);
+      setDragOverItem(null);
+
+      logger.info('Drop event triggered', {
+        draggedItem: draggedItem?.name,
+        draggedItemType: draggedItem?.type,
+        targetItem: targetItem.name,
+        targetType: targetItem.type,
+        draggedItemId: draggedItem?.id,
+        targetItemId: targetItem.id,
+      });
+
+      if (!draggedItem || !currentProject || draggedItem.id === targetItem.id) {
+        logger.debug('Drop cancelled - invalid conditions');
+        setDraggedItem(null);
+        return;
+      }
+
+      // Only allow dropping on folders
+      if (targetItem.type !== 'folder') {
+        logger.debug('Drop cancelled - target is not a folder');
+        setDraggedItem(null);
+        return;
+      }
+
+      try {
+        const sourceSchema = draggedItem.schema;
+        if (!sourceSchema) {
+          logger.warn('No schema found for dragged item', { draggedItem });
+          setDraggedItem(null);
+          return;
+        }
+
+        // Calculate new path
+        const targetFolderPath = pathJoin(currentProject.path, targetItem.path);
+        const fileName = pathBasename(sourceSchema.relativePath);
+        const newRelativePath = pathJoin(targetItem.path, fileName);
+        const newAbsolutePath = pathJoin(currentProject.path, newRelativePath);
+
+        // Check for duplicates
+        const isDuplicate = await checkForDuplicates(newAbsolutePath);
+        if (isDuplicate) {
+          const uniqueFileName = await generateUniqueFileName(
+            targetFolderPath,
+            fileName,
+          );
+          const uniqueRelativePath = pathJoin(targetItem.path, uniqueFileName);
+          const uniqueAbsolutePath = pathJoin(
+            currentProject.path,
+            uniqueRelativePath,
+          );
+
+          logger.info('Moving file with unique name to avoid duplicate', {
+            original: sourceSchema.relativePath,
+            target: uniqueRelativePath,
+            uniqueFileName,
+          });
+
+          // Move the file
+          const moveResult = await window.api.moveFile(
+            sourceSchema.path,
+            uniqueAbsolutePath,
+          );
+          if (!moveResult.success) {
+            throw new Error(moveResult.error || 'Failed to move file');
+          }
+        } else {
+          logger.info('Moving file to new location', {
+            from: sourceSchema.relativePath,
+            to: newRelativePath,
+          });
+
+          // Move the file
+          const moveResult = await window.api.moveFile(
+            sourceSchema.path,
+            newAbsolutePath,
+          );
+          if (!moveResult.success) {
+            throw new Error(moveResult.error || 'Failed to move file');
+          }
+        }
+
+        // Refresh the project to reflect changes
+        const refreshResult = await window.api.loadProject(currentProject.path);
+        if (refreshResult.success && refreshResult.project) {
+          // Update the project state through the store
+          // This will trigger a re-render with the new file structure
+          logger.info('File moved successfully, project refreshed');
+        } else {
+          logger.error('Failed to refresh project after move', {
+            error: refreshResult.error,
+          });
+        }
+      } catch (error) {
+        logger.error('Failed to move file', { error, draggedItem, targetItem });
+      } finally {
+        setDraggedItem(null);
+      }
+    },
+    [
+      draggedItem,
+      currentProject,
+      checkForDuplicates,
+      generateUniqueFileName,
+      pathJoin,
+      pathBasename,
+    ],
+  );
+
+  const handleDragEnd = useCallback(() => {
+    setIsDragActive(false);
+    setDragOverItem(null);
+    setDraggedItem(null);
+  }, []);
+
   // Build tree structure from schemas - file system approach
   const buildTreeStructure = useCallback((schemas: Schema[]): TreeItem[] => {
     const folderMap = new Map<string, TreeItem>();
@@ -290,10 +515,12 @@ export function Build(): React.JSX.Element {
       rootItemCount: sortedRootItems.length,
       totalFolders: folderMap.size,
       totalSchemas: schemas.length,
-      pathsNormalized: schemas.map(s => ({
-        original: s.relativePath,
-        normalized: normalizePathForFrontend(s.relativePath)
-      })).slice(0, 5), // Show first 5 for debugging
+      pathsNormalized: schemas
+        .map((s) => ({
+          original: s.relativePath,
+          normalized: normalizePathForFrontend(s.relativePath),
+        }))
+        .slice(0, 5), // Show first 5 for debugging
       structure: sortedRootItems.map((item) => ({
         name: item.name,
         type: item.type,
@@ -855,8 +1082,10 @@ export function Build(): React.JSX.Element {
 
       // Find the schema by path or name with multiple matching strategies
       const targetSchema = currentProject?.schemas?.find((schema) => {
-        const normalizedSchemaPath = normalizePathForComparison(schema.relativePath);
-        
+        const normalizedSchemaPath = normalizePathForComparison(
+          schema.relativePath,
+        );
+
         // Exact relative path match (normalized)
         if (normalizedSchemaPath === normalizedRefPath) return true;
         // Exact name match
@@ -909,8 +1138,8 @@ export function Build(): React.JSX.Element {
     [currentProject?.schemas, openSchemaTab],
   );
 
-  // Get active tab
-  const activeTab = editorTabs.find((tab) => tab.id === activeTabId);
+  // Get active tab (currently unused but may be needed for future features)
+  // const activeTab = editorTabs.find((tab) => tab.id === activeTabId);
 
   // Tab scrolling state
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -982,6 +1211,7 @@ export function Build(): React.JSX.Element {
       const timer = setTimeout(updateScrollButtons, 200);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [editorTabs.length, updateScrollButtons]);
 
   // Add resize observer to update scroll buttons when container size changes
@@ -1136,6 +1366,7 @@ export function Build(): React.JSX.Element {
       return () =>
         tabContainer.removeEventListener('scroll', updateScrollButtons);
     }
+    return undefined;
   }, [editorTabs, updateScrollButtons]);
 
   // Save all tabs
@@ -1456,7 +1687,7 @@ export function Build(): React.JSX.Element {
     [currentProject?.path],
   );
 
-  // Targeted app store update functions to avoid full project reload
+  // Targeted app store update functions for immediate UI feedback
   const updateAppStoreForCreate = useCallback(
     async (filePath: string, _templateType: string) => {
       if (!currentProject) return;
@@ -1503,47 +1734,15 @@ export function Build(): React.JSX.Element {
                 status: {
                   ...state.currentProject.status,
                   totalSchemas: state.currentProject.status.totalSchemas + 1,
+                  // New schema starts as pending, so no change to valid/invalid counts yet
                 },
               }
             : null,
         }));
 
-        // Update tree items to reflect the new schema
-        setTreeItems((prevItems) => {
-          const updateItems = (items: TreeItem[]): TreeItem[] => {
-            return items.map((item) => {
-              if (
-                item.type === 'folder' &&
-                relativePath.startsWith(item.path)
-              ) {
-                const newItem: TreeItem = {
-                  id: schemaId,
-                  name: newSchema.name,
-                  type: 'schema',
-                  parentId: item.id,
-                  children: [],
-                  path: relativePath,
-                  schema: newSchema,
-                };
-
-                return {
-                  ...item,
-                  children: [...item.children, newItem],
-                };
-              }
-
-              if (item.children.length > 0) {
-                return {
-                  ...item,
-                  children: updateItems(item.children),
-                };
-              }
-
-              return item;
-            });
-          };
-
-          return updateItems(prevItems);
+        logger.info('Schema added to app store', {
+          schemaName: newSchema.name,
+          schemaId,
         });
       } catch (error) {
         logger.error('Failed to update app store for new schema', {
@@ -1582,6 +1781,13 @@ export function Build(): React.JSX.Element {
               status: {
                 ...state.currentProject.status,
                 totalSchemas: state.currentProject.status.totalSchemas - 1,
+                // Adjust valid/invalid counts based on the deleted schema's validation status
+                validSchemas: schemaToDelete.validationStatus === 'valid' 
+                  ? state.currentProject.status.validSchemas - 1 
+                  : state.currentProject.status.validSchemas,
+                invalidSchemas: schemaToDelete.validationStatus === 'invalid' 
+                  ? state.currentProject.status.invalidSchemas - 1 
+                  : state.currentProject.status.invalidSchemas,
               },
             }
           : null,
@@ -1732,7 +1938,7 @@ export function Build(): React.JSX.Element {
     }
   });
 
-  // File creation handlers
+  // Enhanced file creation handlers with location support
   const handleContextMenuCreateSchema = useCallback((item: TreeItem) => {
     setContextMenuItem(item);
     setNewSchemaName('');
@@ -1749,18 +1955,55 @@ export function Build(): React.JSX.Element {
     if (!contextMenuItem || !currentProject || !newSchemaName.trim()) return;
 
     const schemaFileName = `${newSchemaName.trim()}.schema.json`;
-    const fullPath = `${currentProject.path}/${contextMenuItem.path}/${schemaFileName}`;
+    const targetFolderPath = pathJoin(
+      currentProject.path,
+      contextMenuItem.path,
+    );
+    const fullPath = pathJoin(targetFolderPath, schemaFileName);
 
-    const result = await (window as any).api.createSchema(fullPath, 'basic');
+    // Check for duplicates
+    const isDuplicate = await checkForDuplicates(fullPath);
+    if (isDuplicate) {
+      const uniqueFileName = await generateUniqueFileName(
+        targetFolderPath,
+        schemaFileName,
+      );
+      const uniqueFullPath = pathJoin(targetFolderPath, uniqueFileName);
 
-    if (result.success) {
-      setIsCreateSchemaDialogOpen(false);
-      setContextMenuItem(null);
-      setNewSchemaName('');
-      // Update tree state locally instead of full reload
-      updateAppStoreForCreate(fullPath, 'basic');
+      logger.info('Creating schema with unique name to avoid duplicate', {
+        original: schemaFileName,
+        unique: uniqueFileName,
+        location: contextMenuItem.path,
+      });
+
+      const result = await (window as any).api.createSchema(
+        uniqueFullPath,
+        'basic',
+      );
+      if (result.success) {
+        setIsCreateSchemaDialogOpen(false);
+        setContextMenuItem(null);
+        setNewSchemaName('');
+        updateAppStoreForCreate(uniqueFullPath, 'basic');
+      } else {
+        throw new Error(result.error || 'Create schema failed');
+      }
     } else {
-      throw new Error(result.error || 'Create schema failed');
+      logger.info('Creating schema at location', {
+        fileName: schemaFileName,
+        location: contextMenuItem.path,
+        fullPath,
+      });
+
+      const result = await (window as any).api.createSchema(fullPath, 'basic');
+      if (result.success) {
+        setIsCreateSchemaDialogOpen(false);
+        setContextMenuItem(null);
+        setNewSchemaName('');
+        updateAppStoreForCreate(fullPath, 'basic');
+      } else {
+        throw new Error(result.error || 'Create schema failed');
+      }
     }
   });
 
@@ -1829,6 +2072,13 @@ export function Build(): React.JSX.Element {
 
   const handleCreateTemplateSchema = useCallback(() => {
     setTemplateSchemaName('');
+    setContextMenuItem(null); // Clear context for root creation
+    setIsCreateTemplateDialogOpen(true);
+  }, []);
+
+  const handleContextMenuCreateTemplate = useCallback((item: TreeItem) => {
+    setContextMenuItem(item);
+    setTemplateSchemaName('');
     setIsCreateTemplateDialogOpen(true);
   }, []);
 
@@ -1836,24 +2086,55 @@ export function Build(): React.JSX.Element {
     if (!currentProject || !rootSchemaName.trim()) return;
 
     const schemaFileName = `${rootSchemaName.trim()}.schema.json`;
-    const fullPath = `${currentProject.path}/${schemaFileName}`;
+    const fullPath = pathJoin(currentProject.path, schemaFileName);
 
-    const result = await (window as any).api.createSchema(fullPath, 'basic');
+    // Check for duplicates
+    const isDuplicate = await checkForDuplicates(fullPath);
+    if (isDuplicate) {
+      const uniqueFileName = await generateUniqueFileName(
+        currentProject.path,
+        schemaFileName,
+      );
+      const uniqueFullPath = pathJoin(currentProject.path, uniqueFileName);
 
-    if (result.success) {
-      setIsCreateRootSchemaDialogOpen(false);
-      setRootSchemaName('');
-      // Update app store with new schema
-      updateAppStoreForCreate(fullPath, 'basic');
+      logger.info('Creating root schema with unique name to avoid duplicate', {
+        original: schemaFileName,
+        unique: uniqueFileName,
+        location: 'root',
+      });
+
+      const result = await (window as any).api.createSchema(
+        uniqueFullPath,
+        'basic',
+      );
+      if (result.success) {
+        setIsCreateRootSchemaDialogOpen(false);
+        setRootSchemaName('');
+        updateAppStoreForCreate(uniqueFullPath, 'basic');
+      } else {
+        throw new Error(result.error || 'Create root schema failed');
+      }
     } else {
-      throw new Error(result.error || 'Create schema failed');
+      logger.info('Creating root schema', {
+        fileName: schemaFileName,
+        fullPath,
+      });
+
+      const result = await (window as any).api.createSchema(fullPath, 'basic');
+      if (result.success) {
+        setIsCreateRootSchemaDialogOpen(false);
+        setRootSchemaName('');
+        updateAppStoreForCreate(fullPath, 'basic');
+      } else {
+        throw new Error(result.error || 'Create root schema failed');
+      }
     }
   });
 
   const handleCreateRootFolderConfirm = safeAsyncHandler(async () => {
     if (!currentProject || !rootFolderName.trim()) return;
 
-    const folderPath = `${currentProject.path}/${rootFolderName.trim()}`;
+    const folderPath = pathJoin(currentProject.path, rootFolderName.trim());
     const result = await (window as any).api.createFolder(folderPath);
 
     if (result.success) {
@@ -1881,20 +2162,72 @@ export function Build(): React.JSX.Element {
     if (!currentProject || !templateSchemaName.trim()) return;
 
     const schemaFileName = `${templateSchemaName.trim()}.schema.json`;
-    const fullPath = `${currentProject.path}/${schemaFileName}`;
 
-    const result = await (window as any).api.createSchema(
-      fullPath,
-      selectedTemplate,
-    );
+    // Check if this is location-aware creation (contextMenuItem is set) or root creation
+    let targetFolderPath: string;
+    let fullPath: string;
 
-    if (result.success) {
-      setIsCreateTemplateDialogOpen(false);
-      setTemplateSchemaName('');
-      // Update app store with new schema
-      updateAppStoreForCreate(fullPath, selectedTemplate);
+    if (contextMenuItem) {
+      // Location-aware creation in specific folder
+      targetFolderPath = pathJoin(currentProject.path, contextMenuItem.path);
+      fullPath = pathJoin(targetFolderPath, schemaFileName);
     } else {
-      throw new Error('Failed to create schema');
+      // Root creation
+      targetFolderPath = currentProject.path;
+      fullPath = pathJoin(currentProject.path, schemaFileName);
+    }
+
+    // Check for duplicates
+    const isDuplicate = await checkForDuplicates(fullPath);
+    if (isDuplicate) {
+      const uniqueFileName = await generateUniqueFileName(
+        targetFolderPath,
+        schemaFileName,
+      );
+      const uniqueFullPath = pathJoin(targetFolderPath, uniqueFileName);
+
+      logger.info(
+        'Creating template schema with unique name to avoid duplicate',
+        {
+          original: schemaFileName,
+          unique: uniqueFileName,
+          template: selectedTemplate,
+          location: contextMenuItem?.path || 'root',
+        },
+      );
+
+      const result = await (window as any).api.createSchema(
+        uniqueFullPath,
+        selectedTemplate,
+      );
+      if (result.success) {
+        setIsCreateTemplateDialogOpen(false);
+        setContextMenuItem(null);
+        setTemplateSchemaName('');
+        updateAppStoreForCreate(uniqueFullPath, selectedTemplate);
+      } else {
+        throw new Error(result.error || 'Create template schema failed');
+      }
+    } else {
+      logger.info('Creating template schema at location', {
+        fileName: schemaFileName,
+        template: selectedTemplate,
+        location: contextMenuItem?.path || 'root',
+        fullPath,
+      });
+
+      const result = await (window as any).api.createSchema(
+        fullPath,
+        selectedTemplate,
+      );
+      if (result.success) {
+        setIsCreateTemplateDialogOpen(false);
+        setContextMenuItem(null);
+        setTemplateSchemaName('');
+        updateAppStoreForCreate(fullPath, selectedTemplate);
+      } else {
+        throw new Error(result.error || 'Create template schema failed');
+      }
     }
   });
 
@@ -2000,8 +2333,22 @@ export function Build(): React.JSX.Element {
         <ContextMenu>
           <ContextMenuTrigger asChild>
             <div
-              className="flex items-center gap-2 py-1 px-2 hover:bg-accent/50 cursor-pointer rounded-sm"
+              className={`flex items-center gap-2 py-1 px-2 hover:bg-accent/50 rounded-sm ${
+                dragOverItem?.id === item.id
+                  ? 'bg-accent/30 ring-2 ring-primary/50'
+                  : ''
+              } ${
+                draggedItem?.id === item.id ? 'opacity-50' : ''
+              } ${item.type === 'schema' ? 'cursor-move' : 'cursor-pointer'}`}
               style={indentStyle}
+              draggable={item.type === 'schema'}
+              onDragStart={(e) =>
+                item.type === 'schema' && handleDragStart(item, e)
+              }
+              onDragOver={(e) => handleDragOver(item, e)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(item, e)}
+              onDragEnd={handleDragEnd}
               onClick={() => {
                 if (item.type === 'folder') {
                   toggleTreeItem(item.id);
@@ -2058,7 +2405,7 @@ export function Build(): React.JSX.Element {
                   onClick={() => handleContextMenuCreateSchema(item)}
                 >
                   <FilePlus className="w-4 h-4 mr-2" />
-                  New Schema
+                  New Schema in {item.name}
                 </ContextMenuItem>
                 <ContextMenuItem
                   onClick={() => handleContextMenuCreateFolder(item)}
@@ -2067,9 +2414,11 @@ export function Build(): React.JSX.Element {
                   New Folder
                 </ContextMenuItem>
                 <ContextMenuSeparator />
-                <ContextMenuItem onClick={handleCreateTemplateSchema}>
+                <ContextMenuItem
+                  onClick={() => handleContextMenuCreateTemplate(item)}
+                >
                   <FileText className="w-4 h-4 mr-2" />
-                  Create Schema from Template
+                  Create Schema from Template in {item.name}
                 </ContextMenuItem>
                 <ContextMenuSeparator />
               </>
@@ -2193,6 +2542,11 @@ export function Build(): React.JSX.Element {
                 className="w-full pl-8 pr-4 py-2 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
+            {isDragActive && (
+              <div className="mt-2 text-xs text-muted-foreground text-center">
+                Drag schema to folder to move
+              </div>
+            )}
           </div>
           <div className="flex-1 min-h-0 p-0">
             <ContextMenu>
@@ -2611,8 +2965,10 @@ export function Build(): React.JSX.Element {
           <DialogHeader>
             <DialogTitle>Create New Schema</DialogTitle>
             <DialogDescription>
-              Create a new schema in "{contextMenuItem?.name}". The .schema.json
-              extension will be added automatically.
+              Create a new schema in "{contextMenuItem?.name}" folder
+              {contextMenuItem?.path ? ` (${contextMenuItem.path})` : ''}. The
+              .schema.json extension will be added automatically. Duplicates
+              will be renamed automatically.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -2693,7 +3049,8 @@ export function Build(): React.JSX.Element {
             <DialogTitle>Create New Schema</DialogTitle>
             <DialogDescription>
               Create a new schema in the root directory. The .schema.json
-              extension will be added automatically.
+              extension will be added automatically. Duplicates will be renamed
+              automatically.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -2774,6 +3131,10 @@ export function Build(): React.JSX.Element {
             <DialogTitle>Create Schema from Template</DialogTitle>
             <DialogDescription>
               Create a new schema using a predefined template
+              {contextMenuItem
+                ? ` in "${contextMenuItem.name}" folder (${contextMenuItem.path})`
+                : ' in the root directory'}
+              . Duplicates will be renamed automatically.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">

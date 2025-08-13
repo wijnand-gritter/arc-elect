@@ -344,6 +344,67 @@ class ProjectManager {
         }
       }, 'reports:get'),
     );
+
+    // File operations
+    ipcMain.handle(
+      'fs:moveFile',
+      withErrorHandling(
+        async (_event, sourcePath: string, destinationPath: string) => {
+          const sourceValidation = validateInput(sourcePath, 'string', 2048);
+          if (!sourceValidation.valid) throw new Error(sourceValidation.error);
+          const destValidation = validateInput(destinationPath, 'string', 2048);
+          if (!destValidation.valid) throw new Error(destValidation.error);
+
+          await fs.rename(sourcePath, destinationPath);
+          return { success: true } as const;
+        },
+        'fs:moveFile',
+      ),
+    );
+
+    ipcMain.handle(
+      'fs:renameFile',
+      withErrorHandling(async (_event, oldPath: string, newPath: string) => {
+        const oldValidation = validateInput(oldPath, 'string', 2048);
+        if (!oldValidation.valid) throw new Error(oldValidation.error);
+        const newValidation = validateInput(newPath, 'string', 2048);
+        if (!newValidation.valid) throw new Error(newValidation.error);
+
+        await fs.rename(oldPath, newPath);
+        return { success: true } as const;
+      }, 'fs:renameFile'),
+    );
+
+    ipcMain.handle(
+      'fs:fileExists',
+      withErrorHandling(async (_event, filePath: string) => {
+        const validation = validateInput(filePath, 'string', 2048);
+        if (!validation.valid) throw new Error(validation.error);
+
+        try {
+          await fs.access(filePath);
+          return { success: true, exists: true } as const;
+        } catch {
+          return { success: true, exists: false } as const;
+        }
+      }, 'fs:fileExists'),
+    );
+
+    ipcMain.handle(
+      'fs:deleteFile',
+      withErrorHandling(async (_event, filePath: string) => {
+        const validation = validateInput(filePath, 'string', 2048);
+        if (!validation.valid) throw new Error(validation.error);
+
+        const stats = await fs.lstat(filePath);
+        if (stats.isDirectory()) {
+          await fs.rmdir(filePath, { recursive: true });
+        } else {
+          await fs.unlink(filePath);
+        }
+        return { success: true } as const;
+      }, 'fs:deleteFile'),
+    );
   }
 
   /**

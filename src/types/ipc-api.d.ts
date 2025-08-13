@@ -361,6 +361,59 @@ declare global {
         success: boolean;
         error?: string;
       }>;
+
+      /**
+       * Moves a file from source to destination path.
+       *
+       * @param sourcePath - Current path of the file
+       * @param destinationPath - New path for the file
+       * @returns Promise resolving to success status or error
+       */
+      moveFile: (
+        sourcePath: string,
+        destinationPath: string,
+      ) => Promise<{
+        success: boolean;
+        error?: string;
+      }>;
+
+      /**
+       * Renames a file or directory.
+       *
+       * @param oldPath - Current path of the file/directory
+       * @param newPath - New path for the file/directory
+       * @returns Promise resolving to success status or error
+       */
+      renameFile: (
+        oldPath: string,
+        newPath: string,
+      ) => Promise<{
+        success: boolean;
+        error?: string;
+      }>;
+
+      /**
+       * Checks if a file exists at the specified path.
+       *
+       * @param filePath - Path to check for existence
+       * @returns Promise resolving to existence status or error
+       */
+      fileExists: (filePath: string) => Promise<{
+        success: boolean;
+        exists?: boolean;
+        error?: string;
+      }>;
+
+      /**
+       * Deletes a file or directory.
+       *
+       * @param filePath - Path to the file/directory to delete
+       * @returns Promise resolving to success status or error
+       */
+      deleteFile: (filePath: string) => Promise<{
+        success: boolean;
+        error?: string;
+      }>;
     };
   }
 }

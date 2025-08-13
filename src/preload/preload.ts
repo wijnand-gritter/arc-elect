@@ -307,6 +307,44 @@ contextBridge.exposeInMainWorld('api', {
   createDirectory: (dirPath: string) =>
     ipcRenderer.invoke('fs:createDirectory', dirPath),
 
+  /**
+   * Moves a file from source to destination path.
+   *
+   * @param sourcePath - Current path of the file
+   * @param destinationPath - New path for the file
+   * @returns Promise resolving to success status or error
+   */
+  moveFile: (sourcePath: string, destinationPath: string) =>
+    ipcRenderer.invoke('fs:moveFile', sourcePath, destinationPath),
+
+  /**
+   * Renames a file or directory.
+   *
+   * @param oldPath - Current path of the file/directory
+   * @param newPath - New path for the file/directory
+   * @returns Promise resolving to success status or error
+   */
+  renameFile: (oldPath: string, newPath: string) =>
+    ipcRenderer.invoke('fs:renameFile', oldPath, newPath),
+
+  /**
+   * Checks if a file exists at the specified path.
+   *
+   * @param filePath - Path to check for existence
+   * @returns Promise resolving to existence status or error
+   */
+  fileExists: (filePath: string) =>
+    ipcRenderer.invoke('fs:fileExists', filePath),
+
+  /**
+   * Deletes a file or directory.
+   *
+   * @param filePath - Path to the file/directory to delete
+   * @returns Promise resolving to success status or error
+   */
+  deleteFile: (filePath: string) =>
+    ipcRenderer.invoke('fs:deleteFile', filePath),
+
   // Conversion report API
   reportExists: (projectPath: string) =>
     ipcRenderer.invoke('reports:exists', projectPath),

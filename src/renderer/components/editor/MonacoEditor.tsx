@@ -10,68 +10,10 @@ import { formatSchemaJsonString } from '../../lib/json-format';
 // Configure Monaco Editor to use local assets instead of CDN
 loader.config({ monaco });
 
-// Aggressively block all worker creation and worker-related functionality
+// Configure Monaco Environment to prevent worker issues while preserving functionality
 (self as any).MonacoEnvironment = {
-  getWorker: () => {
-    // Return a stub that prevents worker creation
-    return new (class {
-      postMessage() {}
-      terminate() {}
-      addEventListener() {}
-      removeEventListener() {}
-      onmessage = null;
-      onerror = null;
-    })();
-  },
-  getWorkerUrl: () => 'data:,', // Return empty data URL
+  getWorkerUrl: () => 'data:application/javascript,', // Minimal worker stub
 };
-
-// Override Worker constructor to prevent any worker creation
-(self as any).Worker = class {
-  constructor() {
-    throw new Error('Workers are disabled in this environment');
-  }
-  static [Symbol.hasInstance]() {
-    return false;
-  }
-};
-
-// Disable all language services globally
-loader
-  .init()
-  .then((monacoInstance) => {
-    // Disable JSON language service completely
-    monacoInstance.languages.json.jsonDefaults.setDiagnosticsOptions({
-      validate: false,
-      allowComments: false,
-      schemaValidation: 'ignore',
-      schemaRequest: 'ignore',
-      enableSchemaRequest: false,
-    });
-
-    // Disable TypeScript/JavaScript language services
-    monacoInstance.languages.typescript.typescriptDefaults.setDiagnosticsOptions(
-      {
-        noSemanticValidation: true,
-        noSyntaxValidation: true,
-        noSuggestionDiagnostics: true,
-      },
-    );
-
-    monacoInstance.languages.typescript.javascriptDefaults.setDiagnosticsOptions(
-      {
-        noSemanticValidation: true,
-        noSyntaxValidation: true,
-        noSuggestionDiagnostics: true,
-      },
-    );
-  })
-  .catch((error) => {
-    logger.debug(
-      'Monaco initialization error (expected when workers disabled):',
-      error,
-    );
-  });
 
 /**
  * Interface for validation errors.
@@ -948,7 +890,7 @@ export const MonacoEditor = React.forwardRef<
 
             hoverProviderRef.current =
               monacoInstance.languages.registerHoverProvider('json', {
-                provideHover: async (model, position) => {
+                provideHover: (model, position) => {
                   const word = model.getWordAtPosition(position);
                   if (!word) return null;
 
@@ -968,39 +910,14 @@ export const MonacoEditor = React.forwardRef<
                         './',
                       );
                       const normalizedRefPath = refPath.replace(/\\/g, '/');
-                      return relativePath === normalizedRefPath || normalizedPath === normalizedRefPath;
+                      return (
+                        relativePath === normalizedRefPath ||
+                        normalizedPath === normalizedRefPath
+                      );
                     });
 
                     if (schema) {
                       try {
-                        // Try to read the schema file content
-                        let schemaContent;
-                        try {
-                          const fileResult = await (
-                            window as any
-                          ).api?.readFile(schema.path);
-
-                          // Extract the data from the response object
-                          if (
-                            fileResult &&
-                            typeof fileResult === 'object' &&
-                            fileResult.success
-                          ) {
-                            schemaContent = fileResult.data;
-                          } else {
-                            schemaContent = fileResult; // Fallback for direct string response
-                          }
-                        } catch {
-                          schemaContent = null;
-                        }
-
-                        let schemaJson;
-                        try {
-                          schemaJson = JSON.parse(schemaContent);
-                        } catch {
-                          schemaJson = null;
-                        }
-
                         const contents: any[] = [
                           {
                             value: `**Schema Reference:** \`${refPath}\``,
@@ -1016,58 +933,50 @@ export const MonacoEditor = React.forwardRef<
                           },
                         ];
 
-                        if (schemaJson) {
-                          // Add schema details
-                          if (schemaJson.title) {
+                        // Add schema metadata if available
+                        if (schema.metadata?.title) {
+                          contents.push({
+                            value: `**Title:** ${schema.metadata.title}`,
+                            isTrusted: true,
+                          });
+                        }
+                        if (schema.metadata?.description) {
+                          contents.push({
+                            value: `**Description:** ${schema.metadata.description}`,
+                            isTrusted: true,
+                          });
+                        }
+                        
+                        // Add validation status
+                        contents.push({
+                          value: `**Status:** ${schema.validationStatus}`,
+                          isTrusted: true,
+                        });
+
+                        // Add schema content if available
+                        if (schema.content) {
+                          if (schema.content.type) {
                             contents.push({
-                              value: `**Title:** ${schemaJson.title}`,
+                              value: `**Type:** \`${schema.content.type}\``,
                               isTrusted: true,
                             });
                           }
-                          if (schemaJson.description) {
-                            contents.push({
-                              value: `**Description:** ${schemaJson.description}`,
-                              isTrusted: true,
-                            });
-                          }
-                          if (schemaJson.type) {
-                            contents.push({
-                              value: `**Type:** \`${schemaJson.type}\``,
-                              isTrusted: true,
-                            });
-                          }
-                          if (schemaJson.properties) {
-                            const propCount = Object.keys(
-                              schemaJson.properties,
-                            ).length;
+                          if (schema.content.properties) {
+                            const propCount = Object.keys(schema.content.properties).length;
                             contents.push({
                               value: `**Properties:** ${propCount} property${propCount !== 1 ? 's' : ''}`,
                               isTrusted: true,
                             });
                           }
-                          if (schemaJson.required) {
+                          if (schema.content.required) {
                             contents.push({
-                              value: `**Required:** ${schemaJson.required.join(', ')}`,
+                              value: `**Required:** ${schema.content.required.join(', ')}`,
                               isTrusted: true,
                             });
                           }
-
-                          // Add a preview of the schema content
-                          contents.push({
-                            value: '---',
-                            isTrusted: true,
-                          });
-                          contents.push({
-                            value: '**Schema Preview:**',
-                            isTrusted: true,
-                          });
-                          contents.push({
-                            value: `\`\`\`json\n${JSON.stringify(schemaJson, null, 2)}\n\`\`\``,
-                            isTrusted: true,
-                          });
                         } else {
                           contents.push({
-                            value: '**Note:** Unable to parse schema content',
+                            value: '**Note:** Schema content not loaded in memory',
                             isTrusted: true,
                           });
                         }
