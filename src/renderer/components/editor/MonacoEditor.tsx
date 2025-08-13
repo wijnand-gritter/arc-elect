@@ -10,9 +10,13 @@ import { formatSchemaJsonString } from '../../lib/json-format';
 // Configure Monaco Editor to use local assets instead of CDN
 loader.config({ monaco });
 
-// Configure Monaco Environment to prevent worker issues while preserving functionality
+// Configure Monaco Environment
+// Use empty stub only to satisfy Monaco without spinning real workers.
+// Our CSP allows worker-src data: blob:, but we intentionally avoid workers to honor user preference.
 (self as any).MonacoEnvironment = {
-  getWorkerUrl: () => 'data:application/javascript,', // Minimal worker stub
+  getWorkerUrl: function () {
+    return 'data:application/javascript,';
+  },
 };
 
 /**
@@ -946,7 +950,7 @@ export const MonacoEditor = React.forwardRef<
                             isTrusted: true,
                           });
                         }
-                        
+
                         // Add validation status
                         contents.push({
                           value: `**Status:** ${schema.validationStatus}`,
@@ -962,7 +966,9 @@ export const MonacoEditor = React.forwardRef<
                             });
                           }
                           if (schema.content.properties) {
-                            const propCount = Object.keys(schema.content.properties).length;
+                            const propCount = Object.keys(
+                              schema.content.properties,
+                            ).length;
                             contents.push({
                               value: `**Properties:** ${propCount} property${propCount !== 1 ? 's' : ''}`,
                               isTrusted: true,
@@ -976,7 +982,8 @@ export const MonacoEditor = React.forwardRef<
                           }
                         } else {
                           contents.push({
-                            value: '**Note:** Schema content not loaded in memory',
+                            value:
+                              '**Note:** Schema content not loaded in memory',
                             isTrusted: true,
                           });
                         }
@@ -1032,7 +1039,7 @@ export const MonacoEditor = React.forwardRef<
                     }
                   }
 
-                  // Professional JSON Schema hover information
+                  // JSON Schema hover information (single provider only)
                   const getJsonSchemaHoverInfo = (
                     keyword: string,
                     _value: string,
@@ -1202,7 +1209,7 @@ export const MonacoEditor = React.forwardRef<
                     return hoverInfo[keyword] || null;
                   };
 
-                  // Check for JSON Schema keywords
+                  // Check for JSON Schema keywords (no duplicate providers)
                   const keywordMatch = lineContent.match(
                     /"([^"]+)"\s*:\s*([^,\s]+)/,
                   );

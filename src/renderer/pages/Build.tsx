@@ -1782,12 +1782,14 @@ export function Build(): React.JSX.Element {
                 ...state.currentProject.status,
                 totalSchemas: state.currentProject.status.totalSchemas - 1,
                 // Adjust valid/invalid counts based on the deleted schema's validation status
-                validSchemas: schemaToDelete.validationStatus === 'valid' 
-                  ? state.currentProject.status.validSchemas - 1 
-                  : state.currentProject.status.validSchemas,
-                invalidSchemas: schemaToDelete.validationStatus === 'invalid' 
-                  ? state.currentProject.status.invalidSchemas - 1 
-                  : state.currentProject.status.invalidSchemas,
+                validSchemas:
+                  schemaToDelete.validationStatus === 'valid'
+                    ? state.currentProject.status.validSchemas - 1
+                    : state.currentProject.status.validSchemas,
+                invalidSchemas:
+                  schemaToDelete.validationStatus === 'invalid'
+                    ? state.currentProject.status.invalidSchemas - 1
+                    : state.currentProject.status.invalidSchemas,
               },
             }
           : null,

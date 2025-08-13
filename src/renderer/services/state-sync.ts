@@ -388,11 +388,15 @@ export function useStateSync(options: StateSyncOptions = {}): StateSyncResult {
                 ? { ...schema, validationStatus: result.status }
                 : schema;
             });
-            
+
             // Recalculate validation counts
-            const validCount = updatedSchemas.filter(s => s.validationStatus === 'valid').length;
-            const invalidCount = updatedSchemas.filter(s => s.validationStatus === 'invalid').length;
-            
+            const validCount = updatedSchemas.filter(
+              (s) => s.validationStatus === 'valid',
+            ).length;
+            const invalidCount = updatedSchemas.filter(
+              (s) => s.validationStatus === 'invalid',
+            ).length;
+
             setCurrentProject({
               ...currentProject,
               schemas: updatedSchemas,

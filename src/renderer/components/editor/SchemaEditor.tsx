@@ -35,6 +35,7 @@ import logger from '../../lib/renderer-logger';
 import { safeHandler } from '../../lib/error-handling';
 import { toast } from 'sonner';
 import { formatSchemaJsonString } from '../../lib/json-format';
+import { useAppStore } from '../../stores/useAppStore';
 
 /**
  * Props for the Schema Editor component.
@@ -183,6 +184,36 @@ export function SchemaEditor({
           schemaName: schema.name,
           valid: result.valid,
           error: result.error,
+        });
+
+        // Update validation status in the global store immediately
+        useAppStore.setState((state) => {
+          if (!state.currentProject) return state;
+
+          const updatedSchemas = state.currentProject.schemas.map((s) =>
+            s.id === schema.id
+              ? { ...s, validationStatus: result.valid ? 'valid' : 'invalid' }
+              : s,
+          );
+
+          const validCount = updatedSchemas.filter(
+            (s) => s.validationStatus === 'valid',
+          ).length;
+          const invalidCount = updatedSchemas.filter(
+            (s) => s.validationStatus === 'invalid',
+          ).length;
+
+          return {
+            currentProject: {
+              ...state.currentProject,
+              schemas: updatedSchemas,
+              status: {
+                ...state.currentProject.status,
+                validSchemas: validCount,
+                invalidSchemas: invalidCount,
+              },
+            },
+          };
         });
       } catch (error) {
         logger.error('Validation error', {
