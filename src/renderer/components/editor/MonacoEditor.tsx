@@ -886,12 +886,13 @@ export const MonacoEditor = React.forwardRef<
           }
 
           // Professional Hover Provider for Schema References
-          if (availableSchemas.length > 0) {
-            // Dispose of existing hover provider to prevent duplicates
-            if (hoverProviderRef.current) {
-              hoverProviderRef.current.dispose();
-            }
+          // Ensure we only ever have one provider alive at a time
+          if (hoverProviderRef.current) {
+            hoverProviderRef.current.dispose();
+            hoverProviderRef.current = null;
+          }
 
+          if (availableSchemas.length > 0) {
             hoverProviderRef.current =
               monacoInstance.languages.registerHoverProvider('json', {
                 provideHover: (model, position) => {

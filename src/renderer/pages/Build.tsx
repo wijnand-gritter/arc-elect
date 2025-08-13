@@ -1060,6 +1060,16 @@ export function Build(): React.JSX.Element {
     [],
   );
 
+  // Keep editor tab header validation status in sync with store changes
+  useEffect(() => {
+    setEditorTabs((prev) =>
+      prev.map((tab) => {
+        const latest = currentProject?.schemas.find((s) => s.id === tab.schema.id);
+        return latest ? { ...tab, schema: { ...tab.schema, validationStatus: latest.validationStatus } } : tab;
+      }),
+    );
+  }, [currentProject?.schemas]);
+
   // Handle ref click to open referenced schema
   const handleRefClick = useCallback(
     safeHandler((refPath: string) => {
@@ -2834,11 +2844,18 @@ export function Build(): React.JSX.Element {
                           }}
                           errors={tabValidationErrors[tab.id] || []}
                           availableSchemas={
-                            currentProject?.schemas?.map((schema) => ({
-                              id: schema.id,
-                              name: schema.name,
-                              path: schema.relativePath, // Use relativePath for proper reference resolution
-                            })) || []
+                            currentProject?.schemas?.map((schema) => {
+                              // Normalize to ./ relative path with forward slashes
+                              const forward = schema.relativePath.replace(/\\/g, '/');
+                              const rel = forward.startsWith('./')
+                                ? forward
+                                : `./${forward.replace(/^\.\//, '')}`;
+                              return {
+                                id: schema.id,
+                                name: schema.name,
+                                path: rel,
+                              };
+                            }) || []
                           }
                           onRefClick={handleRefClick}
                           isSaving={isSaving}
