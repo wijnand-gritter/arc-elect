@@ -943,19 +943,19 @@ export const MonacoEditor = React.forwardRef<
                           value: string;
                           isTrusted: boolean;
                         }> = [
-                            {
-                              value: `**Schema Reference:** \`${refPath}\``,
-                              isTrusted: true,
-                            },
-                            {
-                              value: `**Schema Name:** ${schema.name}`,
-                              isTrusted: true,
-                            },
-                            {
-                              value: `**Schema Path:** \`${schema.path}\``,
-                              isTrusted: true,
-                            },
-                          ];
+                          {
+                            value: `**Schema Reference:** \`${refPath}\``,
+                            isTrusted: true,
+                          },
+                          {
+                            value: `**Schema Name:** ${schema.name}`,
+                            isTrusted: true,
+                          },
+                          {
+                            value: `**Schema Path:** \`${schema.path}\``,
+                            isTrusted: true,
+                          },
+                        ];
 
                         // Add schema metadata if available
                         if (schema.metadata?.title) {
@@ -1304,15 +1304,15 @@ export const MonacoEditor = React.forwardRef<
                         value: string;
                         isTrusted: boolean;
                       }> = [
-                          {
-                            value: `**${info.title}:** \`${keyword}\``,
-                            isTrusted: true,
-                          },
-                          {
-                            value: info.description,
-                            isTrusted: true,
-                          },
-                        ];
+                        {
+                          value: `**${info.title}:** \`${keyword}\``,
+                          isTrusted: true,
+                        },
+                        {
+                          value: info.description,
+                          isTrusted: true,
+                        },
+                      ];
 
                       if (info.examples) {
                         contents.push({
@@ -1526,7 +1526,7 @@ export const MonacoEditor = React.forwardRef<
                     marker.severity === monacoInstance.MarkerSeverity.Error
                       ? 'error'
                       : marker.severity ===
-                        monacoInstance.MarkerSeverity.Warning
+                          monacoInstance.MarkerSeverity.Warning
                         ? 'warning'
                         : 'info',
                   startLineNumber: marker.startLineNumber,
@@ -1593,8 +1593,8 @@ export const MonacoEditor = React.forwardRef<
           label: 'Format Document',
           keybindings: [
             monacoInstance.KeyMod.Shift |
-            monacoInstance.KeyMod.Alt |
-            monacoInstance.KeyCode.KeyF,
+              monacoInstance.KeyMod.Alt |
+              monacoInstance.KeyCode.KeyF,
           ],
           contextMenuGroupId: 'modification',
           run: () => {
@@ -1616,8 +1616,8 @@ export const MonacoEditor = React.forwardRef<
 
         editor.addCommand(
           monacoInstance.KeyMod.CtrlCmd |
-          monacoInstance.KeyMod.Shift |
-          monacoInstance.KeyCode.KeyS,
+            monacoInstance.KeyMod.Shift |
+            monacoInstance.KeyCode.KeyS,
           () => {
             try {
               onSaveAll?.();
@@ -1632,8 +1632,8 @@ export const MonacoEditor = React.forwardRef<
           label: 'Validate JSON',
           keybindings: [
             monacoInstance.KeyMod.CtrlCmd |
-            monacoInstance.KeyMod.Shift |
-            monacoInstance.KeyCode.KeyV,
+              monacoInstance.KeyMod.Shift |
+              monacoInstance.KeyCode.KeyV,
           ],
           contextMenuGroupId: 'modification',
           run: () => {
