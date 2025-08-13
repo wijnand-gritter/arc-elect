@@ -2550,7 +2550,7 @@ export function Build(): React.JSX.Element {
       </div>
 
       {/* Main Content - no card wrappers */}
-      <div className="flex-1 grid grid-cols-12 gap-2 min-h-0 overflow-hidden">
+      <div className="flex-1 grid grid-cols-12 gap-2 min-h-0 overflow-visible">
         {/* Tree View Sidebar */}
         <div className="col-span-3 bg-muted/10 border-r border-border/50 flex flex-col min-h-0">
           <div className="p-3 border-b border-border/50 flex-shrink-0">

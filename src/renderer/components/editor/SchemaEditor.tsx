@@ -540,7 +540,7 @@ export function SchemaEditor({
       </div>
 
       {/* Editor Content */}
-      <div className="flex-1 min-h-0 relative overflow-visible">
+      <div className="flex-1 min-h-0 relative overflow-visible z-10">
         <MonacoEditor
           ref={editorRef}
           value={content}
