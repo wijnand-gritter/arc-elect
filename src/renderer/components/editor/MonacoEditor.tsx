@@ -264,7 +264,9 @@ export const MonacoEditor = React.forwardRef<
 
                   const suggestions = availableSchemas
                     .map((schema) => {
-                      const relPath = toRelativePath(schema.path);
+                      // Normalize paths to forward slashes for consistent frontend handling
+                      const normalizedPath = schema.path.replace(/\\/g, '/');
+                      const relPath = toRelativePath(normalizedPath);
                       const insertText = typedPrefix
                         ? relPath.substring(pathPrefix.length)
                         : relPath;
@@ -959,11 +961,14 @@ export const MonacoEditor = React.forwardRef<
 
                     // Find the corresponding schema
                     const schema = availableSchemas.find((s) => {
-                      const relativePath = s.path.replace(
+                      // Normalize paths to forward slashes for consistent matching
+                      const normalizedPath = s.path.replace(/\\/g, '/');
+                      const relativePath = normalizedPath.replace(
                         /^.*\/schemas\//,
                         './',
                       );
-                      return relativePath === refPath || s.path === refPath;
+                      const normalizedRefPath = refPath.replace(/\\/g, '/');
+                      return relativePath === normalizedRefPath || normalizedPath === normalizedRefPath;
                     });
 
                     if (schema) {

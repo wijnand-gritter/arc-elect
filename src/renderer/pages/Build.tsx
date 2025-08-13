@@ -169,9 +169,14 @@ export function Build(): React.JSX.Element {
     const folderMap = new Map<string, TreeItem>();
     const rootItems: TreeItem[] = [];
 
+    // Normalize paths to forward slashes for consistent frontend handling
+    const normalizePathForFrontend = (path: string): string => {
+      return path.replace(/\\/g, '/');
+    };
+
     // Simple check for debugging
     const schemasWithFolders = schemas.filter((s) =>
-      s.relativePath.includes('/'),
+      normalizePathForFrontend(s.relativePath).includes('/'),
     );
     if (schemasWithFolders.length === 0) {
       logger.error(
@@ -182,7 +187,8 @@ export function Build(): React.JSX.Element {
     // First pass: Create all folders
     const allPaths = new Set<string>();
     schemas.forEach((schema) => {
-      const pathParts = schema.relativePath
+      const normalizedPath = normalizePathForFrontend(schema.relativePath);
+      const pathParts = normalizedPath
         .split('/')
         .filter((part) => part.length > 0);
 
@@ -230,7 +236,8 @@ export function Build(): React.JSX.Element {
 
     // Second pass: Add schema files
     schemas.forEach((schema) => {
-      const pathParts = schema.relativePath
+      const normalizedPath = normalizePathForFrontend(schema.relativePath);
+      const pathParts = normalizedPath
         .split('/')
         .filter((part) => part.length > 0);
       const fileName = pathParts[pathParts.length - 1];
@@ -240,7 +247,7 @@ export function Build(): React.JSX.Element {
         id: schema.relativePath,
         name: fileName.replace('.schema.json', ''), // Clean display name
         type: 'schema',
-        path: schema.relativePath,
+        path: normalizedPath, // Use normalized path for frontend consistency
         children: [],
         expanded: false,
         schema: schema,
@@ -283,6 +290,10 @@ export function Build(): React.JSX.Element {
       rootItemCount: sortedRootItems.length,
       totalFolders: folderMap.size,
       totalSchemas: schemas.length,
+      pathsNormalized: schemas.map(s => ({
+        original: s.relativePath,
+        normalized: normalizePathForFrontend(s.relativePath)
+      })).slice(0, 5), // Show first 5 for debugging
       structure: sortedRootItems.map((item) => ({
         name: item.name,
         type: item.type,
@@ -825,35 +836,46 @@ export function Build(): React.JSX.Element {
   // Handle ref click to open referenced schema
   const handleRefClick = useCallback(
     safeHandler((refPath: string) => {
+      // Normalize paths for cross-platform compatibility
+      const normalizePathForComparison = (path: string): string => {
+        return path.replace(/\\/g, '/');
+      };
+
+      const normalizedRefPath = normalizePathForComparison(refPath);
+
       logger.info('Ref click attempted', {
         refPath,
+        normalizedRefPath,
         availableSchemas: currentProject?.schemas?.map((s) => ({
           name: s.name,
-          path: s.path,
+          relativePath: s.relativePath,
+          normalizedRelativePath: normalizePathForComparison(s.relativePath),
         })),
       });
 
       // Find the schema by path or name with multiple matching strategies
       const targetSchema = currentProject?.schemas?.find((schema) => {
-        // Exact path match
-        if (schema.path === refPath) return true;
+        const normalizedSchemaPath = normalizePathForComparison(schema.relativePath);
+        
+        // Exact relative path match (normalized)
+        if (normalizedSchemaPath === normalizedRefPath) return true;
         // Exact name match
         if (schema.name === refPath) return true;
-        // Path ends with the ref path
-        if (schema.path.endsWith(refPath)) return true;
-        // Path includes the ref path
-        if (schema.path.includes(refPath)) return true;
+        // Path ends with the ref path (normalized)
+        if (normalizedSchemaPath.endsWith(normalizedRefPath)) return true;
+        // Path includes the ref path (normalized)
+        if (normalizedSchemaPath.includes(normalizedRefPath)) return true;
         // Name includes the ref path
         if (schema.name.includes(refPath)) return true;
         // Handle relative paths by checking if the schema path ends with the ref path
         if (
-          refPath.startsWith('./') &&
-          schema.path.endsWith(refPath.substring(2))
+          normalizedRefPath.startsWith('./') &&
+          normalizedSchemaPath.endsWith(normalizedRefPath.substring(2))
         )
           return true;
         if (
-          refPath.startsWith('../') &&
-          schema.path.endsWith(refPath.substring(3))
+          normalizedRefPath.startsWith('../') &&
+          normalizedSchemaPath.endsWith(normalizedRefPath.substring(3))
         )
           return true;
 
@@ -864,16 +886,19 @@ export function Build(): React.JSX.Element {
         openSchemaTab(targetSchema);
         logger.info('Navigated to ref successfully', {
           refPath,
+          normalizedRefPath,
           targetSchema: targetSchema.name,
-          targetPath: targetSchema.path,
+          targetRelativePath: targetSchema.relativePath,
         });
       } else {
         // Log all available schemas for debugging
         logger.warn('Ref navigation failed - schema not found', {
           refPath,
+          normalizedRefPath,
           availableSchemas: currentProject?.schemas?.map((s) => ({
             name: s.name,
-            path: s.path,
+            relativePath: s.relativePath,
+            normalizedRelativePath: normalizePathForComparison(s.relativePath),
           })),
         });
         toast.error('Schema not found', {
@@ -2456,7 +2481,7 @@ export function Build(): React.JSX.Element {
                             currentProject?.schemas?.map((schema) => ({
                               id: schema.id,
                               name: schema.name,
-                              path: schema.path,
+                              path: schema.relativePath, // Use relativePath for proper reference resolution
                             })) || []
                           }
                           onRefClick={handleRefClick}

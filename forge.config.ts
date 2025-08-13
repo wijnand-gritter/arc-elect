@@ -12,6 +12,14 @@ const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     icon: 'build/icons/icon', // no file extension required
+    // Include ICU data files to fix Windows ICU errors
+    extraResource: [
+      {
+        from: 'node_modules/electron/dist/icudtl.dat',
+        to: 'icudtl.dat',
+        filter: ['**/*']
+      }
+    ],
   },
   rebuildConfig: {},
   makers: [
