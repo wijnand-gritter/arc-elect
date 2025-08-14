@@ -42,8 +42,8 @@ export function PageContent(): React.JSX.Element {
   // Show loading state when project is being loaded
   if (isLoadingProject) {
     return (
-      <div className="h-full flex flex-col overflow-visible">
-        <div className="flex flex-1 items-center justify-center overflow-visible">
+      <div className="h-full flex flex-col overflow-visible min-h-0">
+        <div className="flex flex-1 items-center justify-center overflow-visible min-h-0">
           <div className="text-center space-y-4">
             <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
             <p className="text-muted-foreground">Loading project...</p>
@@ -56,7 +56,7 @@ export function PageContent(): React.JSX.Element {
   // Show onboarding screen and top banner if no project is loaded
   if (!currentProject) {
     return (
-      <div className="h-full flex flex-col overflow-visible">
+      <div className="h-full flex flex-col overflow-visible min-h-0">
         <NoProjectBanner
           onOpenProject={() =>
             document.dispatchEvent(
@@ -69,8 +69,8 @@ export function PageContent(): React.JSX.Element {
             )
           }
         />
-        <div className="flex flex-1 overflow-visible">
-          <div className="page-transition flex-1 overflow-visible">
+        <div className="flex flex-1 overflow-visible min-h-0">
+          <div className="page-transition flex-1 overflow-visible min-h-0">
             <Onboarding />
           </div>
         </div>
@@ -79,9 +79,9 @@ export function PageContent(): React.JSX.Element {
   }
 
   return (
-    <div className="h-full flex flex-col overflow-visible">
-      <div className="flex flex-1 overflow-visible">
-        <div className="page-transition flex-1 overflow-visible">
+    <div className="h-full flex flex-col overflow-visible min-h-0">
+      <div className="flex flex-1 overflow-visible min-h-0">
+        <div className="page-transition flex-1 overflow-visible min-h-0">
           {currentPage === 'project' && (
             <ErrorBoundary>
               <Project />

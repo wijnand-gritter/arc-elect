@@ -113,7 +113,7 @@ export const AppLayout: React.FC = () => {
         {/* Main content area */}
         <main
           id="main-content"
-          className="flex-1 flex flex-col min-h-0 overflow-visible"
+          className="flex-1 flex flex-col min-h-0 overflow-hidden"
           role="main"
           aria-label="Main content"
         >

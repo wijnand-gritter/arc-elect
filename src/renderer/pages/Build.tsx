@@ -2412,7 +2412,7 @@ export function Build(): React.JSX.Element {
       </div>
 
       {/* Main Content - no card wrappers */}
-      <div className="flex-1 grid grid-cols-12 gap-2 min-h-0 overflow-visible">
+      <div className="flex-1 grid grid-cols-12 gap-2 min-h-0 overflow-hidden">
         {/* Tree View Sidebar */}
         <div className="col-span-3 bg-muted/10 border-r border-border/50 flex flex-col min-h-0">
           <div className="p-3 border-b border-border/50 flex-shrink-0">
@@ -2428,10 +2428,10 @@ export function Build(): React.JSX.Element {
             </div>
             {/* drag hints disabled */}
           </div>
-          <div className="flex-1 min-h-0 p-0">
+          <div className="flex-1 min-h-0 p-0 overflow-hidden">
             <ContextMenu>
               <ContextMenuTrigger asChild>
-                <ScrollArea className="h-full w-full px-3">
+                <ScrollArea className="h-full w-full px-3 overflow-auto">
                   {filteredTreeItems.length > 0 ? (
                     <div className="space-y-1">
                       {filteredTreeItems.map((item) => renderTreeItem(item))}
