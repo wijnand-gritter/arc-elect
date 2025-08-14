@@ -169,6 +169,8 @@ export function Build(): React.JSX.Element {
   const [rootFolderName, setRootFolderName] = useState('');
   const [templateSchemaName, setTemplateSchemaName] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('simple-object');
+  const setCurrentProjectStore = useAppStore((s) => s.setCurrentProject);
+  const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(new Set());
 
   // Drag and drop state
   const [draggedItem, setDraggedItem] = useState<TreeItem | null>(null);
@@ -283,7 +285,12 @@ export function Build(): React.JSX.Element {
         }
 
         const refreshResult = await window.api.loadProject(currentProject.path);
-        if (!refreshResult.success) {
+        if (refreshResult.success && refreshResult.project) {
+          // Update store so UI reflects changes immediately without navigation
+          setCurrentProjectStore(refreshResult.project);
+          // Ensure target folder stays expanded after move
+          setExpandedFolderIds((prev) => new Set(prev).add(target.id));
+        } else {
           logger.error('Failed to refresh project after move', {
             error: refreshResult.error,
           });
@@ -302,6 +309,7 @@ export function Build(): React.JSX.Element {
       pathJoin,
       pathBasename,
       findItemById,
+      setCurrentProjectStore,
     ],
   );
 
@@ -2506,6 +2514,14 @@ export function Build(): React.JSX.Element {
             onClick={(e) => {
               e.stopPropagation();
               toggleTreeItem(item.id);
+              if (item.type === 'folder') {
+                setExpandedFolderIds((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(item.id)) next.delete(item.id);
+                  else next.add(item.id);
+                  return next;
+                });
+              }
             }}
           >
             {item.expanded ? (
@@ -2539,7 +2555,23 @@ export function Build(): React.JSX.Element {
         <ContextMenu>
           <ContextMenuTrigger asChild>
             {item.type === 'folder' ? (
-              <DroppableFolder item={item}>{row}</DroppableFolder>
+              <DroppableFolder item={item}>
+                <div
+                  onClick={(e) => {
+                    // Prevent context menu trigger from swallowing toggle
+                    e.stopPropagation();
+                    toggleTreeItem(item.id);
+                    setExpandedFolderIds((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(item.id)) next.delete(item.id);
+                      else next.add(item.id);
+                      return next;
+                    });
+                  }}
+                >
+                  {row}
+                </div>
+              </DroppableFolder>
             ) : (
               <DraggableSchema item={item}>{row}</DraggableSchema>
             )}
@@ -2594,7 +2626,7 @@ export function Build(): React.JSX.Element {
             </ContextMenuItem>
           </ContextMenuContent>
         </ContextMenu>
-        {item.expanded &&
+        {(item.expanded || expandedFolderIds.has(item.id)) &&
           item.children.map((child) => renderTreeItem(child, depth + 1))}
       </div>
     );
