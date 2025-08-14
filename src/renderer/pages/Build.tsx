@@ -13,7 +13,12 @@
  */
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { DndContext, DragEndEvent, useDraggable, useDroppable } from '@dnd-kit/core';
+import {
+  DndContext,
+  DragEndEvent,
+  useDraggable,
+  useDroppable,
+} from '@dnd-kit/core';
 import { safeAsyncHandler, safeHandler } from '../lib/error-handling';
 
 import { Card, CardContent } from '../components/ui/card';
@@ -199,15 +204,35 @@ export function Build(): React.JSX.Element {
     [],
   );
 
+  const generateUniqueFileName = useCallback(
+    async (basePath: string, fileName: string): Promise<string> => {
+      let counter = 1;
+      let testPath = pathJoin(basePath, fileName);
+
+      while (await checkForDuplicates(testPath)) {
+        const nameWithoutExt = fileName.replace(/\.schema\.json$/, '');
+        const newFileName = `${nameWithoutExt}_${counter}.schema.json`;
+        testPath = pathJoin(basePath, newFileName);
+        counter++;
+      }
+
+      return pathBasename(testPath);
+    },
+    [checkForDuplicates, pathJoin, pathBasename],
+  );
+
   // dnd-kit: find node by id in tree
-  const findItemById = useCallback((items: TreeItem[], id: string): TreeItem | null => {
-    for (const it of items) {
-      if (it.id === id) return it;
-      const child = findItemById(it.children, id);
-      if (child) return child;
-    }
-    return null;
-  }, []);
+  const findItemById = useCallback(
+    (items: TreeItem[], id: string): TreeItem | null => {
+      for (const it of items) {
+        if (it.id === id) return it;
+        const child = findItemById(it.children, id);
+        if (child) return child;
+      }
+      return null;
+    },
+    [],
+  );
 
   // dnd-kit: Drop handler translating to file move
   const onDragEnd = useCallback(
@@ -246,13 +271,15 @@ export function Build(): React.JSX.Element {
             sourceSchema.path,
             uniqueAbsolutePath,
           );
-          if (!moveResult.success) throw new Error(moveResult.error || 'move failed');
+          if (!moveResult.success)
+            throw new Error(moveResult.error || 'move failed');
         } else {
           const moveResult = await window.api.moveFile(
             sourceSchema.path,
             newAbsolutePath,
           );
-          if (!moveResult.success) throw new Error(moveResult.error || 'move failed');
+          if (!moveResult.success)
+            throw new Error(moveResult.error || 'move failed');
         }
 
         const refreshResult = await window.api.loadProject(currentProject.path);
@@ -276,23 +303,6 @@ export function Build(): React.JSX.Element {
       pathBasename,
       findItemById,
     ],
-  );
-
-  const generateUniqueFileName = useCallback(
-    async (basePath: string, fileName: string): Promise<string> => {
-      let counter = 1;
-      let testPath = pathJoin(basePath, fileName);
-
-      while (await checkForDuplicates(testPath)) {
-        const nameWithoutExt = fileName.replace(/\.schema\.json$/, '');
-        const newFileName = `${nameWithoutExt}_${counter}.schema.json`;
-        testPath = pathJoin(basePath, newFileName);
-        counter++;
-      }
-
-      return pathBasename(testPath);
-    },
-    [checkForDuplicates, pathJoin, pathBasename],
   );
 
   // Drag and drop handlers
@@ -2431,7 +2441,12 @@ export function Build(): React.JSX.Element {
   }> = ({ item, className, style, children }) => {
     const { setNodeRef, isOver } = useDroppable({ id: item.id });
     return (
-      <div ref={setNodeRef} className={className} style={style} data-over={isOver}>
+      <div
+        ref={setNodeRef}
+        className={className}
+        style={style}
+        data-over={isOver}
+      >
         {children}
       </div>
     );
@@ -2442,7 +2457,9 @@ export function Build(): React.JSX.Element {
     className?: string;
     style?: React.CSSProperties;
   }> = ({ item, className, style, children }) => {
-    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: item.id });
+    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+      id: item.id,
+    });
     return (
       <div
         ref={setNodeRef}
@@ -2466,7 +2483,9 @@ export function Build(): React.JSX.Element {
     const row = (
       <div
         className={`flex items-center gap-2 py-1 px-2 hover:bg-accent/50 rounded-sm ${
-          dragOverItem?.id === item.id ? 'bg-accent/30 ring-2 ring-primary/50' : ''
+          dragOverItem?.id === item.id
+            ? 'bg-accent/30 ring-2 ring-primary/50'
+            : ''
         } ${draggedItem?.id === item.id ? 'opacity-50' : ''} ${
           item.type === 'schema' ? 'cursor-move' : 'cursor-pointer'
         }`}
@@ -2503,7 +2522,9 @@ export function Build(): React.JSX.Element {
         {item.schema && (
           <Badge
             variant={
-              item.schema.validationStatus === 'valid' ? 'default' : 'destructive'
+              item.schema.validationStatus === 'valid'
+                ? 'default'
+                : 'destructive'
             }
             className="ml-auto h-4 text-xs"
           >
@@ -2680,7 +2701,10 @@ export function Build(): React.JSX.Element {
             )}
           </div>
           <div className="flex-1 min-h-0 p-0">
-            <DndContext onDragEnd={onDragEnd} onDragStart={() => setIsDragActive(true)}>
+            <DndContext
+              onDragEnd={onDragEnd}
+              onDragStart={() => setIsDragActive(true)}
+            >
               <ContextMenu>
                 <ContextMenuTrigger asChild>
                   <ScrollArea className="h-full w-full px-3">
