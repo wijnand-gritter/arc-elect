@@ -526,23 +526,23 @@ export function Build(): React.JSX.Element {
             useAppStore.setState((state) => ({
               currentProject: state.currentProject
                 ? {
-                  ...state.currentProject,
-                  schemas: state.currentProject.schemas.map((s) =>
-                    s.id === tab.schema.id
-                      ? {
-                        ...s,
-                        content: parsed,
-                        metadata: s.metadata
-                          ? {
-                            ...s.metadata,
-                            lastModified: new Date(),
-                            fileSize: tab.content.length,
+                    ...state.currentProject,
+                    schemas: state.currentProject.schemas.map((s) =>
+                      s.id === tab.schema.id
+                        ? {
+                            ...s,
+                            content: parsed,
+                            metadata: s.metadata
+                              ? {
+                                  ...s.metadata,
+                                  lastModified: new Date(),
+                                  fileSize: tab.content.length,
+                                }
+                              : s.metadata,
                           }
-                          : s.metadata,
-                      }
-                      : s,
-                  ),
-                }
+                        : s,
+                    ),
+                  }
                 : null,
             }));
             logger.info('Updated store schema content after save', {
@@ -915,12 +915,12 @@ export function Build(): React.JSX.Element {
         );
         return latest
           ? {
-            ...tab,
-            schema: {
-              ...tab.schema,
-              validationStatus: latest.validationStatus,
-            },
-          }
+              ...tab,
+              schema: {
+                ...tab.schema,
+                validationStatus: latest.validationStatus,
+              },
+            }
           : tab;
       }),
     );
@@ -1271,23 +1271,23 @@ export function Build(): React.JSX.Element {
                 useAppStore.setState((state) => ({
                   currentProject: state.currentProject
                     ? {
-                      ...state.currentProject,
-                      schemas: state.currentProject.schemas.map((s) =>
-                        s.id === tab.schema.id
-                          ? {
-                            ...s,
-                            content: parsed,
-                            metadata: s.metadata
-                              ? {
-                                ...s.metadata,
-                                lastModified: new Date(),
-                                fileSize: tab.content.length,
+                        ...state.currentProject,
+                        schemas: state.currentProject.schemas.map((s) =>
+                          s.id === tab.schema.id
+                            ? {
+                                ...s,
+                                content: parsed,
+                                metadata: s.metadata
+                                  ? {
+                                      ...s.metadata,
+                                      lastModified: new Date(),
+                                      fileSize: tab.content.length,
+                                    }
+                                  : s.metadata,
                               }
-                              : s.metadata,
-                          }
-                          : s,
-                      ),
-                    }
+                            : s,
+                        ),
+                      }
                     : null,
                 }));
               } catch (_e) {
@@ -1439,23 +1439,23 @@ export function Build(): React.JSX.Element {
               useAppStore.setState((state) => ({
                 currentProject: state.currentProject
                   ? {
-                    ...state.currentProject,
-                    schemas: state.currentProject.schemas.map((s) =>
-                      s.id === schema.id
-                        ? {
-                          ...s,
-                          content: parsed,
-                          metadata: s.metadata
-                            ? {
-                              ...s.metadata,
-                              lastModified: new Date(),
-                              fileSize: formatted.length,
+                      ...state.currentProject,
+                      schemas: state.currentProject.schemas.map((s) =>
+                        s.id === schema.id
+                          ? {
+                              ...s,
+                              content: parsed,
+                              metadata: s.metadata
+                                ? {
+                                    ...s.metadata,
+                                    lastModified: new Date(),
+                                    fileSize: formatted.length,
+                                  }
+                                : s.metadata,
                             }
-                            : s.metadata,
-                        }
-                        : s,
-                    ),
-                  }
+                          : s,
+                      ),
+                    }
                   : null,
               }));
             } catch (e) {
@@ -1599,15 +1599,15 @@ export function Build(): React.JSX.Element {
         useAppStore.setState((state) => ({
           currentProject: state.currentProject
             ? {
-              ...state.currentProject,
-              schemas: [...state.currentProject.schemas, newSchema],
-              schemaIds: [...state.currentProject.schemaIds, schemaId],
-              status: {
-                ...state.currentProject.status,
-                totalSchemas: state.currentProject.status.totalSchemas + 1,
-                // New schema starts as pending, so no change to valid/invalid counts yet
-              },
-            }
+                ...state.currentProject,
+                schemas: [...state.currentProject.schemas, newSchema],
+                schemaIds: [...state.currentProject.schemaIds, schemaId],
+                status: {
+                  ...state.currentProject.status,
+                  totalSchemas: state.currentProject.status.totalSchemas + 1,
+                  // New schema starts as pending, so no change to valid/invalid counts yet
+                },
+              }
             : null,
         }));
 
@@ -1642,27 +1642,27 @@ export function Build(): React.JSX.Element {
       useAppStore.setState((state) => ({
         currentProject: state.currentProject
           ? {
-            ...state.currentProject,
-            schemas: state.currentProject.schemas.filter(
-              (s) => s.id !== schemaToDelete.id,
-            ),
-            schemaIds: state.currentProject.schemaIds.filter(
-              (id) => id !== schemaToDelete.id,
-            ),
-            status: {
-              ...state.currentProject.status,
-              totalSchemas: state.currentProject.status.totalSchemas - 1,
-              // Adjust valid/invalid counts based on the deleted schema's validation status
-              validSchemas:
-                schemaToDelete.validationStatus === 'valid'
-                  ? state.currentProject.status.validSchemas - 1
-                  : state.currentProject.status.validSchemas,
-              invalidSchemas:
-                schemaToDelete.validationStatus === 'invalid'
-                  ? state.currentProject.status.invalidSchemas - 1
-                  : state.currentProject.status.invalidSchemas,
-            },
-          }
+              ...state.currentProject,
+              schemas: state.currentProject.schemas.filter(
+                (s) => s.id !== schemaToDelete.id,
+              ),
+              schemaIds: state.currentProject.schemaIds.filter(
+                (id) => id !== schemaToDelete.id,
+              ),
+              status: {
+                ...state.currentProject.status,
+                totalSchemas: state.currentProject.status.totalSchemas - 1,
+                // Adjust valid/invalid counts based on the deleted schema's validation status
+                validSchemas:
+                  schemaToDelete.validationStatus === 'valid'
+                    ? state.currentProject.status.validSchemas - 1
+                    : state.currentProject.status.validSchemas,
+                invalidSchemas:
+                  schemaToDelete.validationStatus === 'invalid'
+                    ? state.currentProject.status.invalidSchemas - 1
+                    : state.currentProject.status.invalidSchemas,
+              },
+            }
           : null,
       }));
 
@@ -1729,11 +1729,11 @@ export function Build(): React.JSX.Element {
       useAppStore.setState((state) => ({
         currentProject: state.currentProject
           ? {
-            ...state.currentProject,
-            schemas: state.currentProject.schemas.map((s) =>
-              s.id === schemaToRename.id ? updatedSchema : s,
-            ),
-          }
+              ...state.currentProject,
+              schemas: state.currentProject.schemas.map((s) =>
+                s.id === schemaToRename.id ? updatedSchema : s,
+              ),
+            }
           : null,
       }));
 
@@ -1821,34 +1821,48 @@ export function Build(): React.JSX.Element {
       destFolderAbs = `${currentProject.path}/${moveTargetFolder.replace(/^\/+|\/+$|\/+/g, (m) => (m.length > 1 ? '/' : ''))}`;
     } else {
       // Fallback to dialog
-      const pick = await (window as any).api.selectDestinationFolder('Select destination folder');
-      if (!pick?.success || !pick?.folderPath) {
+      const pick = await (window as any).api.selectDestinationFolder(
+        'Select destination folder',
+      );
+      if (!pick?.success || !pick?.data) {
         throw new Error('No destination selected');
       }
-      destFolderAbs = pick.folderPath;
+      destFolderAbs = pick.data as string;
     }
 
     // Build destination path
-    const baseName = contextMenuItem.type === 'schema'
-      ? `${contextMenuItem.name}.schema.json`
-      : contextMenuItem.name;
+    const baseName =
+      contextMenuItem.type === 'schema'
+        ? `${contextMenuItem.name}.schema.json`
+        : contextMenuItem.name;
     let destinationAbs = `${destFolderAbs}/${baseName}`.replace(/\/+/g, '/');
 
     // Ensure unique for schemas using existing generator
     if (contextMenuItem.type === 'schema') {
-      const destRelFolder = destFolderAbs.replace(currentProject.path + '/', '');
-      const uniqueName = await generateUniqueFileName(destRelFolder, `${contextMenuItem.name}.schema.json`);
+      const destRelFolder = destFolderAbs.replace(
+        currentProject.path + '/',
+        '',
+      );
+      const uniqueName = await generateUniqueFileName(
+        destRelFolder,
+        `${contextMenuItem.name}.schema.json`,
+      );
       destinationAbs = `${destFolderAbs}/${uniqueName}`;
     }
 
-    const result = await (window as any).api.moveFile(sourceAbs, destinationAbs);
+    const result = await (window as any).api.moveFile(
+      sourceAbs,
+      destinationAbs,
+    );
     if (!result?.success) {
       throw new Error(result?.error || 'Move failed');
     }
 
     // Update store: remove from old location and insert under new folder
     setTreeItems((prev) => {
-      const removeItem = (items: TreeItem[]): { next: TreeItem[]; removed?: TreeItem } => {
+      const removeItem = (
+        items: TreeItem[],
+      ): { next: TreeItem[]; removed?: TreeItem } => {
         let removed: TreeItem | undefined;
         const next = items
           .map((it) => {
@@ -1867,14 +1881,28 @@ export function Build(): React.JSX.Element {
         return { next, removed };
       };
 
-      const insertUnder = (items: TreeItem[], folderPathRel: string, child: TreeItem): TreeItem[] => {
+      const insertUnder = (
+        items: TreeItem[],
+        folderPathRel: string,
+        child: TreeItem,
+      ): TreeItem[] => {
         return items.map((it) => {
           if (it.type === 'folder' && it.path === folderPathRel) {
-            const newChild = { ...child, path: `${folderPathRel}/${child.name}`.replace(/\/+/g, '/') };
-            return { ...it, expanded: true, children: [...it.children, newChild] };
+            const newChild = {
+              ...child,
+              path: `${folderPathRel}/${child.name}`.replace(/\/+/g, '/'),
+            };
+            return {
+              ...it,
+              expanded: true,
+              children: [...it.children, newChild],
+            };
           }
           if (it.children.length > 0) {
-            return { ...it, children: insertUnder(it.children, folderPathRel, child) };
+            return {
+              ...it,
+              children: insertUnder(it.children, folderPathRel, child),
+            };
           }
           return it;
         });
@@ -1882,7 +1910,10 @@ export function Build(): React.JSX.Element {
 
       const removedRes = removeItem(prev);
       if (!removedRes.removed) return prev;
-      const destRelFolder = destFolderAbs.replace(currentProject.path + '/', '');
+      const destRelFolder = destFolderAbs.replace(
+        currentProject.path + '/',
+        '',
+      );
       return insertUnder(removedRes.next, destRelFolder, removedRes.removed);
     });
 
@@ -2680,7 +2711,7 @@ export function Build(): React.JSX.Element {
                             editorTabs.findIndex(
                               (t) => t.id === activeTabId,
                             ) ===
-                            editorTabs.length - 1
+                              editorTabs.length - 1
                           }
                         >
                           <ArrowRight className="w-4 h-4 mr-2" />
@@ -2751,25 +2782,25 @@ export function Build(): React.JSX.Element {
                               useAppStore.setState((state) => ({
                                 currentProject: state.currentProject
                                   ? {
-                                    ...state.currentProject,
-                                    schemas: state.currentProject.schemas.map(
-                                      (s) =>
-                                        s.id === tab.schema.id
-                                          ? {
-                                            ...s,
-                                            content: parsed,
-                                            metadata: s.metadata
-                                              ? {
-                                                ...s.metadata,
-                                                lastModified: new Date(),
-                                                fileSize:
-                                                  savedContent.length,
+                                      ...state.currentProject,
+                                      schemas: state.currentProject.schemas.map(
+                                        (s) =>
+                                          s.id === tab.schema.id
+                                            ? {
+                                                ...s,
+                                                content: parsed,
+                                                metadata: s.metadata
+                                                  ? {
+                                                      ...s.metadata,
+                                                      lastModified: new Date(),
+                                                      fileSize:
+                                                        savedContent.length,
+                                                    }
+                                                  : s.metadata,
                                               }
-                                              : s.metadata,
-                                          }
-                                          : s,
-                                    ),
-                                  }
+                                            : s,
+                                      ),
+                                    }
                                   : null,
                               }));
                               // Only update tab content if it's actually different from current tab content
@@ -2939,36 +2970,39 @@ export function Build(): React.JSX.Element {
         </DialogContent>
       </Dialog>
 
-  {/* Move Dialog */}
-  <Dialog open={isMoveDialogOpen} onOpenChange={setIsMoveDialogOpen}>
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>
-          Move {contextMenuItem?.type === 'folder' ? 'Folder' : 'Schema'}
-        </DialogTitle>
-        <DialogDescription>
-          Choose destination folder within the project.
-        </DialogDescription>
-      </DialogHeader>
-      <div className="py-4 space-y-2">
-        <Input
-          placeholder="Destination relative folder (e.g. models/user)"
-          value={moveTargetFolder}
-          onChange={(e) => setMoveTargetFolder(e.target.value)}
-          autoFocus
-        />
-        <div className="text-xs text-muted-foreground">
-          Leave empty to pick using system folder dialog.
-        </div>
-      </div>
-      <DialogFooter>
-        <Button variant="outline" onClick={() => setIsMoveDialogOpen(false)}>
-          Cancel
-        </Button>
-        <Button onClick={handleMoveConfirm}>Move</Button>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>
+      {/* Move Dialog */}
+      <Dialog open={isMoveDialogOpen} onOpenChange={setIsMoveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Move {contextMenuItem?.type === 'folder' ? 'Folder' : 'Schema'}
+            </DialogTitle>
+            <DialogDescription>
+              Choose destination folder within the project.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-2">
+            <Input
+              placeholder="Destination relative folder (e.g. models/user)"
+              value={moveTargetFolder}
+              onChange={(e) => setMoveTargetFolder(e.target.value)}
+              autoFocus
+            />
+            <div className="text-xs text-muted-foreground">
+              Leave empty to pick using system folder dialog.
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsMoveDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleMoveConfirm}>Move</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Create Schema Dialog */}
       <Dialog
@@ -3203,9 +3237,9 @@ export function Build(): React.JSX.Element {
                 <pre className="text-xs">
                   {templateSchemaName.trim()
                     ? getTemplatePreview(
-                      templateSchemaName.trim(),
-                      selectedTemplate,
-                    )
+                        templateSchemaName.trim(),
+                        selectedTemplate,
+                      )
                     : 'Enter a schema name to see preview'}
                 </pre>
               </div>
