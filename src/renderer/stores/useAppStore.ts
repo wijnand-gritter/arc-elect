@@ -114,6 +114,10 @@ interface AppState {
   /** Currently selected schema ID */
   selectedSchemaId: string | null;
 
+  // UI state: expanded folders by project path
+  /** Map of projectPath -> array of expanded folder paths */
+  expandedFoldersByProject: Record<string, string[]>;
+
   // Actions
   /** Function to update the theme setting */
   setTheme: (theme: Theme) => Promise<void>;
@@ -170,6 +174,14 @@ interface AppState {
   closeAllModals: () => void;
   /** Function to set active modal tab */
   setActiveModalTab: (tab: SchemaDetailModal['activeTab']) => void;
+
+  // Tree UI state actions
+  /** Get expanded folder paths for a project */
+  getExpandedFolders: (projectPath: string) => string[];
+  /** Set expanded folder paths for a project (overwrites) */
+  setExpandedFolders: (projectPath: string, folderPaths: string[]) => void;
+  /** Toggle a single folder's expanded state for a project */
+  toggleFolderExpanded: (projectPath: string, folderPath: string) => void;
 }
 
 /**
@@ -216,6 +228,7 @@ export const useAppStore = create<AppState>()(
         modalStack: [],
         currentModalIndex: 0,
         selectedSchemaId: null,
+        expandedFoldersByProject: {},
 
         /**
          * Loads a project from the given path.
@@ -722,6 +735,34 @@ export const useAppStore = create<AppState>()(
             ),
           }));
         },
+
+        // Tree UI state actions
+        getExpandedFolders: (projectPath: string) => {
+          const map = get().expandedFoldersByProject;
+          return map[projectPath] ?? [];
+        },
+        setExpandedFolders: (projectPath: string, folderPaths: string[]) => {
+          set((state) => ({
+            expandedFoldersByProject: {
+              ...state.expandedFoldersByProject,
+              [projectPath]: Array.from(new Set(folderPaths)),
+            },
+          }));
+        },
+        toggleFolderExpanded: (projectPath: string, folderPath: string) => {
+          set((state) => {
+            const current = state.expandedFoldersByProject[projectPath] ?? [];
+            const setCurrent = new Set(current);
+            if (setCurrent.has(folderPath)) setCurrent.delete(folderPath);
+            else setCurrent.add(folderPath);
+            return {
+              expandedFoldersByProject: {
+                ...state.expandedFoldersByProject,
+                [projectPath]: Array.from(setCurrent),
+              },
+            };
+          });
+        },
       }),
       {
         name: 'app-storage',
@@ -729,6 +770,7 @@ export const useAppStore = create<AppState>()(
           theme: state.theme,
           currentProject: state.currentProject,
           recentProjects: state.recentProjects,
+          expandedFoldersByProject: state.expandedFoldersByProject,
         }),
       },
     ),

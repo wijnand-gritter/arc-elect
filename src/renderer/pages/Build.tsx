@@ -13,12 +13,6 @@
  */
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import {
-  DndContext,
-  DragEndEvent,
-  useDraggable,
-  useDroppable,
-} from '@dnd-kit/core';
 import { safeAsyncHandler, safeHandler } from '../lib/error-handling';
 
 import { Card, CardContent } from '../components/ui/card';
@@ -142,6 +136,8 @@ interface TreeItem {
  */
 export function Build(): React.JSX.Element {
   const currentProject = useAppStore((state) => state.currentProject);
+  const getExpandedFolders = useAppStore((s) => s.getExpandedFolders);
+  const toggleFolderExpandedInStore = useAppStore((s) => s.toggleFolderExpanded);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [editorTabs, setEditorTabs] = useState<EditorTab[]>([]);
   const [treeItems, setTreeItems] = useState<TreeItem[]>([]);
@@ -169,10 +165,8 @@ export function Build(): React.JSX.Element {
   const [rootFolderName, setRootFolderName] = useState('');
   const [templateSchemaName, setTemplateSchemaName] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('simple-object');
-  const setCurrentProjectStore = useAppStore((s) => s.setCurrentProject);
-  const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(new Set());
 
-  // Drag and drop state
+  // Drag and drop state (reserved for future use) - disabled
   const [draggedItem, setDraggedItem] = useState<TreeItem | null>(null);
   const [dragOverItem, setDragOverItem] = useState<TreeItem | null>(null);
   const [isDragActive, setIsDragActive] = useState(false);
@@ -223,269 +217,20 @@ export function Build(): React.JSX.Element {
     [checkForDuplicates, pathJoin, pathBasename],
   );
 
-  // dnd-kit: find node by id in tree
-  const findItemById = useCallback(
-    (items: TreeItem[], id: string): TreeItem | null => {
-      for (const it of items) {
-        if (it.id === id) return it;
-        const child = findItemById(it.children, id);
-        if (child) return child;
-      }
-      return null;
-    },
-    [],
-  );
-
-  // dnd-kit: Drop handler translating to file move
-  const onDragEnd = useCallback(
-    async (event: DragEndEvent) => {
-      setIsDragActive(false);
-      setDragOverItem(null);
-      const activeId = String(event.active.id);
-      const overId = event.over ? String(event.over.id) : null;
-      if (!activeId || !overId) return;
-
-      const dragged = findItemById(treeItems, activeId);
-      const target = findItemById(treeItems, overId);
-      if (!dragged || !target || dragged.id === target.id) return;
-      if (dragged.type !== 'schema' || target.type !== 'folder') return;
-      if (!currentProject || !dragged.schema) return;
-
-      try {
-        const sourceSchema = dragged.schema;
-        const targetFolderPath = pathJoin(currentProject.path, target.path);
-        const fileName = pathBasename(sourceSchema.relativePath);
-        const newRelativePath = pathJoin(target.path, fileName);
-        const newAbsolutePath = pathJoin(currentProject.path, newRelativePath);
-
-        const isDuplicate = await checkForDuplicates(newAbsolutePath);
-        if (isDuplicate) {
-          const uniqueFileName = await generateUniqueFileName(
-            targetFolderPath,
-            fileName,
-          );
-          const uniqueRelativePath = pathJoin(target.path, uniqueFileName);
-          const uniqueAbsolutePath = pathJoin(
-            currentProject.path,
-            uniqueRelativePath,
-          );
-          const moveResult = await window.api.moveFile(
-            sourceSchema.path,
-            uniqueAbsolutePath,
-          );
-          if (!moveResult.success)
-            throw new Error(moveResult.error || 'move failed');
-        } else {
-          const moveResult = await window.api.moveFile(
-            sourceSchema.path,
-            newAbsolutePath,
-          );
-          if (!moveResult.success)
-            throw new Error(moveResult.error || 'move failed');
-        }
-
-        const refreshResult = await window.api.loadProject(currentProject.path);
-        if (refreshResult.success && refreshResult.project) {
-          // Update store so UI reflects changes immediately without navigation
-          setCurrentProjectStore(refreshResult.project);
-          // Ensure target folder stays expanded after move
-          setExpandedFolderIds((prev) => new Set(prev).add(target.id));
-        } else {
-          logger.error('Failed to refresh project after move', {
-            error: refreshResult.error,
-          });
-        }
-      } catch (error) {
-        logger.error('Failed to move file', { error, dragged, target });
-      } finally {
-        setDraggedItem(null);
-      }
-    },
-    [
-      treeItems,
-      currentProject,
-      checkForDuplicates,
-      generateUniqueFileName,
-      pathJoin,
-      pathBasename,
-      findItemById,
-      setCurrentProjectStore,
-    ],
-  );
-
-  // Drag and drop handlers
-  const handleDragStart = useCallback((item: TreeItem, e: React.DragEvent) => {
-    if (item.type !== 'schema') {
-      e.preventDefault();
-      return;
-    }
-
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', item.id);
-    setDraggedItem(item);
-    setIsDragActive(true);
-    logger.info('Drag started', {
-      item: item.name,
-      type: item.type,
-      id: item.id,
-      hasSchema: !!item.schema,
-    });
+  // Drag and drop handlers (disabled)
+  const handleDragStart = useCallback((_item: TreeItem, e: React.DragEvent) => {
+    e.preventDefault();
   }, []);
-
-  const handleDragOver = useCallback(
-    (item: TreeItem, e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      // Only allow dropping on folders and prevent dropping on self
-      if (item.type === 'folder' && draggedItem && draggedItem.id !== item.id) {
-        e.dataTransfer.dropEffect = 'move';
-        setDragOverItem(item);
-        logger.debug('Drag over folder - allowed', {
-          targetFolder: item.name,
-          draggedItem: draggedItem.name,
-        });
-      } else {
-        e.dataTransfer.dropEffect = 'none';
-        setDragOverItem(null);
-        logger.debug('Drag over - not allowed', {
-          targetType: item.type,
-          targetName: item.name,
-          draggedItem: draggedItem?.name,
-          reason: item.type !== 'folder' ? 'not a folder' : 'same item',
-        });
-      }
-    },
-    [draggedItem],
-  );
-
+  const handleDragOver = useCallback((_item: TreeItem, e: React.DragEvent) => {
+    e.preventDefault();
+  }, []);
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    e.stopPropagation();
-    // Only clear drag over if we're leaving the target element itself
-    if (e.currentTarget === e.target) {
-      setDragOverItem(null);
-    }
   }, []);
-
-  const handleDrop = useCallback(
-    async (targetItem: TreeItem, e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsDragActive(false);
-      setDragOverItem(null);
-
-      logger.info('Drop event triggered', {
-        draggedItem: draggedItem?.name,
-        draggedItemType: draggedItem?.type,
-        targetItem: targetItem.name,
-        targetType: targetItem.type,
-        draggedItemId: draggedItem?.id,
-        targetItemId: targetItem.id,
-      });
-
-      if (!draggedItem || !currentProject || draggedItem.id === targetItem.id) {
-        logger.debug('Drop cancelled - invalid conditions');
-        setDraggedItem(null);
-        return;
-      }
-
-      // Only allow dropping on folders
-      if (targetItem.type !== 'folder') {
-        logger.debug('Drop cancelled - target is not a folder');
-        setDraggedItem(null);
-        return;
-      }
-
-      try {
-        const sourceSchema = draggedItem.schema;
-        if (!sourceSchema) {
-          logger.warn('No schema found for dragged item', { draggedItem });
-          setDraggedItem(null);
-          return;
-        }
-
-        // Calculate new path
-        const targetFolderPath = pathJoin(currentProject.path, targetItem.path);
-        const fileName = pathBasename(sourceSchema.relativePath);
-        const newRelativePath = pathJoin(targetItem.path, fileName);
-        const newAbsolutePath = pathJoin(currentProject.path, newRelativePath);
-
-        // Check for duplicates
-        const isDuplicate = await checkForDuplicates(newAbsolutePath);
-        if (isDuplicate) {
-          const uniqueFileName = await generateUniqueFileName(
-            targetFolderPath,
-            fileName,
-          );
-          const uniqueRelativePath = pathJoin(targetItem.path, uniqueFileName);
-          const uniqueAbsolutePath = pathJoin(
-            currentProject.path,
-            uniqueRelativePath,
-          );
-
-          logger.info('Moving file with unique name to avoid duplicate', {
-            original: sourceSchema.relativePath,
-            target: uniqueRelativePath,
-            uniqueFileName,
-          });
-
-          // Move the file
-          const moveResult = await window.api.moveFile(
-            sourceSchema.path,
-            uniqueAbsolutePath,
-          );
-          if (!moveResult.success) {
-            throw new Error(moveResult.error || 'Failed to move file');
-          }
-        } else {
-          logger.info('Moving file to new location', {
-            from: sourceSchema.relativePath,
-            to: newRelativePath,
-          });
-
-          // Move the file
-          const moveResult = await window.api.moveFile(
-            sourceSchema.path,
-            newAbsolutePath,
-          );
-          if (!moveResult.success) {
-            throw new Error(moveResult.error || 'Failed to move file');
-          }
-        }
-
-        // Refresh the project to reflect changes
-        const refreshResult = await window.api.loadProject(currentProject.path);
-        if (refreshResult.success && refreshResult.project) {
-          // Update the project state through the store
-          // This will trigger a re-render with the new file structure
-          logger.info('File moved successfully, project refreshed');
-        } else {
-          logger.error('Failed to refresh project after move', {
-            error: refreshResult.error,
-          });
-        }
-      } catch (error) {
-        logger.error('Failed to move file', { error, draggedItem, targetItem });
-      } finally {
-        setDraggedItem(null);
-      }
-    },
-    [
-      draggedItem,
-      currentProject,
-      checkForDuplicates,
-      generateUniqueFileName,
-      pathJoin,
-      pathBasename,
-    ],
-  );
-
-  const handleDragEnd = useCallback(() => {
-    setIsDragActive(false);
-    setDragOverItem(null);
-    setDraggedItem(null);
+  const handleDrop = useCallback(async (_targetItem: TreeItem, e: React.DragEvent) => {
+    e.preventDefault();
   }, []);
+  const handleDragEnd = useCallback(() => {}, []);
 
   // Build tree structure from schemas - file system approach
   const buildTreeStructure = useCallback((schemas: Schema[]): TreeItem[] => {
@@ -586,6 +331,25 @@ export function Build(): React.JSX.Element {
         rootItems.push(schemaItem);
       }
     });
+
+    // Restore expanded state from store
+    try {
+      const projectPath = currentProject?.path || '';
+      const expandedFromStore = projectPath
+        ? new Set(getExpandedFolders(projectPath))
+        : new Set<string>();
+      const applyExpansion = (items: TreeItem[]) => {
+        for (const it of items) {
+          if (it.type === 'folder' && expandedFromStore.has(it.path)) {
+            it.expanded = true;
+          }
+          if (it.children.length > 0) applyExpansion(it.children);
+        }
+      };
+      applyExpansion(rootItems);
+    } catch (_e) {
+      // ignore restore errors
+    }
 
     // Sort function: folders first, then files, both alphabetically
     const sortItems = (items: TreeItem[]): TreeItem[] => {
@@ -2441,46 +2205,6 @@ export function Build(): React.JSX.Element {
     );
   };
 
-  // dnd-kit node wrappers for tree
-  const DroppableFolder: React.FC<{
-    item: TreeItem;
-    className?: string;
-    style?: React.CSSProperties;
-  }> = ({ item, className, style, children }) => {
-    const { setNodeRef, isOver } = useDroppable({ id: item.id });
-    return (
-      <div
-        ref={setNodeRef}
-        className={className}
-        style={style}
-        data-over={isOver}
-      >
-        {children}
-      </div>
-    );
-  };
-
-  const DraggableSchema: React.FC<{
-    item: TreeItem;
-    className?: string;
-    style?: React.CSSProperties;
-  }> = ({ item, className, style, children }) => {
-    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-      id: item.id,
-    });
-    return (
-      <div
-        ref={setNodeRef}
-        {...listeners}
-        {...attributes}
-        className={`${className || ''}${isDragging ? ' opacity-50' : ''}`}
-        style={style}
-      >
-        {children}
-      </div>
-    );
-  };
-
   // Render tree item
   const renderTreeItem = (item: TreeItem, depth = 0) => {
     const Icon =
@@ -2488,93 +2212,69 @@ export function Build(): React.JSX.Element {
     const hasChildren = item.children.length > 0;
     const indentStyle = { paddingLeft: `${depth * 16 + 8}px` };
 
-    const row = (
-      <div
-        className={`flex items-center gap-2 py-1 px-2 hover:bg-accent/50 rounded-sm ${
-          dragOverItem?.id === item.id
-            ? 'bg-accent/30 ring-2 ring-primary/50'
-            : ''
-        } ${draggedItem?.id === item.id ? 'opacity-50' : ''} ${
-          item.type === 'schema' ? 'cursor-move' : 'cursor-pointer'
-        }`}
-        style={indentStyle}
-        onClick={() => {
-          if (item.type === 'folder') {
-            toggleTreeItem(item.id);
-          } else if (item.schema) {
-            openSchemaTab(item.schema);
-          }
-        }}
-      >
-        {hasChildren ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-4 w-4 p-0 shrink-0"
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleTreeItem(item.id);
-              if (item.type === 'folder') {
-                setExpandedFolderIds((prev) => {
-                  const next = new Set(prev);
-                  if (next.has(item.id)) next.delete(item.id);
-                  else next.add(item.id);
-                  return next;
-                });
-              }
-            }}
-          >
-            {item.expanded ? (
-              <ChevronDown className="h-3 w-3" />
-            ) : (
-              <ChevronRight className="h-3 w-3" />
-            )}
-          </Button>
-        ) : (
-          <div className="h-4 w-4 shrink-0" />
-        )}
-        <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-        <span className="text-sm truncate">{item.name}</span>
-        {item.schema && (
-          <Badge
-            variant={
-              item.schema.validationStatus === 'valid'
-                ? 'default'
-                : 'destructive'
-            }
-            className="ml-auto h-4 text-xs"
-          >
-            {item.schema.validationStatus}
-          </Badge>
-        )}
-      </div>
-    );
-
     return (
       <div key={item.id}>
         <ContextMenu>
           <ContextMenuTrigger asChild>
-            {item.type === 'folder' ? (
-              <DroppableFolder item={item}>
-                <div
+            <div
+              className={`flex items-center gap-2 py-1 px-2 hover:bg-accent/50 rounded-sm ${item.type === 'schema' ? 'cursor-default' : 'cursor-pointer'}`}
+              style={indentStyle}
+              draggable={false}
+              onDragStart={(e) =>
+                item.type === 'schema' && handleDragStart(item, e)
+              }
+              onDragOver={(e) => handleDragOver(item, e)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(item, e)}
+              onDragEnd={handleDragEnd}
+        onClick={() => {
+          if (item.type === 'folder') {
+            toggleTreeItem(item.id);
+            if (currentProject?.path) {
+              toggleFolderExpandedInStore(currentProject.path, item.path);
+            }
+          } else if (item.schema) {
+            openSchemaTab(item.schema);
+          }
+        }}
+            >
+              {hasChildren ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-4 w-4 p-0 shrink-0"
                   onClick={(e) => {
-                    // Prevent context menu trigger from swallowing toggle
                     e.stopPropagation();
                     toggleTreeItem(item.id);
-                    setExpandedFolderIds((prev) => {
-                      const next = new Set(prev);
-                      if (next.has(item.id)) next.delete(item.id);
-                      else next.add(item.id);
-                      return next;
-                    });
+                    if (currentProject?.path) {
+                      toggleFolderExpandedInStore(currentProject.path, item.path);
+                    }
                   }}
                 >
-                  {row}
-                </div>
-              </DroppableFolder>
-            ) : (
-              <DraggableSchema item={item}>{row}</DraggableSchema>
-            )}
+                  {item.expanded ? (
+                    <ChevronDown className="h-3 w-3" />
+                  ) : (
+                    <ChevronRight className="h-3 w-3" />
+                  )}
+                </Button>
+              ) : (
+                <div className="h-4 w-4 shrink-0" /> // Spacer for alignment
+              )}
+              <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="text-sm truncate">{item.name}</span>
+              {item.schema && (
+                <Badge
+                  variant={
+                    item.schema.validationStatus === 'valid'
+                      ? 'default'
+                      : 'destructive'
+                  }
+                  className="ml-auto h-4 text-xs"
+                >
+                  {item.schema.validationStatus}
+                </Badge>
+              )}
+            </div>
           </ContextMenuTrigger>
           <ContextMenuContent className="w-56">
             {item.type === 'schema' && (
@@ -2626,7 +2326,7 @@ export function Build(): React.JSX.Element {
             </ContextMenuItem>
           </ContextMenuContent>
         </ContextMenu>
-        {(item.expanded || expandedFolderIds.has(item.id)) &&
+        {item.expanded &&
           item.children.map((child) => renderTreeItem(child, depth + 1))}
       </div>
     );
@@ -2726,55 +2426,46 @@ export function Build(): React.JSX.Element {
                 className="w-full pl-8 pr-4 py-2 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
-            {isDragActive && (
-              <div className="mt-2 text-xs text-muted-foreground text-center">
-                Drag schema to folder to move
-              </div>
-            )}
+            {/* drag hints disabled */}
           </div>
           <div className="flex-1 min-h-0 p-0">
-            <DndContext
-              onDragEnd={onDragEnd}
-              onDragStart={() => setIsDragActive(true)}
-            >
-              <ContextMenu>
-                <ContextMenuTrigger asChild>
-                  <ScrollArea className="h-full w-full px-3">
-                    {filteredTreeItems.length > 0 ? (
-                      <div className="space-y-1">
-                        {filteredTreeItems.map((item) => renderTreeItem(item))}
+            <ContextMenu>
+              <ContextMenuTrigger asChild>
+                <ScrollArea className="h-full w-full px-3">
+                  {filteredTreeItems.length > 0 ? (
+                    <div className="space-y-1">
+                      {filteredTreeItems.map((item) => renderTreeItem(item))}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="text-center">
+                        <FileText className="w-8 h-8 mx-auto text-muted-foreground opacity-50 mb-2" />
+                        <p className="text-sm text-muted-foreground">
+                          {searchQuery
+                            ? 'No schemas match your search'
+                            : 'No schemas found'}
+                        </p>
                       </div>
-                    ) : (
-                      <div className="flex items-center justify-center py-8">
-                        <div className="text-center">
-                          <FileText className="w-8 h-8 mx-auto text-muted-foreground opacity-50 mb-2" />
-                          <p className="text-sm text-muted-foreground">
-                            {searchQuery
-                              ? 'No schemas match your search'
-                              : 'No schemas found'}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </ScrollArea>
-                </ContextMenuTrigger>
-                <ContextMenuContent className="w-56">
-                  <ContextMenuItem onClick={handleCreateRootSchema}>
-                    <FilePlus className="w-4 h-4 mr-2" />
-                    New Schema
-                  </ContextMenuItem>
-                  <ContextMenuItem onClick={handleCreateRootFolder}>
-                    <FolderPlus className="w-4 h-4 mr-2" />
-                    New Folder
-                  </ContextMenuItem>
-                  <ContextMenuSeparator />
-                  <ContextMenuItem onClick={handleCreateTemplateSchema}>
-                    <FileText className="w-4 h-4 mr-2" />
-                    Create Schema from Template
-                  </ContextMenuItem>
-                </ContextMenuContent>
-              </ContextMenu>
-            </DndContext>
+                    </div>
+                  )}
+                </ScrollArea>
+              </ContextMenuTrigger>
+              <ContextMenuContent className="w-56">
+                <ContextMenuItem onClick={handleCreateRootSchema}>
+                  <FilePlus className="w-4 h-4 mr-2" />
+                  New Schema
+                </ContextMenuItem>
+                <ContextMenuItem onClick={handleCreateRootFolder}>
+                  <FolderPlus className="w-4 h-4 mr-2" />
+                  New Folder
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem onClick={handleCreateTemplateSchema}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Create Schema from Template
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
           </div>
         </div>
 
