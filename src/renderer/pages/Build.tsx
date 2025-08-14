@@ -23,7 +23,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '../components/ui/tabs';
-import { ScrollArea } from '../components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '../components/ui/scroll-area';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import {
@@ -137,7 +137,9 @@ interface TreeItem {
 export function Build(): React.JSX.Element {
   const currentProject = useAppStore((state) => state.currentProject);
   const getExpandedFolders = useAppStore((s) => s.getExpandedFolders);
-  const toggleFolderExpandedInStore = useAppStore((s) => s.toggleFolderExpanded);
+  const toggleFolderExpandedInStore = useAppStore(
+    (s) => s.toggleFolderExpanded,
+  );
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [editorTabs, setEditorTabs] = useState<EditorTab[]>([]);
   const [treeItems, setTreeItems] = useState<TreeItem[]>([]);
@@ -165,11 +167,8 @@ export function Build(): React.JSX.Element {
   const [rootFolderName, setRootFolderName] = useState('');
   const [templateSchemaName, setTemplateSchemaName] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('simple-object');
-
-  // Drag and drop state (reserved for future use) - disabled
-  const [draggedItem, setDraggedItem] = useState<TreeItem | null>(null);
-  const [dragOverItem, setDragOverItem] = useState<TreeItem | null>(null);
-  const [isDragActive, setIsDragActive] = useState(false);
+  const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
+  const [moveTargetFolder, setMoveTargetFolder] = useState('');
 
   // Browser-compatible path utilities
   const pathJoin = useCallback((...paths: string[]): string => {
@@ -216,21 +215,6 @@ export function Build(): React.JSX.Element {
     },
     [checkForDuplicates, pathJoin, pathBasename],
   );
-
-  // Drag and drop handlers (disabled)
-  const handleDragStart = useCallback((_item: TreeItem, e: React.DragEvent) => {
-    e.preventDefault();
-  }, []);
-  const handleDragOver = useCallback((_item: TreeItem, e: React.DragEvent) => {
-    e.preventDefault();
-  }, []);
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-  }, []);
-  const handleDrop = useCallback(async (_targetItem: TreeItem, e: React.DragEvent) => {
-    e.preventDefault();
-  }, []);
-  const handleDragEnd = useCallback(() => {}, []);
 
   // Build tree structure from schemas - file system approach
   const buildTreeStructure = useCallback((schemas: Schema[]): TreeItem[] => {
@@ -542,23 +526,23 @@ export function Build(): React.JSX.Element {
             useAppStore.setState((state) => ({
               currentProject: state.currentProject
                 ? {
-                    ...state.currentProject,
-                    schemas: state.currentProject.schemas.map((s) =>
-                      s.id === tab.schema.id
-                        ? {
-                            ...s,
-                            content: parsed,
-                            metadata: s.metadata
-                              ? {
-                                  ...s.metadata,
-                                  lastModified: new Date(),
-                                  fileSize: tab.content.length,
-                                }
-                              : s.metadata,
+                  ...state.currentProject,
+                  schemas: state.currentProject.schemas.map((s) =>
+                    s.id === tab.schema.id
+                      ? {
+                        ...s,
+                        content: parsed,
+                        metadata: s.metadata
+                          ? {
+                            ...s.metadata,
+                            lastModified: new Date(),
+                            fileSize: tab.content.length,
                           }
-                        : s,
-                    ),
-                  }
+                          : s.metadata,
+                      }
+                      : s,
+                  ),
+                }
                 : null,
             }));
             logger.info('Updated store schema content after save', {
@@ -931,12 +915,12 @@ export function Build(): React.JSX.Element {
         );
         return latest
           ? {
-              ...tab,
-              schema: {
-                ...tab.schema,
-                validationStatus: latest.validationStatus,
-              },
-            }
+            ...tab,
+            schema: {
+              ...tab.schema,
+              validationStatus: latest.validationStatus,
+            },
+          }
           : tab;
       }),
     );
@@ -1287,23 +1271,23 @@ export function Build(): React.JSX.Element {
                 useAppStore.setState((state) => ({
                   currentProject: state.currentProject
                     ? {
-                        ...state.currentProject,
-                        schemas: state.currentProject.schemas.map((s) =>
-                          s.id === tab.schema.id
-                            ? {
-                                ...s,
-                                content: parsed,
-                                metadata: s.metadata
-                                  ? {
-                                      ...s.metadata,
-                                      lastModified: new Date(),
-                                      fileSize: tab.content.length,
-                                    }
-                                  : s.metadata,
+                      ...state.currentProject,
+                      schemas: state.currentProject.schemas.map((s) =>
+                        s.id === tab.schema.id
+                          ? {
+                            ...s,
+                            content: parsed,
+                            metadata: s.metadata
+                              ? {
+                                ...s.metadata,
+                                lastModified: new Date(),
+                                fileSize: tab.content.length,
                               }
-                            : s,
-                        ),
-                      }
+                              : s.metadata,
+                          }
+                          : s,
+                      ),
+                    }
                     : null,
                 }));
               } catch (_e) {
@@ -1455,23 +1439,23 @@ export function Build(): React.JSX.Element {
               useAppStore.setState((state) => ({
                 currentProject: state.currentProject
                   ? {
-                      ...state.currentProject,
-                      schemas: state.currentProject.schemas.map((s) =>
-                        s.id === schema.id
-                          ? {
-                              ...s,
-                              content: parsed,
-                              metadata: s.metadata
-                                ? {
-                                    ...s.metadata,
-                                    lastModified: new Date(),
-                                    fileSize: formatted.length,
-                                  }
-                                : s.metadata,
+                    ...state.currentProject,
+                    schemas: state.currentProject.schemas.map((s) =>
+                      s.id === schema.id
+                        ? {
+                          ...s,
+                          content: parsed,
+                          metadata: s.metadata
+                            ? {
+                              ...s.metadata,
+                              lastModified: new Date(),
+                              fileSize: formatted.length,
                             }
-                          : s,
-                      ),
-                    }
+                            : s.metadata,
+                        }
+                        : s,
+                    ),
+                  }
                   : null,
               }));
             } catch (e) {
@@ -1544,6 +1528,11 @@ export function Build(): React.JSX.Element {
     setRenameValue(item.name);
     setIsRenameDialogOpen(true);
   }, []);
+  const handleContextMenuMove = useCallback((item: TreeItem) => {
+    setContextMenuItem(item);
+    setMoveTargetFolder('');
+    setIsMoveDialogOpen(true);
+  }, []);
 
   const handleContextMenuDelete = useCallback((item: TreeItem) => {
     setContextMenuItem(item);
@@ -1610,15 +1599,15 @@ export function Build(): React.JSX.Element {
         useAppStore.setState((state) => ({
           currentProject: state.currentProject
             ? {
-                ...state.currentProject,
-                schemas: [...state.currentProject.schemas, newSchema],
-                schemaIds: [...state.currentProject.schemaIds, schemaId],
-                status: {
-                  ...state.currentProject.status,
-                  totalSchemas: state.currentProject.status.totalSchemas + 1,
-                  // New schema starts as pending, so no change to valid/invalid counts yet
-                },
-              }
+              ...state.currentProject,
+              schemas: [...state.currentProject.schemas, newSchema],
+              schemaIds: [...state.currentProject.schemaIds, schemaId],
+              status: {
+                ...state.currentProject.status,
+                totalSchemas: state.currentProject.status.totalSchemas + 1,
+                // New schema starts as pending, so no change to valid/invalid counts yet
+              },
+            }
             : null,
         }));
 
@@ -1653,27 +1642,27 @@ export function Build(): React.JSX.Element {
       useAppStore.setState((state) => ({
         currentProject: state.currentProject
           ? {
-              ...state.currentProject,
-              schemas: state.currentProject.schemas.filter(
-                (s) => s.id !== schemaToDelete.id,
-              ),
-              schemaIds: state.currentProject.schemaIds.filter(
-                (id) => id !== schemaToDelete.id,
-              ),
-              status: {
-                ...state.currentProject.status,
-                totalSchemas: state.currentProject.status.totalSchemas - 1,
-                // Adjust valid/invalid counts based on the deleted schema's validation status
-                validSchemas:
-                  schemaToDelete.validationStatus === 'valid'
-                    ? state.currentProject.status.validSchemas - 1
-                    : state.currentProject.status.validSchemas,
-                invalidSchemas:
-                  schemaToDelete.validationStatus === 'invalid'
-                    ? state.currentProject.status.invalidSchemas - 1
-                    : state.currentProject.status.invalidSchemas,
-              },
-            }
+            ...state.currentProject,
+            schemas: state.currentProject.schemas.filter(
+              (s) => s.id !== schemaToDelete.id,
+            ),
+            schemaIds: state.currentProject.schemaIds.filter(
+              (id) => id !== schemaToDelete.id,
+            ),
+            status: {
+              ...state.currentProject.status,
+              totalSchemas: state.currentProject.status.totalSchemas - 1,
+              // Adjust valid/invalid counts based on the deleted schema's validation status
+              validSchemas:
+                schemaToDelete.validationStatus === 'valid'
+                  ? state.currentProject.status.validSchemas - 1
+                  : state.currentProject.status.validSchemas,
+              invalidSchemas:
+                schemaToDelete.validationStatus === 'invalid'
+                  ? state.currentProject.status.invalidSchemas - 1
+                  : state.currentProject.status.invalidSchemas,
+            },
+          }
           : null,
       }));
 
@@ -1740,11 +1729,11 @@ export function Build(): React.JSX.Element {
       useAppStore.setState((state) => ({
         currentProject: state.currentProject
           ? {
-              ...state.currentProject,
-              schemas: state.currentProject.schemas.map((s) =>
-                s.id === schemaToRename.id ? updatedSchema : s,
-              ),
-            }
+            ...state.currentProject,
+            schemas: state.currentProject.schemas.map((s) =>
+              s.id === schemaToRename.id ? updatedSchema : s,
+            ),
+          }
           : null,
       }));
 
@@ -1820,6 +1809,103 @@ export function Build(): React.JSX.Element {
     } else {
       throw new Error(result.error || 'Delete failed');
     }
+  });
+
+  const handleMoveConfirm = safeAsyncHandler(async () => {
+    if (!contextMenuItem || !currentProject) return;
+    const sourceAbs = `${currentProject.path}/${contextMenuItem.path}`;
+
+    // Determine destination folder absolute path
+    let destFolderAbs: string;
+    if (moveTargetFolder && moveTargetFolder.trim()) {
+      destFolderAbs = `${currentProject.path}/${moveTargetFolder.replace(/^\/+|\/+$|\/+/g, (m) => (m.length > 1 ? '/' : ''))}`;
+    } else {
+      // Fallback to dialog
+      const pick = await (window as any).api.selectDestinationFolder('Select destination folder');
+      if (!pick?.success || !pick?.folderPath) {
+        throw new Error('No destination selected');
+      }
+      destFolderAbs = pick.folderPath;
+    }
+
+    // Build destination path
+    const baseName = contextMenuItem.type === 'schema'
+      ? `${contextMenuItem.name}.schema.json`
+      : contextMenuItem.name;
+    let destinationAbs = `${destFolderAbs}/${baseName}`.replace(/\/+/g, '/');
+
+    // Ensure unique for schemas using existing generator
+    if (contextMenuItem.type === 'schema') {
+      const destRelFolder = destFolderAbs.replace(currentProject.path + '/', '');
+      const uniqueName = await generateUniqueFileName(destRelFolder, `${contextMenuItem.name}.schema.json`);
+      destinationAbs = `${destFolderAbs}/${uniqueName}`;
+    }
+
+    const result = await (window as any).api.moveFile(sourceAbs, destinationAbs);
+    if (!result?.success) {
+      throw new Error(result?.error || 'Move failed');
+    }
+
+    // Update store: remove from old location and insert under new folder
+    setTreeItems((prev) => {
+      const removeItem = (items: TreeItem[]): { next: TreeItem[]; removed?: TreeItem } => {
+        let removed: TreeItem | undefined;
+        const next = items
+          .map((it) => {
+            if (it.id === contextMenuItem.id) {
+              removed = it;
+              return null;
+            }
+            if (it.children.length > 0) {
+              const res = removeItem(it.children);
+              if (res.removed) removed = res.removed;
+              return { ...it, children: res.next };
+            }
+            return it;
+          })
+          .filter(Boolean) as TreeItem[];
+        return { next, removed };
+      };
+
+      const insertUnder = (items: TreeItem[], folderPathRel: string, child: TreeItem): TreeItem[] => {
+        return items.map((it) => {
+          if (it.type === 'folder' && it.path === folderPathRel) {
+            const newChild = { ...child, path: `${folderPathRel}/${child.name}`.replace(/\/+/g, '/') };
+            return { ...it, expanded: true, children: [...it.children, newChild] };
+          }
+          if (it.children.length > 0) {
+            return { ...it, children: insertUnder(it.children, folderPathRel, child) };
+          }
+          return it;
+        });
+      };
+
+      const removedRes = removeItem(prev);
+      if (!removedRes.removed) return prev;
+      const destRelFolder = destFolderAbs.replace(currentProject.path + '/', '');
+      return insertUnder(removedRes.next, destRelFolder, removedRes.removed);
+    });
+
+    // Update currentProject schemas when moving a schema file
+    if (contextMenuItem.type === 'schema') {
+      const newRel = destinationAbs.replace(currentProject.path + '/', '');
+      useAppStore.setState((state) => ({
+        currentProject: state.currentProject
+          ? {
+              ...state.currentProject,
+              schemas: state.currentProject.schemas.map((s) =>
+                s.id === contextMenuItem.schema!.id
+                  ? { ...s, path: destinationAbs, relativePath: newRel }
+                  : s,
+              ),
+            }
+          : null,
+      }));
+    }
+
+    setIsMoveDialogOpen(false);
+    setContextMenuItem(null);
+    setMoveTargetFolder('');
   });
 
   // Enhanced file creation handlers with location support
@@ -2219,24 +2305,16 @@ export function Build(): React.JSX.Element {
             <div
               className={`flex items-center gap-2 py-1 px-2 hover:bg-accent/50 rounded-sm ${item.type === 'schema' ? 'cursor-default' : 'cursor-pointer'}`}
               style={indentStyle}
-              draggable={false}
-              onDragStart={(e) =>
-                item.type === 'schema' && handleDragStart(item, e)
-              }
-              onDragOver={(e) => handleDragOver(item, e)}
-              onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(item, e)}
-              onDragEnd={handleDragEnd}
-        onClick={() => {
-          if (item.type === 'folder') {
-            toggleTreeItem(item.id);
-            if (currentProject?.path) {
-              toggleFolderExpandedInStore(currentProject.path, item.path);
-            }
-          } else if (item.schema) {
-            openSchemaTab(item.schema);
-          }
-        }}
+              onClick={() => {
+                if (item.type === 'folder') {
+                  toggleTreeItem(item.id);
+                  if (currentProject?.path) {
+                    toggleFolderExpandedInStore(currentProject.path, item.path);
+                  }
+                } else if (item.schema) {
+                  openSchemaTab(item.schema);
+                }
+              }}
             >
               {hasChildren ? (
                 <Button
@@ -2247,7 +2325,10 @@ export function Build(): React.JSX.Element {
                     e.stopPropagation();
                     toggleTreeItem(item.id);
                     if (currentProject?.path) {
-                      toggleFolderExpandedInStore(currentProject.path, item.path);
+                      toggleFolderExpandedInStore(
+                        currentProject.path,
+                        item.path,
+                      );
                     }
                   }}
                 >
@@ -2297,6 +2378,10 @@ export function Build(): React.JSX.Element {
                   <FolderPlus className="w-4 h-4 mr-2" />
                   New Folder
                 </ContextMenuItem>
+                <ContextMenuItem onClick={() => handleContextMenuMove(item)}>
+                  <ArrowRight className="w-4 h-4 mr-2" />
+                  Move into this folder
+                </ContextMenuItem>
                 <ContextMenuSeparator />
                 <ContextMenuItem
                   onClick={() => handleContextMenuCreateTemplate(item)}
@@ -2312,6 +2397,10 @@ export function Build(): React.JSX.Element {
               Rename
             </ContextMenuItem>
             <ContextMenuSeparator />
+            <ContextMenuItem onClick={() => handleContextMenuMove(item)}>
+              <ArrowRight className="w-4 h-4 mr-2" />
+              Move…
+            </ContextMenuItem>
             <ContextMenuItem onClick={() => handleContextMenuCopyPath(item)}>
               <Copy className="w-4 h-4 mr-2" />
               Copy Path
@@ -2426,14 +2515,13 @@ export function Build(): React.JSX.Element {
                 className="w-full pl-8 pr-4 py-2 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
-            {/* drag hints disabled */}
           </div>
           <div className="flex-1 min-h-0 p-0 overflow-hidden">
             <ContextMenu>
               <ContextMenuTrigger asChild>
                 <ScrollArea className="h-full w-full px-3 overflow-auto">
                   {filteredTreeItems.length > 0 ? (
-                    <div className="space-y-1">
+                    <div className="space-y-1 min-w-max">
                       {filteredTreeItems.map((item) => renderTreeItem(item))}
                     </div>
                   ) : (
@@ -2448,6 +2536,7 @@ export function Build(): React.JSX.Element {
                       </div>
                     </div>
                   )}
+                  <ScrollBar orientation="horizontal" />
                 </ScrollArea>
               </ContextMenuTrigger>
               <ContextMenuContent className="w-56">
@@ -2591,7 +2680,7 @@ export function Build(): React.JSX.Element {
                             editorTabs.findIndex(
                               (t) => t.id === activeTabId,
                             ) ===
-                              editorTabs.length - 1
+                            editorTabs.length - 1
                           }
                         >
                           <ArrowRight className="w-4 h-4 mr-2" />
@@ -2662,25 +2751,25 @@ export function Build(): React.JSX.Element {
                               useAppStore.setState((state) => ({
                                 currentProject: state.currentProject
                                   ? {
-                                      ...state.currentProject,
-                                      schemas: state.currentProject.schemas.map(
-                                        (s) =>
-                                          s.id === tab.schema.id
-                                            ? {
-                                                ...s,
-                                                content: parsed,
-                                                metadata: s.metadata
-                                                  ? {
-                                                      ...s.metadata,
-                                                      lastModified: new Date(),
-                                                      fileSize:
-                                                        savedContent.length,
-                                                    }
-                                                  : s.metadata,
+                                    ...state.currentProject,
+                                    schemas: state.currentProject.schemas.map(
+                                      (s) =>
+                                        s.id === tab.schema.id
+                                          ? {
+                                            ...s,
+                                            content: parsed,
+                                            metadata: s.metadata
+                                              ? {
+                                                ...s.metadata,
+                                                lastModified: new Date(),
+                                                fileSize:
+                                                  savedContent.length,
                                               }
-                                            : s,
-                                      ),
-                                    }
+                                              : s.metadata,
+                                          }
+                                          : s,
+                                    ),
+                                  }
                                   : null,
                               }));
                               // Only update tab content if it's actually different from current tab content
@@ -2849,6 +2938,37 @@ export function Build(): React.JSX.Element {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+  {/* Move Dialog */}
+  <Dialog open={isMoveDialogOpen} onOpenChange={setIsMoveDialogOpen}>
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>
+          Move {contextMenuItem?.type === 'folder' ? 'Folder' : 'Schema'}
+        </DialogTitle>
+        <DialogDescription>
+          Choose destination folder within the project.
+        </DialogDescription>
+      </DialogHeader>
+      <div className="py-4 space-y-2">
+        <Input
+          placeholder="Destination relative folder (e.g. models/user)"
+          value={moveTargetFolder}
+          onChange={(e) => setMoveTargetFolder(e.target.value)}
+          autoFocus
+        />
+        <div className="text-xs text-muted-foreground">
+          Leave empty to pick using system folder dialog.
+        </div>
+      </div>
+      <DialogFooter>
+        <Button variant="outline" onClick={() => setIsMoveDialogOpen(false)}>
+          Cancel
+        </Button>
+        <Button onClick={handleMoveConfirm}>Move</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 
       {/* Create Schema Dialog */}
       <Dialog
@@ -3083,9 +3203,9 @@ export function Build(): React.JSX.Element {
                 <pre className="text-xs">
                   {templateSchemaName.trim()
                     ? getTemplatePreview(
-                        templateSchemaName.trim(),
-                        selectedTemplate,
-                      )
+                      templateSchemaName.trim(),
+                      selectedTemplate,
+                    )
                     : 'Enter a schema name to see preview'}
                 </pre>
               </div>
