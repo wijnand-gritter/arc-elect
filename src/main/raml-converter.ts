@@ -161,6 +161,25 @@ export class SimpleRamlParser {
       const header = this.parseRamlHeader(lines);
       collector.ramlHeader = header;
     }
+
+    // Detect if this is a Library or DataType file
+    const isLibrary = content.includes('#%RAML 1.0 Library');
+    const isDataType = content.includes('#%RAML 1.0 DataType');
+
+    if (isDataType && !isLibrary) {
+      // Handle DataType format (properties directly at root level)
+      return this.parseDataTypeFile(lines, filePath, collector);
+    } else {
+      // Handle Library format (types: section)
+      return this.parseLibraryFile(lines, filePath, collector);
+    }
+  }
+
+  private parseLibraryFile(
+    lines: string[],
+    filePath: string,
+    collector?: FileReportCollector,
+  ): RamlType[] {
     const types: RamlType[] = [];
     const inlineEnums: RamlType[] = [];
     let inTypes = false;
@@ -232,6 +251,90 @@ export class SimpleRamlParser {
     return types;
   }
 
+  private parseDataTypeFile(
+    lines: string[],
+    filePath: string,
+    collector?: FileReportCollector,
+  ): RamlType[] {
+    const types: RamlType[] = [];
+    const inlineEnums: RamlType[] = [];
+
+    // Extract type name from filename
+    const fileName = path.basename(filePath, '.raml');
+    const typeName = this.toPascalCase(fileName);
+
+    const currentType: any = {
+      name: typeName,
+      properties: {},
+      required: [],
+      isEnum: false,
+      enumValues: [],
+      description: '',
+    };
+
+    let inProperties = false;
+    let inEnum = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+
+      const indent = line.length - line.trimStart().length;
+
+      // Parse root-level attributes
+      if (indent === 0) {
+        if (trimmed.startsWith('description:')) {
+          currentType.description = trimmed.substring(12).trim();
+        } else if (trimmed === 'enum:') {
+          currentType.isEnum = true;
+          inEnum = true;
+        } else if (trimmed === 'properties:') {
+          inProperties = true;
+        }
+        continue;
+      }
+
+      // Parse enum values
+      if (inEnum && indent === 2 && trimmed.startsWith('- ')) {
+        const enumValue = trimmed.substring(2).trim().replace(/['"]/g, '');
+        currentType.enumValues.push(enumValue);
+        continue;
+      }
+
+      // Parse properties
+      if (inProperties && indent === 2 && trimmed.endsWith(':')) {
+        const propName = trimmed.slice(0, -1);
+        const isOptional = propName.endsWith('?');
+        const cleanPropName = propName.replace('?', '');
+        const propDetails = this.parsePropertyDetails(
+          lines,
+          i + 1,
+          currentType.name,
+          cleanPropName,
+          inlineEnums,
+          collector,
+          2, // Use different base indent for DataType format (properties start at 2, details at 4)
+        );
+        currentType.properties[cleanPropName] = {
+          type: propDetails.type || 'string',
+          description: propDetails.description || '',
+          format: propDetails.format,
+          items: propDetails.items,
+          $ref: propDetails.$ref,
+          originalType: propDetails.originalType,
+        };
+        if (!isOptional) {
+          currentType.required.push(cleanPropName);
+        }
+      }
+    }
+
+    types.push(currentType);
+    types.push(...inlineEnums);
+    return types;
+  }
+
   parsePropertyDetails(
     lines: string[],
     startIndex: number,
@@ -239,6 +342,7 @@ export class SimpleRamlParser {
     propertyName: string,
     inlineEnums: RamlType[],
     collector?: FileReportCollector,
+    baseIndent: number = 6, // Default for Library format
   ) {
     const details: any = {
       type: 'string',
@@ -264,14 +368,14 @@ export class SimpleRamlParser {
       const line = lines[i];
       const trimmed = line.trim();
       const indent = line.length - line.trimStart().length;
-      if (indent <= 6 && trimmed.endsWith(':')) break;
+      if (indent <= baseIndent && trimmed.endsWith(':')) break;
 
       // Capture relevant RAML lines for this property
-      if (indent >= 8) {
+      if (indent >= baseIndent + 2) {
         originalRamlLines.push(line.trim());
       }
 
-      if (indent === 8) {
+      if (indent === baseIndent + 2) {
         if (trimmed.startsWith('description:')) {
           details.description = trimmed.substring(12).trim();
         } else if (trimmed.startsWith('type:')) {
@@ -314,24 +418,48 @@ export class SimpleRamlParser {
           enumStartLine = i + 1;
         }
       }
-      if (hasInlineEnum && indent === 10 && trimmed.startsWith('- ')) {
+      if (
+        hasInlineEnum &&
+        indent === baseIndent + 4 &&
+        trimmed.startsWith('- ')
+      ) {
         const enumValue = trimmed.substring(2).trim().replace(/['"]/g, '');
         inlineEnumValues.push(enumValue);
       }
-      if (indent === 8 && trimmed === 'items:') {
-        for (let j = i + 1; j < lines.length; j++) {
-          const itemLine = lines[j];
-          const itemTrimmed = itemLine.trim();
-          const itemIndent = itemLine.length - itemLine.trimStart().length;
-          if (itemIndent === 10 && itemTrimmed.startsWith('type:')) {
-            const itemType = itemTrimmed.substring(5).trim();
-            details.items = {
-              type: this.mapRamlType(itemType),
-              $ref: this.getTypeReference(itemType),
-            };
-            break;
+      if (
+        indent === baseIndent + 2 &&
+        (trimmed === 'items:' || trimmed.startsWith('items:'))
+      ) {
+        // Handle both formats:
+        // Library format: items:\n    type: SomeType
+        // DataType format: items: !include some.raml
+
+        if (trimmed.startsWith('items:') && trimmed.length > 6) {
+          // DataType format: items: !include some.raml
+          const itemType = trimmed.substring(6).trim();
+          details.items = {
+            type: this.mapRamlType(itemType),
+            $ref: this.getTypeReference(itemType),
+          };
+        } else {
+          // Library format: items: followed by type: on next line
+          for (let j = i + 1; j < lines.length; j++) {
+            const itemLine = lines[j];
+            const itemTrimmed = itemLine.trim();
+            const itemIndent = itemLine.length - itemLine.trimStart().length;
+            if (
+              itemIndent === baseIndent + 4 &&
+              itemTrimmed.startsWith('type:')
+            ) {
+              const itemType = itemTrimmed.substring(5).trim();
+              details.items = {
+                type: this.mapRamlType(itemType),
+                $ref: this.getTypeReference(itemType),
+              };
+              break;
+            }
+            if (itemIndent <= baseIndent + 2) break;
           }
-          if (itemIndent <= 8) break;
         }
       }
     }
@@ -387,13 +515,13 @@ export class SimpleRamlParser {
         originalProperty: propertyName,
       };
       inlineEnums.push(inlineEnum);
-      details.$ref = `../common/enums/${enumTypeName}Enum.schema.json`;
+      details.$ref = `./common/enums/${enumTypeName}Enum.schema.json`;
       details.type = null;
       collector?.inlineEnums.push({
         parentType: parentTypeName,
         property: propertyName,
         newEnumName: enumTypeName,
-        file: `../common/enums/${enumTypeName}Enum.schema.json`,
+        file: `./common/enums/${enumTypeName}Enum.schema.json`,
         values: inlineEnumValues,
         ...(enumStartLine > 0
           ? {
@@ -452,6 +580,26 @@ export class SimpleRamlParser {
       'any',
     ];
     if (basicTypes.includes(cleanType)) return null;
+
+    // Handle !include directives (DataType format)
+    if (cleanType.startsWith('!include ')) {
+      const includePath = cleanType.substring(9).trim(); // Remove '!include '
+
+      // Extract filename without .raml extension
+      const fileName = path.basename(includePath, '.raml');
+
+      // Check if it's in enums directory
+      if (includePath.startsWith('enums/')) {
+        const base = applyNamingConvention(fileName, this.namingConvention);
+        return `./common/enums/${base}Enum.schema.json`;
+      }
+
+      // Regular business object reference
+      const base = applyNamingConvention(fileName, this.namingConvention);
+      return `./${base}.schema.json`;
+    }
+
+    // Handle library.type format (Library format)
     let typeName = cleanType;
     let libraryName = null;
     if (cleanType.includes('.')) {
@@ -462,7 +610,7 @@ export class SimpleRamlParser {
     // Apply configured naming convention to referenced filenames
     const base = applyNamingConvention(typeName, this.namingConvention);
     if (libraryName && libraryName.startsWith('enum')) {
-      return `../common/enums/${base}Enum.schema.json`;
+      return `./common/enums/${base}Enum.schema.json`;
     }
     return `./${base}.schema.json`;
   }
